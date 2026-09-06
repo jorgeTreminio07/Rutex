@@ -49,11 +49,7 @@ export function ProductsMobileList({ products, onEdit, onDelete }: ProductsMobil
                     <Badge variant="outline" className="text-[10px]">{product.category}</Badge>
                     <span className="text-xs text-muted-foreground">Stock: {product.stock}</span>
                   </div>
-                  <div className="mt-0.5 flex items-center gap-2">
-                    <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
-                      Compra C$ {Number(product.purchasePrice ?? 0).toFixed(2)}
-                    </span>
-                    <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1">
                       {hasDiscount && (
                         <span className="text-xs text-muted-foreground line-through">
                           C$ {product.price.toFixed(2)}
@@ -63,7 +59,6 @@ export function ProductsMobileList({ products, onEdit, onDelete }: ProductsMobil
                         C$ {finalPrice.toFixed(2)}
                       </span>
                     </div>
-                  </div>
                 </div>
                 <div className="flex items-center gap-0.5">
                   <Button

@@ -34,8 +34,7 @@ export function ProductsTable({ products, onEdit, onDelete }: ProductsTableProps
           <TableRow>
             <TableHead>Producto</TableHead>
             <TableHead>Categoría</TableHead>
-            <TableHead className="text-right">Compra</TableHead>
-            <TableHead className="text-right">Venta</TableHead>
+            <TableHead className="text-right">Precio</TableHead>
             <TableHead className="text-right">Stock</TableHead>
             <TableHead className="w-24 text-right">Acciones</TableHead>
           </TableRow>
@@ -74,9 +73,6 @@ export function ProductsTable({ products, onEdit, onDelete }: ProductsTableProps
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">{product.category}</Badge>
-                </TableCell>
-                <TableCell className="text-right text-muted-foreground">
-                  C$ {Number(product.purchasePrice ?? 0).toFixed(2)}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex flex-col items-end">

@@ -133,7 +133,7 @@ export function ProductFormDialog({
             />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3">
             <Field label="Precio compra (C$)" htmlFor="product-purchase-price" error={form.formState.errors.purchasePrice?.message}>
               <Input
                 id="product-purchase-price"
@@ -193,38 +193,36 @@ export function ProductFormDialog({
 
           <div className="flex flex-col gap-2">
             <Label>Imágenes</Label>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-[auto_1fr]">
-              <label
-                htmlFor="product-image-file"
-                className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/50"
-              >
-                {isUploading ? <Loader2Icon className="size-4 animate-spin" /> : <UploadCloudIcon className="size-4" />}
-                {isUploading ? "Subiendo…" : "Subir foto"}
-                <input
-                  id="product-image-file"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  disabled={isUploading}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) handleUpload(file)
-                    e.target.value = ""
-                  }}
-                />
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="…o pega una URL de imagen"
-                  className="h-10 rounded-xl flex-1"
-                />
-                <Button type="button" variant="outline" onClick={handleAddImage} disabled={isUploading}>
-                  Agregar
-                </Button>
-              </div>
+            <div className="flex gap-2">
+              <Input
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="…o pega una URL de imagen"
+                className="h-10 rounded-xl flex-1"
+              />
+              <Button type="button" variant="outline" onClick={handleAddImage} disabled={isUploading}>
+                Agregar
+              </Button>
             </div>
+            <label
+              htmlFor="product-image-file"
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/50"
+            >
+              {isUploading ? <Loader2Icon className="size-4 animate-spin" /> : <UploadCloudIcon className="size-4" />}
+              {isUploading ? "Subiendo…" : "Subir foto"}
+              <input
+                id="product-image-file"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={isUploading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleUpload(file)
+                  e.target.value = ""
+                }}
+              />
+            </label>
             {images.length > 0 && (
               <div className="grid grid-cols-4 gap-2">
                 {images.map((url, idx) => (
