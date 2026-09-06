@@ -1,0 +1,64 @@
+"use client"
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+
+import {
+  createOrderRequest,
+  deleteOrderRequest,
+  getOrdersRequest,
+  updateOrderStatusRequest,
+  type GetOrdersParams,
+} from "@/features/orders/api/orders.api"
+import { getApiErrorMessage } from "@/lib/api-client"
+
+export const ordersKeys = {
+  all: ["orders"] as const,
+  filtered: (params: GetOrdersParams) => ["orders", params] as const,
+}
+
+export function useOrders(params: GetOrdersParams = {}) {
+  return useQuery({
+    queryKey: ordersKeys.filtered(params),
+    queryFn: () => getOrdersRequest(params),
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: true,
+  })
+}
+
+export function useCreateOrder() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: createOrderRequest,
+    onSuccess: () => {
+      toast.success("Pedido creado correctamente")
+      queryClient.invalidateQueries({ queryKey: ordersKeys.all })
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error, "No se pudo crear el pedido")),
+  })
+}
+
+export function useUpdateOrderStatus() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, statusId }: { id: string; statusId: number }) =>
+      updateOrderStatusRequest(id, statusId),
+    onSuccess: () => {
+      toast.success("Pedido actualizado correctamente")
+      queryClient.invalidateQueries({ queryKey: ordersKeys.all })
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error, "No se pudo actualizar el pedido")),
+  })
+}
+
+export function useDeleteOrder() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => deleteOrderRequest(id),
+    onSuccess: () => {
+      toast.success("Pedido eliminado correctamente")
+      queryClient.invalidateQueries({ queryKey: ordersKeys.all })
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error, "No se pudo eliminar el pedido")),
+  })
+}

@@ -1,0 +1,23 @@
+export interface BankAccountDto {
+  id: string
+  bankName: string
+  currency: string
+  accountHolder: string
+  lastFourDigits: string
+  qrUrl: string | null
+}
+
+export interface StoreProfileDto {
+  id: string
+  name: string | null
+  ownerName: string | null
+  logoUrl: string | null
+  stampUrl: string | null
+  signatureUrl: string | null
+  ruc: string | null
+  email: string | null
+  address: string | null
+  phone: string | null
+  workingHours: string | null
+  bankAccounts: BankAccountDto[]
+}

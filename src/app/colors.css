@@ -1,0 +1,102 @@
+/*
+ * ================================================================
+ *  COLORS - Única fuente de verdad de todos los colores del sistema
+ * ================================================================
+ *  Cambia aquí los valores y se propagarán a TODOS los componentes.
+ *  Componentes/estilos usan tokens semánticos (--primary, --muted, ...)
+ *  o clases Tailwind derivadas (bg-primary, text-muted-foreground, ...).
+ *
+ *  Paleta por defecto: TEAL MÉDICO (clínica).
+ *  Para cambiar el color primario basta editar --primary y --ring.
+ * ================================================================
+ */
+
+:root {
+  --background: oklch(0.985 0.005 200);
+  --foreground: oklch(0.21 0.03 200);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.03 200);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.03 200);
+
+  --primary: oklch(0.55 0.12 195);
+  --primary-foreground: oklch(0.985 0.005 195);
+
+  --secondary: oklch(0.96 0.01 195);
+  --secondary-foreground: oklch(0.3 0.06 195);
+
+  --muted: oklch(0.96 0.01 195);
+  --muted-foreground: oklch(0.52 0.03 200);
+
+  --accent: oklch(0.95 0.02 195);
+  --accent-foreground: oklch(0.32 0.06 195);
+
+  --destructive: oklch(0.577 0.245 27.325);
+
+  --border: oklch(0.92 0.01 200);
+  --input: oklch(0.92 0.01 200);
+  --ring: oklch(0.6 0.1 195);
+
+  --chart-1: oklch(0.55 0.12 195);
+  --chart-2: oklch(0.7 0.1 195);
+  --chart-3: oklch(0.45 0.11 205);
+  --chart-4: oklch(0.65 0.12 175);
+  --chart-5: oklch(0.5 0.09 215);
+
+  --radius: 0.625rem;
+
+  --sidebar: oklch(0.985 0.005 200);
+  --sidebar-foreground: oklch(0.21 0.03 200);
+  --sidebar-primary: oklch(0.55 0.12 195);
+  --sidebar-primary-foreground: oklch(0.985 0.005 195);
+  --sidebar-accent: oklch(0.95 0.02 195);
+  --sidebar-accent-foreground: oklch(0.32 0.06 195);
+  --sidebar-border: oklch(0.92 0.01 200);
+  --sidebar-ring: oklch(0.6 0.1 195);
+}
+
+.dark {
+  --background: oklch(0.17 0.02 200);
+  --foreground: oklch(0.95 0.005 200);
+
+  --card: oklch(0.22 0.02 200);
+  --card-foreground: oklch(0.95 0.005 200);
+
+  --popover: oklch(0.22 0.02 200);
+  --popover-foreground: oklch(0.95 0.005 200);
+
+  --primary: oklch(0.75 0.1 195);
+  --primary-foreground: oklch(0.2 0.03 200);
+
+  --secondary: oklch(0.29 0.02 200);
+  --secondary-foreground: oklch(0.95 0.005 200);
+
+  --muted: oklch(0.29 0.02 200);
+  --muted-foreground: oklch(0.72 0.015 200);
+
+  --accent: oklch(0.29 0.03 200);
+  --accent-foreground: oklch(0.95 0.005 200);
+
+  --destructive: oklch(0.704 0.191 22.216);
+
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.75 0.1 195);
+
+  --chart-1: oklch(0.75 0.1 195);
+  --chart-2: oklch(0.6 0.1 195);
+  --chart-3: oklch(0.5 0.11 205);
+  --chart-4: oklch(0.7 0.12 175);
+  --chart-5: oklch(0.55 0.09 215);
+
+  --sidebar: oklch(0.22 0.02 200);
+  --sidebar-foreground: oklch(0.95 0.005 200);
+  --sidebar-primary: oklch(0.75 0.1 195);
+  --sidebar-primary-foreground: oklch(0.2 0.03 200);
+  --sidebar-accent: oklch(0.29 0.03 200);
+  --sidebar-accent-foreground: oklch(0.95 0.005 200);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.75 0.1 195);
+}
