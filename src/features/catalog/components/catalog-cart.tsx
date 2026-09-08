@@ -53,7 +53,6 @@ export function CatalogCart({
   const [paymentType, setPaymentType] = useState<PaymentType>("contado")
   const [errors, setErrors] = useState<{ name?: boolean; phone?: boolean }>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [proformaPhone, setProformaPhone] = useState("")
   const router = useRouter()
 
   const total = cartTotal(items)
@@ -98,7 +97,7 @@ export function CatalogCart({
 
         const msg = `Hola ${customerName.trim()}, le enviamos la *PROFORMA* de su pedido *${order?.orderNumber ?? ""}* por C$ ${total.toFixed(2)}.\n\nPuede descargarla aquí: ${uploaded.url}\n\n*Métodos de pago:*\n${bankAccounts.length > 0 ? bankAccounts.map((a) => `• ${a.bankName} (${a.currency}): ${a.accountNumber}`).join("\n") : "En efectivo al recibir."}\n\nQuedamos a la espera de su confirmación. ¡Gracias!`
 
-        const destPhone = sanitizePhoneNumber(proformaPhone.trim() || customerPhone.trim())
+        const destPhone = sanitizePhoneNumber(customerPhone.trim())
         window.open(`https://wa.me/${destPhone}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer")
       } else {
         window.open(
@@ -294,22 +293,6 @@ export function CatalogCart({
               </div>
             </div>
           </div>
-
-          {isAuthenticated && (
-            <div className="space-y-1.5">
-              <Label>
-                <PhoneIcon className="mr-1 inline size-3.5" />
-                Teléfono para compartir proforma por WhatsApp
-              </Label>
-              <Input
-                type="tel"
-                value={proformaPhone}
-                onChange={(e) => setProformaPhone(e.target.value)}
-                placeholder="Ej. 89098184 (dejar vacío para usar teléfono del cliente)"
-                className="h-10 rounded-xl"
-              />
-            </div>
-          )}
         </Card>
 
         <Card className="space-y-3 p-5">

@@ -23,6 +23,7 @@ function mapBankAccount(b: {
     bankName: b.bank_name,
     currency: b.currency ?? "C$",
     accountHolder: b.account_holder ?? "",
+    accountNumber: b.account_number,
     lastFourDigits: b.account_number.slice(-4) || "••••",
     qrUrl: b.qr_url,
   };

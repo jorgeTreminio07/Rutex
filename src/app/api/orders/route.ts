@@ -7,6 +7,7 @@ import {
   unauthorized,
 } from "@/lib/api-response"
 import { getSession } from "@/lib/server/auth"
+import { orderHasStock, type StockMap } from "@/features/orders/lib/stock"
 import { createClient } from "@/lib/supabase/server"
 
 // La tienda opera en Nicaragua (UTC-6, sin horario de verano).
@@ -60,20 +61,41 @@ export async function GET(request: Request) {
 
   if (error) return serverError(error)
 
+  const productIds = new Set<string>()
+  for (const order of data ?? []) {
+    for (const item of Array.isArray(order.items) ? order.items : []) {
+      if (item.productId) productIds.add(item.productId)
+    }
+  }
+
+  let stockMap: StockMap = {}
+  if (productIds.size > 0) {
+    const { data: products } = await supabase
+      .from("products")
+      .select("id, stock")
+      .in("id", [...productIds])
+    stockMap = Object.fromEntries((products ?? []).map((p) => [p.id, Number(p.stock ?? 0)]))
+  }
+
   return ok(
-    data.map((o) => ({
-      id: o.id,
-      orderNumber: o.order_number,
-      customerName: o.customer_name,
-      customerPhone: o.customer_phone,
-      items: Array.isArray(o.items) ? o.items : [],
-      total: Number(o.total),
-      statusId: o.status_id,
-      status: (o.order_statuses as unknown as { name: string })?.name || "En proceso",
-      paymentType: o.payment_type,
-      notes: o.notes,
-      createdAt: o.created_at,
-    })),
+    (data ?? []).map((o) => {
+      const items = Array.isArray(o.items) ? o.items : []
+      const canApprove = o.status_id === 5 && orderHasStock(items, stockMap)
+      return {
+        id: o.id,
+        orderNumber: o.order_number,
+        customerName: o.customer_name,
+        customerPhone: o.customer_phone,
+        items,
+        total: Number(o.total),
+        statusId: o.status_id,
+        status: (o.order_statuses as unknown as { name: string })?.name || "En proceso",
+        paymentType: o.payment_type,
+        notes: o.notes,
+        createdAt: o.created_at,
+        canApprove,
+      }
+    }),
   )
 }
 
@@ -122,6 +144,19 @@ export async function POST(request: Request) {
     return serverError(error)
   }
 
+  let createdCanApprove = false
+  const createdProductIds = [...new Set(items.map((item) => item.productId).filter(Boolean))] as string[]
+  if (createdProductIds.length > 0) {
+    const { data: createdProducts } = await supabase
+      .from("products")
+      .select("id, stock")
+      .in("id", createdProductIds)
+    const createdStockMap: StockMap = Object.fromEntries(
+      (createdProducts ?? []).map((p) => [p.id, Number(p.stock ?? 0)]),
+    )
+    createdCanApprove = orderHasStock(items, createdStockMap)
+  }
+
   return created({
     id: data.id,
     orderNumber: data.order_number,
@@ -134,5 +169,6 @@ export async function POST(request: Request) {
     paymentType: data.payment_type,
     notes: data.notes,
     createdAt: data.created_at,
+    canApprove: createdCanApprove,
   })
 }

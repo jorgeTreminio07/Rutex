@@ -15,6 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { uploadProformaRequest } from "@/features/catalog/api/catalog.api"
+import { generateProformaPdf } from "@/features/catalog/lib/proforma"
+import {
+  generateApprovalWhatsAppUrl,
+  generateRejectionWhatsAppUrl,
+  type BankAccountInfo,
+} from "@/features/catalog/lib/whatsapp"
 import { OrderDeleteDialog } from "@/features/orders/components/order-delete-dialog"
 import { OrderDetailDialog } from "@/features/orders/components/order-detail-dialog"
 import { OrdersMobileList } from "@/features/orders/components/orders-mobile-list"
@@ -24,6 +31,7 @@ import {
   useOrders,
   useUpdateOrderStatus,
 } from "@/features/orders/hooks/use-orders"
+import { useStore } from "@/features/store/hooks/use-store"
 import type { OrderStatusFilter } from "@/features/orders/api/orders.api"
 import type { OrderDto } from "@/types/interfaces/order.interface"
 
@@ -50,13 +58,57 @@ export function OrdersView() {
 
   const updateStatus = useUpdateOrderStatus()
   const deleteOrder = useDeleteOrder()
+  const { data: store } = useStore()
   const [deleting, setDeleting] = useState<OrderDto | null>(null)
   const [viewing, setViewing] = useState<OrderDto | null>(null)
+  const [sendingMessage, setSendingMessage] = useState(false)
+
+  const bankAccounts: BankAccountInfo[] = (store?.bankAccounts ?? []).map((a) => ({
+    bankName: a.bankName,
+    accountNumber: a.accountNumber,
+    accountHolder: a.accountHolder,
+    currency: a.currency,
+  }))
+
+  const sendApprovalMessage = async (order: OrderDto) => {
+    setSendingMessage(true)
+    try {
+      const pdf = generateProformaPdf({
+        storeName: store?.name ?? "Rutex",
+        storePhone: store?.phone ?? null,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone ?? "",
+        orderNumber: order.orderNumber,
+        items: order.items,
+        total: order.total,
+        paymentType: order.paymentType,
+        bankAccounts,
+      })
+
+      const blob = new Blob([pdf.output("blob")], { type: "application/pdf" })
+      const uploaded = await uploadProformaRequest(
+        blob,
+        order.customerName.replace(/\s+/g, "-"),
+      )
+
+      const url = generateApprovalWhatsAppUrl({
+        order,
+        bankAccounts,
+        proformaUrl: uploaded.url,
+      })
+      window.open(url, "_blank", "noopener,noreferrer")
+    } catch {
+      // El toast de error lo muestra el hook de la acción
+    } finally {
+      setSendingMessage(false)
+    }
+  }
 
   const handleApprove = async (order: OrderDto) => {
     try {
       await updateStatus.mutateAsync({ id: order.id, statusId: 6 })
       setViewing(null)
+      await sendApprovalMessage(order)
     } catch {
       // El toast de error lo muestra el hook
     }
@@ -66,6 +118,8 @@ export function OrdersView() {
     try {
       await updateStatus.mutateAsync({ id: order.id, statusId: 7 })
       setViewing(null)
+      const url = generateRejectionWhatsAppUrl(order)
+      window.open(url, "_blank", "noopener,noreferrer")
     } catch {
       // El toast de error lo muestra el hook
     }
@@ -147,7 +201,9 @@ export function OrdersView() {
         onApprove={handleApprove}
         onReject={handleReject}
         onDelete={setDeleting}
+        onSendApproval={sendApprovalMessage}
         isPending={updateStatus.isPending}
+        isSendingMessage={sendingMessage}
       />
 
       <OrderDeleteDialog

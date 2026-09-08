@@ -1,6 +1,6 @@
 "use client"
 
-import { CalendarIcon, ClipboardListIcon, CreditCardIcon, PhoneIcon, ShoppingBagIcon, Trash2Icon, UserIcon } from "lucide-react"
+import { CalendarIcon, ClipboardListIcon, CreditCardIcon, PhoneIcon, SendIcon, ShoppingBagIcon, Trash2Icon, UserIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -43,7 +43,9 @@ interface OrderDetailDialogProps {
   onApprove: (order: OrderDto) => void
   onReject: (order: OrderDto) => void
   onDelete: (order: OrderDto) => void
+  onSendApproval: (order: OrderDto) => void
   isPending: boolean
+  isSendingMessage: boolean
 }
 
 export function OrderDetailDialog({
@@ -52,7 +54,9 @@ export function OrderDetailDialog({
   onApprove,
   onReject,
   onDelete,
+  onSendApproval,
   isPending,
+  isSendingMessage,
 }: OrderDetailDialogProps) {
   return (
     <Dialog open={order !== null} onOpenChange={onOpenChange}>
@@ -127,6 +131,12 @@ export function OrderDetailDialog({
               </div>
             </div>
 
+            {order.statusId === 5 && !order.canApprove && (
+                <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+                  Hay productos sin stock suficiente; no se puede aprobar este pedido.
+                </p>
+              )}
+
             <DialogFooter>
               {order.statusId === 5 && (
                 <>
@@ -142,12 +152,25 @@ export function OrderDetailDialog({
                   <Button
                     type="button"
                     variant="default"
-                    disabled={isPending}
+                    disabled={isPending || !order.canApprove}
+                    title={order.canApprove ? undefined : "Sin stock suficiente para aprobar"}
                     onClick={() => onApprove(order)}
                   >
                     Aprobar
                   </Button>
                 </>
+              )}
+              {order.statusId === 6 && (
+                <Button
+                  type="button"
+                  variant="default"
+                  className="gap-2"
+                  disabled={isSendingMessage}
+                  onClick={() => onSendApproval(order)}
+                >
+                  <SendIcon className="size-4" />
+                  {isSendingMessage ? "Enviando…" : "Enviar mensaje"}
+                </Button>
               )}
               <Button
                 type="button"

@@ -13,6 +13,8 @@ interface RouteContext {
   params: Promise<{ id: string }>
 }
 
+type OrderItemRow = { productId?: string; productName?: string; quantity?: number }
+
 export async function PUT(request: Request, { params }: RouteContext) {
   const { id } = await params
   const guard = await requireAdmin()
@@ -39,27 +41,40 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
   if (!existing) return notFound("Pedido no encontrado")
 
-  // Al aprobar, descontar stock de los productos incluidos.
+  // Al aprobar, validar stock y descontarlo de los productos incluidos.
   if (statusId === 6 && existing.status_id === 5) {
-    const items = (existing.items ?? []) as Array<{ productId: string; quantity: number }>
+    const items = (existing.items ?? []) as OrderItemRow[]
+
+    const productIds = [...new Set(items.map((i) => i.productId).filter(Boolean))] as string[]
+    const { data: products = [] } = productIds.length
+      ? await supabase.from("products").select("id, name, stock").in("id", productIds)
+      : { data: [] as Array<{ id: string; name: string; stock: number }> }
+
+    const productById = new Map((products ?? []).map((p) => [p.id, p]))
+
+    for (const item of items) {
+      if (!item.productId) return badRequest("El pedido contiene productos sin identificar")
+      const product = productById.get(item.productId)
+      const available = product ? Number(product.stock ?? 0) : 0
+      if (!product || available < (item.quantity ?? 0)) {
+        const name = product?.name ?? "producto"
+        return badRequest(
+          `Sin stock suficiente para aprobar: ${name} (disponible ${available})`,
+        )
+      }
+    }
+
     for (const item of items) {
       if (!item.productId) continue
-      const { data: product } = await supabase
+      const product = productById.get(item.productId)
+      if (!product) continue
+      await supabase
         .from("products")
-        .select("stock")
+        .update({
+          stock: Math.max(0, Number(product.stock ?? 0) - (item.quantity ?? 0)),
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", item.productId)
-        .is("deleted_at", null)
-        .maybeSingle()
-
-      if (product) {
-        await supabase
-          .from("products")
-          .update({
-            stock: Math.max(0, (product.stock ?? 0) - (item.quantity ?? 0)),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", item.productId)
-      }
     }
   }
 
@@ -90,6 +105,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
     paymentType: data.payment_type,
     notes: data.notes,
     createdAt: data.created_at,
+    canApprove: false,
   })
 }
 

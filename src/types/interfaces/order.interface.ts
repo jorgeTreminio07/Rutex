@@ -20,6 +20,7 @@ export interface OrderDto {
   paymentType: PaymentType
   notes: string | null
   createdAt: string
+  canApprove: boolean
 }
 
 export interface CreateOrderPayload {

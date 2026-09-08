@@ -108,10 +108,11 @@ export interface ApprovalMessagePayload {
     createdAt?: string
   }
   bankAccounts?: BankAccountInfo[]
+  proformaUrl?: string
 }
 
 export function generateApprovalWhatsAppUrl(payload: ApprovalMessagePayload): string {
-  const { order, bankAccounts } = payload
+  const { order, bankAccounts, proformaUrl } = payload
   const customerPhoneClean = sanitizePhoneNumber(order.customerPhone || "")
   const solicitudNum = order.orderNumber || order.id.slice(0, 8)
   const paymentType = order.paymentType || "contado"
@@ -144,6 +145,10 @@ export function generateApprovalWhatsAppUrl(payload: ApprovalMessagePayload): st
       const periodLabel = paymentType === "cuotas_2" ? `Cuota ${i} (15 días)` : `Cuota ${i} (Semana ${i})`
       text += `• ${periodLabel}: ${formattedDate} - C$ ${quotaAmount.toFixed(2)}\n`
     }
+  }
+
+  if (proformaUrl) {
+    text += `\n*Proforma:*\n${proformaUrl}\n`
   }
 
   text += `\n*Métodos de Pago Aceptados:*\n`

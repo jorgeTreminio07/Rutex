@@ -3,6 +3,7 @@ export interface BankAccountDto {
   bankName: string
   currency: string
   accountHolder: string
+  accountNumber: string
   lastFourDigits: string
   qrUrl: string | null
 }
