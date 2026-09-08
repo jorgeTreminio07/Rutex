@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-import { PRIMARY_TABS, type NavItem } from "@/components/layout/navigation"
+import { MOBILE_TABS, type NavItem } from "@/components/layout/navigation"
 import { cn } from "@/lib/utils"
 
 function isTabActive(item: NavItem, pathname: string): boolean {
@@ -20,7 +20,7 @@ export function MobileTabBar() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       <div className="flex h-16 items-stretch">
-        {PRIMARY_TABS.map((tab) => {
+        {MOBILE_TABS.map((tab) => {
           const Icon = tab.icon
           const active = isTabActive(tab, pathname)
           return (

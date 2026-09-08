@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   const supabase = await createClient()
   let query = supabase
     .from("orders")
-    .select("id, order_number, customer_name, customer_phone, items, total, status_id, payment_type, notes, created_at, statuses!inner(name)")
+    .select("id, order_number, customer_name, customer_phone, items, total, status_id, payment_type, notes, created_at, order_statuses!inner(name)")
     .is("deleted_at", null)
 
   if (statusFilter && statusFilter !== "todos") {
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
       items: Array.isArray(o.items) ? o.items : [],
       total: Number(o.total),
       statusId: o.status_id,
-      status: (o.statuses as unknown as { name: string })?.name || "En proceso",
+      status: (o.order_statuses as unknown as { name: string })?.name || "En proceso",
       paymentType: o.payment_type,
       notes: o.notes,
       createdAt: o.created_at,

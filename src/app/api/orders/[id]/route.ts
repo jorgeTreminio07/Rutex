@@ -70,7 +70,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
-    .select("id, order_number, customer_name, customer_phone, items, total, status_id, payment_type, notes, created_at, statuses!inner(name)")
+    .select("id, order_number, customer_name, customer_phone, items, total, status_id, payment_type, notes, created_at, order_statuses!inner(name)")
     .single()
 
   if (error) {
@@ -86,7 +86,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
     items: Array.isArray(data.items) ? data.items : [],
     total: Number(data.total),
     statusId: data.status_id,
-    status: (data.statuses as unknown as { name: string })?.name || "En proceso",
+    status: (data.order_statuses as unknown as { name: string })?.name || "En proceso",
     paymentType: data.payment_type,
     notes: data.notes,
     createdAt: data.created_at,

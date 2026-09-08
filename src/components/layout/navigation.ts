@@ -31,6 +31,8 @@ export const NAV_CONFIG: NavItem = { label: "Configuración", href: "/configurac
 
 export const PRIMARY_TABS: NavItem[] = [NAV_HOME, NAV_INVENTORY, NAV_ORDERS, NAV_CATALOG, NAV_CONFIG]
 
+export const MOBILE_TABS: NavItem[] = [NAV_HOME, NAV_CONFIG, NAV_USERS]
+
 export const SIDEBAR_GROUPS: NavGroup[] = [
   {
     label: "Tienda",
