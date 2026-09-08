@@ -7,6 +7,12 @@ export interface BankAccountDto {
   qrUrl: string | null
 }
 
+export interface CityDto {
+  id: number
+  name: string
+  createdAt: string
+}
+
 export interface StoreProfileDto {
   id: string
   name: string | null

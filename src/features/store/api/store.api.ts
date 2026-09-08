@@ -1,6 +1,7 @@
 import { apiClient } from "@/lib/api-client"
 import type {
   BankAccountDto,
+  CityDto,
   StoreProfileDto,
 } from "@/types/interfaces/store.interface"
 
@@ -101,4 +102,16 @@ export async function updateBankAccountRequest(
 
 export async function deleteBankAccountRequest(id: string): Promise<void> {
   return apiClient.delete(`/api/store/bank-accounts/${id}`)
+}
+
+export async function getCitiesRequest(): Promise<CityDto[]> {
+  return apiClient.get<CityDto[]>("/api/cities")
+}
+
+export async function addCityRequest(payload: { name: string }): Promise<CityDto> {
+  return apiClient.post<CityDto>("/api/cities", payload)
+}
+
+export async function deleteCityRequest(id: number): Promise<void> {
+  return apiClient.delete(`/api/cities/${id}`)
 }

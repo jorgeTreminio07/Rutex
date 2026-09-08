@@ -1,6 +1,7 @@
 "use client"
 
 import { BankAccountsSection } from "@/features/store/components/bank-accounts-section"
+import { CitiesSection } from "@/features/store/components/cities-section"
 import { StoreForm } from "@/features/store/components/store-form"
 import { useStore, useUpdateStore } from "@/features/store/hooks/use-store"
 import type { StoreFormValues } from "@/features/store/validations/store.schema"
@@ -35,6 +36,7 @@ export function StoreSettingsView() {
 
       <StoreForm store={store ?? undefined} isPending={updateStore.isPending} onSubmit={handleSubmit} />
       <BankAccountsSection accounts={store?.bankAccounts ?? []} />
+      <CitiesSection />
     </div>
   )
 }

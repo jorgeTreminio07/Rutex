@@ -5,7 +5,10 @@ import { toast } from "sonner"
 
 import {
   addBankAccountRequest,
+  addCityRequest,
   deleteBankAccountRequest,
+  deleteCityRequest,
+  getCitiesRequest,
   getStoreProfileRequest,
   updateBankAccountRequest,
   updateStoreProfileRequest,
@@ -71,5 +74,40 @@ export function useDeleteBankAccount() {
       queryClient.invalidateQueries({ queryKey: storeKeys.all })
     },
     onError: (error) => toast.error(getApiErrorMessage(error, "No se pudo eliminar la cuenta bancaria")),
+  })
+}
+
+export const citiesKeys = {
+  all: ["cities"] as const,
+}
+
+export function useCities() {
+  return useQuery({
+    queryKey: citiesKeys.all,
+    queryFn: getCitiesRequest,
+  })
+}
+
+export function useAddCity() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { name: string }) => addCityRequest(payload),
+    onSuccess: () => {
+      toast.success("Ciudad agregada correctamente")
+      queryClient.invalidateQueries({ queryKey: citiesKeys.all })
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error, "No se pudo agregar la ciudad")),
+  })
+}
+
+export function useDeleteCity() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteCityRequest(id),
+    onSuccess: () => {
+      toast.success("Ciudad eliminada correctamente")
+      queryClient.invalidateQueries({ queryKey: citiesKeys.all })
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error, "No se pudo eliminar la ciudad")),
   })
 }
