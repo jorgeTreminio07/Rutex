@@ -38,6 +38,15 @@ function parse(value: string): Date | null {
   return new Date(y, m - 1, d)
 }
 
+// La tienda opera en Nicaragua (UTC-6, sin horario de verano).
+// El "hoy" del calendario se calcula restando 6 horas a la hora actual,
+// y se representa como un Date local con ese mismo día calendario.
+function nicaToday(): Date {
+  const shifted = new Date(Date.now() - 6 * 60 * 60 * 1000)
+  const [y, m, d] = shifted.toISOString().slice(0, 10).split("-").map(Number)
+  return new Date(y, m - 1, d)
+}
+
 interface DatePickerProps {
   value: string
   onChange: (value: string) => void
@@ -47,10 +56,10 @@ interface DatePickerProps {
 
 export function DatePicker({ value, onChange, placeholder = "Seleccionar fecha", className }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
-  const [view, setView] = React.useState<Date>(() => startOfMonth(parse(value) ?? new Date()))
+  const [view, setView] = React.useState<Date>(() => startOfMonth(parse(value) ?? nicaToday()))
 
   const selected = parse(value)
-  const today = new Date()
+  const today = nicaToday()
 
   const year = view.getFullYear()
   const month = view.getMonth()
@@ -74,7 +83,7 @@ export function DatePicker({ value, onChange, placeholder = "Seleccionar fecha",
   const handleOpenChange = (next: boolean) => {
     setOpen(next)
     if (next) {
-      setView(startOfMonth(parse(value) ?? new Date()))
+      setView(startOfMonth(parse(value) ?? nicaToday()))
     }
   }
 
@@ -157,7 +166,7 @@ export function DatePicker({ value, onChange, placeholder = "Seleccionar fecha",
             <div className="mt-2 flex items-center justify-between border-t pt-2">
               <button
                 type="button"
-                onClick={() => handleSelect(new Date())}
+                onClick={() => handleSelect(nicaToday())}
                 className="rounded-lg px-2 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
               >
                 Hoy

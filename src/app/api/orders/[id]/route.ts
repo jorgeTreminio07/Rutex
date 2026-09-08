@@ -8,6 +8,8 @@ import {
 } from "@/lib/api-response"
 import { requireAdmin } from "@/lib/server/guards"
 import { createClient } from "@/lib/supabase/server"
+import { recomputePagoEstado } from "@/app/api/cartera/helpers"
+import { buildAbonoPlan } from "@/features/cartera/lib/pagos"
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -34,7 +36,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
   const { data: existing } = await supabase
     .from("orders")
-    .select("id, status_id, items")
+    .select("id, status_id, items, total, payment_type")
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle()
@@ -75,6 +77,33 @@ export async function PUT(request: Request, { params }: RouteContext) {
           updated_at: new Date().toISOString(),
         })
         .eq("id", item.productId)
+    }
+
+    // Alta en cartera: fila de pago (Pendiente) + plan de abonos según
+    // la modalidad de pago (una sola vez).
+    const { data: existingPago } = await supabase
+      .from("pagos")
+      .select("order_id")
+      .eq("order_id", id)
+      .maybeSingle()
+
+    if (!existingPago) {
+      await supabase.from("pagos").insert({ order_id: id, estado_pago_id: 1 })
+
+      const plan = buildAbonoPlan(String(existing.payment_type ?? "contado"), Number(existing.total ?? 0))
+      if (plan.length > 0) {
+        await supabase.from("abonos").insert(
+          plan.map((abono) => ({
+            order_id: id,
+            fecha_a_abonar: abono.fecha,
+            monto_a_abonar: abono.monto,
+            abonado: 0,
+            pagado: false,
+          })),
+        )
+      }
+
+      await recomputePagoEstado(supabase, id)
     }
   }
 

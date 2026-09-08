@@ -1,5 +1,6 @@
 import {
   ClipboardListIcon,
+  HandCoinsIcon,
   HomeIcon,
   PackageIcon,
   SettingsIcon,
@@ -24,6 +25,7 @@ export interface NavGroup {
 export const NAV_HOME: NavItem = { label: "Inicio", href: "/", icon: HomeIcon }
 export const NAV_INVENTORY: NavItem = { label: "Inventario", href: "/inventario", icon: PackageIcon }
 export const NAV_ORDERS: NavItem = { label: "Pedidos", href: "/pedidos", icon: ClipboardListIcon }
+export const NAV_CARTERA: NavItem = { label: "Cartera", href: "/cartera", icon: HandCoinsIcon }
 export const NAV_CATALOG: NavItem = { label: "Catálogo", href: "/catalogo", icon: ShoppingBagIcon }
 export const NAV_USERS: NavItem = { label: "Usuarios", href: "/usuarios", icon: UsersIcon }
 export const NAV_ROLES: NavItem = { label: "Roles", href: "/usuarios/roles", icon: ShieldCheckIcon }
@@ -37,7 +39,7 @@ export const SIDEBAR_GROUPS: NavGroup[] = [
   {
     label: "Tienda",
     icon: ShoppingBagIcon,
-    items: [NAV_INVENTORY, NAV_ORDERS, NAV_CATALOG],
+    items: [NAV_INVENTORY, NAV_ORDERS, NAV_CARTERA, NAV_CATALOG],
   },
   {
     label: "Usuarios",
