@@ -41,9 +41,21 @@ function SidebarLink({
 export function Sidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
-  const [usersOpen, setUsersOpen] = useState(true)
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const active = SIDEBAR_GROUPS.filter((g) => g.items.some((i) => pathname === i.href)).map((g) => g.label)
+    return new Set(active.length > 0 ? active : ["Usuarios"])
+  })
   const { data: store } = useStore()
   const brandName = store?.name ?? "Rutex"
+
+  const toggleGroup = (label: string) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(label)) next.delete(label)
+      else next.add(label)
+      return next
+    })
+  }
 
   return (
     <aside
@@ -79,8 +91,8 @@ export function Sidebar() {
             <div key={group.label} className="flex w-full flex-col gap-1">
               <button
                 type="button"
-                onClick={() => setUsersOpen((open) => !open)}
-                aria-expanded={usersOpen}
+                onClick={() => toggleGroup(group.label)}
+                aria-expanded={openGroups.has(group.label)}
                 title={collapsed ? group.label : undefined}
                 aria-label={collapsed ? group.label : undefined}
                 className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
@@ -92,13 +104,13 @@ export function Sidebar() {
                     <ChevronDownIcon
                       className={cn(
                         "ml-auto size-4 transition-transform duration-200",
-                        usersOpen && "rotate-180",
+                        openGroups.has(group.label) && "rotate-180",
                       )}
                     />
                   </>
                 )}
               </button>
-              {usersOpen && (
+              {openGroups.has(group.label) && (
                 <div className={cn("flex flex-col gap-1", !collapsed && "ml-3 border-l pl-3")}>
                   {group.items.map((item) => (
                     <SidebarLink

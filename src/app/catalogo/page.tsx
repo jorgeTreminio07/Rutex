@@ -16,7 +16,7 @@ export default function CatalogoPage() {
     if (user) router.prefetch("/")
   }, [user, router])
 
-  const content = <CatalogView isAuthenticated={isAuthenticated} />
+  const content = <CatalogView />
 
   if (isAuthenticated) {
     return <DashboardShell>{content}</DashboardShell>

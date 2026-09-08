@@ -1,6 +1,6 @@
 "use client"
 
-import { Trash2Icon } from "lucide-react"
+import { EyeIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -33,12 +33,10 @@ function getStatusVariant(status: string): "default" | "secondary" | "destructiv
 
 interface OrdersTableProps {
   orders: OrderDto[]
-  onApprove: (order: OrderDto) => void
-  onReject: (order: OrderDto) => void
-  onDelete: (order: OrderDto) => void
+  onView: (order: OrderDto) => void
 }
 
-export function OrdersTable({ orders, onApprove, onReject, onDelete }: OrdersTableProps) {
+export function OrdersTable({ orders, onView }: OrdersTableProps) {
   const { rows, page, totalItems, pageSize, setPage } = usePaged(orders, PAGE_SIZE)
 
   return (
@@ -51,12 +49,12 @@ export function OrdersTable({ orders, onApprove, onReject, onDelete }: OrdersTab
             <TableHead className="text-right">Total</TableHead>
             <TableHead className="w-28">Estado</TableHead>
             <TableHead>Fecha</TableHead>
-            <TableHead className="w-32 text-right">Acciones</TableHead>
+            <TableHead className="w-12 text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((order) => (
-            <TableRow key={order.id}>
+            <TableRow key={order.id} className="cursor-pointer" onClick={() => onView(order)}>
               <TableCell>
                 <span className="font-mono text-sm font-medium">
                   {order.orderNumber || "—"}
@@ -80,35 +78,17 @@ export function OrdersTable({ orders, onApprove, onReject, onDelete }: OrdersTab
                 {new Date(order.createdAt).toLocaleDateString("es-NI")}
               </TableCell>
               <TableCell>
-                <div className="flex justify-end gap-1">
-                  {order.statusId === 5 && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-green-600 hover:text-green-600"
-                        onClick={() => onApprove(order)}
-                      >
-                        Aprobar
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => onReject(order)}
-                      >
-                        Rechazar
-                      </Button>
-                    </>
-                  )}
+                <div className="flex justify-end">
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => onDelete(order)}
-                    aria-label={`Eliminar pedido ${order.orderNumber}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onView(order)
+                    }}
+                    aria-label={`Ver detalle del pedido ${order.orderNumber}`}
                   >
-                    <Trash2Icon />
+                    <EyeIcon />
                   </Button>
                 </div>
               </TableCell>

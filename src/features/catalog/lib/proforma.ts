@@ -76,7 +76,7 @@ export function generateProformaPdf(data: ProformaData): jsPDF {
   const tableLeft = margin
   let colX = tableLeft
   const colWidths: Array<[string, number]> = [
-    ["Descripción", pageWidth - margin - (margin + 42 + 34)],
+    ["Producto", pageWidth - margin - (margin + 42 + 34)],
     ["Cant.", 42],
     ["Importe", 34],
   ]

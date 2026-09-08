@@ -1,7 +1,6 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
 import { usePaged } from "@/lib/use-paged"
@@ -24,12 +23,10 @@ function getStatusVariant(status: string): "default" | "secondary" | "destructiv
 
 interface OrdersMobileListProps {
   orders: OrderDto[]
-  onApprove: (order: OrderDto) => void
-  onReject: (order: OrderDto) => void
-  onDelete: (order: OrderDto) => void
+  onView: (order: OrderDto) => void
 }
 
-export function OrdersMobileList({ orders, onApprove, onReject, onDelete }: OrdersMobileListProps) {
+export function OrdersMobileList({ orders, onView }: OrdersMobileListProps) {
   const { rows, page, totalItems, pageSize, setPage } = usePaged(orders, PAGE_SIZE)
 
   return (
@@ -37,7 +34,7 @@ export function OrdersMobileList({ orders, onApprove, onReject, onDelete }: Orde
       <ul className="flex flex-col gap-2.5">
         {rows.map((order) => (
           <li key={order.id}>
-            <Card className="p-3">
+            <Card className="cursor-pointer p-3 transition-colors hover:bg-muted/50" onClick={() => onView(order)}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -55,36 +52,6 @@ export function OrdersMobileList({ orders, onApprove, onReject, onDelete }: Orde
                 <div className="text-right shrink-0">
                   <p className="font-semibold">C$ {order.total.toFixed(2)}</p>
                 </div>
-              </div>
-              {order.statusId === 5 && (
-                <div className="flex gap-2 mt-3 pt-3 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-green-600 border-green-200 hover:bg-green-50"
-                    onClick={() => onApprove(order)}
-                  >
-                    Aprobar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-destructive border-destructive/20 hover:bg-destructive/5"
-                    onClick={() => onReject(order)}
-                  >
-                    Rechazar
-                  </Button>
-                </div>
-              )}
-              <div className="flex justify-end mt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => onDelete(order)}
-                >
-                  Eliminar
-                </Button>
               </div>
             </Card>
           </li>

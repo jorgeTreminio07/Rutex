@@ -61,9 +61,13 @@ export function CatalogProductCard({
           )}
         </div>
 
-        {outOfStock && (
+        {outOfStock ? (
           <span className="absolute top-2 right-2 rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground">
             Agotado
+          </span>
+        ) : (
+          <span className="absolute top-2 right-2 rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-foreground backdrop-blur">
+            {product.stock}
           </span>
         )}
       </div>
@@ -107,7 +111,7 @@ export function CatalogProductCard({
                   e.stopPropagation()
                   onIncrement()
                 }}
-                disabled={outOfStock}
+                disabled={outOfStock || quantity >= product.stock}
                 aria-label={`Agregar ${product.name}`}
               >
                 <PlusIcon />
@@ -117,7 +121,7 @@ export function CatalogProductCard({
             <Button
               size="sm"
               variant="outline"
-              disabled={outOfStock}
+              disabled={outOfStock || quantity >= product.stock}
               onClick={(e) => {
                 e.stopPropagation()
                 onAdd()

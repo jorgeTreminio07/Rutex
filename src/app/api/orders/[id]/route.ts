@@ -102,12 +102,36 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
 
   const { data: existing } = await supabase
     .from("orders")
-    .select("id")
+    .select("id, status_id, items")
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle()
 
   if (!existing) return notFound("Pedido no encontrado")
+
+  // Si el pedido estaba aprobado, devolver el stock a los productos.
+  if (existing.status_id === 6) {
+    const items = (existing.items ?? []) as Array<{ productId: string; quantity: number }>
+    for (const item of items) {
+      if (!item.productId) continue
+      const { data: product } = await supabase
+        .from("products")
+        .select("stock")
+        .eq("id", item.productId)
+        .is("deleted_at", null)
+        .maybeSingle()
+
+      if (product) {
+        await supabase
+          .from("products")
+          .update({
+            stock: (product.stock ?? 0) + (item.quantity ?? 0),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", item.productId)
+      }
+    }
+  }
 
   const { error } = await supabase
     .from("orders")

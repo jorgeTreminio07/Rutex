@@ -9,6 +9,15 @@ import {
 import { getSession } from "@/lib/server/auth"
 import { createClient } from "@/lib/supabase/server"
 
+// La tienda opera en Nicaragua (UTC-6, sin horario de verano).
+// Un día local va de las 06:00 UTC a las 06:00 UTC del día siguiente.
+function nicaraguaDayRange(dateStr: string): { start: string; end: string } {
+  const [y, m, d] = dateStr.split("-").map(Number)
+  const start = new Date(Date.UTC(y, m - 1, d, 6, 0, 0))
+  const end = new Date(start.getTime() + 86_400_000)
+  return { start: start.toISOString(), end: end.toISOString() }
+}
+
 export async function GET(request: Request) {
   const session = await getSession()
   if (!session) {
@@ -37,7 +46,8 @@ export async function GET(request: Request) {
   }
 
   if (dateFilter) {
-    query = query.gte("created_at", `${dateFilter}T00:00:00z`).lt("created_at", `${dateFilter}T23:59:59z`)
+    const { start, end } = nicaraguaDayRange(dateFilter)
+    query = query.gte("created_at", start).lt("created_at", end)
   }
 
   if (search) {
@@ -85,8 +95,12 @@ export async function POST(request: Request) {
 
   const supabase = await createClient()
 
-  const now = new Date()
-  const orderNumber = `PED-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(Math.floor(Math.random() * 9000) + 1000)}`
+  const { data: nextNumber, error: seqError } = await supabase.rpc("next_order_number")
+  if (seqError || typeof nextNumber !== "string") {
+    if (seqError?.code === "42501") return forbidden()
+    return serverError(seqError ?? new Error("No se pudo generar el número de pedido"))
+  }
+  const orderNumber = nextNumber
 
   const { data, error } = await supabase
     .from("orders")

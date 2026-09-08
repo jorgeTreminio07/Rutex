@@ -2,6 +2,7 @@
 
 import { CreditCardIcon, MinusIcon, PhoneIcon, PlusIcon, SendIcon, ShoppingBagIcon, Trash2Icon, UserIcon } from "lucide-react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,6 +22,7 @@ import { uploadProformaRequest } from "@/features/catalog/api/catalog.api"
 import type { CartLine } from "@/features/catalog/store/use-cart-store"
 import type { PaymentType } from "@/types/interfaces/order.interface"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 interface CatalogCartProps {
   items: CartLine[]
@@ -49,40 +51,25 @@ export function CatalogCart({
   const [customerName, setCustomerName] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
   const [paymentType, setPaymentType] = useState<PaymentType>("contado")
-  const [isGeneratingProforma, setIsGeneratingProforma] = useState(false)
+  const [errors, setErrors] = useState<{ name?: boolean; phone?: boolean }>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [proformaPhone, setProformaPhone] = useState("")
+  const router = useRouter()
 
   const total = cartTotal(items)
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0)
 
-  const valid = customerName.trim().length > 2 && customerPhone.trim().length >= 8
+  const validName = customerName.trim().length > 2
+  const validPhone = customerPhone.trim().length >= 8
 
   const handlePlaceOrder = async () => {
-    if (!valid) return
-    const orderItems = cartToOrderItems(items)
-    const order = await createOrder.mutateAsync({
-      customerName: customerName.trim(),
-      customerPhone: customerPhone.trim(),
-      items: orderItems,
-      total,
-      paymentType,
-    })
-    if (order) {
-      const url = generateOrderWhatsAppUrl({
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
-        items: orderItems,
-        total,
-        orderNumber: order.orderNumber ?? undefined,
-        paymentType,
-        targetPhoneNumber: storePhone ?? undefined,
-      })
-      window.open(url, "_blank", "noopener,noreferrer")
-    }
-  }
+    const nextErrors: { name?: boolean; phone?: boolean } = {}
+    if (!validName) nextErrors.name = true
+    if (!validPhone) nextErrors.phone = true
+    setErrors(nextErrors)
+    if (nextErrors.name || nextErrors.phone || isSubmitting) return
 
-  const handleSendProforma = async () => {
-    if (!valid) return
-    setIsGeneratingProforma(true)
+    setIsSubmitting(true)
     try {
       const orderItems = cartToOrderItems(items)
       const order = await createOrder.mutateAsync({
@@ -93,27 +80,48 @@ export function CatalogCart({
         paymentType,
       })
 
-      const pdf = generateProformaPdf({
-        storeName,
-        storePhone,
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
-        orderNumber: order?.orderNumber,
-        items: orderItems,
-        total,
-        paymentType,
-        bankAccounts,
-      })
+      if (isAuthenticated) {
+        const pdf = generateProformaPdf({
+          storeName,
+          storePhone,
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim(),
+          orderNumber: order?.orderNumber ?? null,
+          items: orderItems,
+          total,
+          paymentType,
+          bankAccounts,
+        })
 
-      const blob = new Blob([pdf.output("blob")], { type: "application/pdf" })
-      const uploaded = await uploadProformaRequest(blob, customerName.trim().replace(/\s+/g, "-"))
+        const blob = new Blob([pdf.output("blob")], { type: "application/pdf" })
+        const uploaded = await uploadProformaRequest(blob, customerName.trim().replace(/\s+/g, "-"))
 
-      const msg = `Hola ${customerName.trim()}, le enviamos la *PROFORMA* de su pedido *${order?.orderNumber ?? ""}* por C$ ${total.toFixed(2)}.\n\nPuede descargarla aquí: ${uploaded.url}\n\n*Métodos de pago:*\n${bankAccounts.length > 0 ? bankAccounts.map((a) => `• ${a.bankName} (${a.currency}): ${a.accountNumber}`).join("\n") : "En efectivo al recibir."}\n\nQuedamos a la espera de su confirmación. ¡Gracias!`
+        const msg = `Hola ${customerName.trim()}, le enviamos la *PROFORMA* de su pedido *${order?.orderNumber ?? ""}* por C$ ${total.toFixed(2)}.\n\nPuede descargarla aquí: ${uploaded.url}\n\n*Métodos de pago:*\n${bankAccounts.length > 0 ? bankAccounts.map((a) => `• ${a.bankName} (${a.currency}): ${a.accountNumber}`).join("\n") : "En efectivo al recibir."}\n\nQuedamos a la espera de su confirmación. ¡Gracias!`
 
-      const destPhone = sanitizePhoneNumber(customerPhone.trim())
-      window.open(`https://wa.me/${destPhone}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer")
+        const destPhone = sanitizePhoneNumber(proformaPhone.trim() || customerPhone.trim())
+        window.open(`https://wa.me/${destPhone}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer")
+      } else {
+        window.open(
+          generateOrderWhatsAppUrl({
+            customerName: customerName.trim(),
+            customerPhone: customerPhone.trim(),
+            items: orderItems,
+            total,
+            orderNumber: order?.orderNumber ?? undefined,
+            paymentType,
+            targetPhoneNumber: storePhone ?? undefined,
+          }),
+          "_blank",
+          "noopener,noreferrer",
+        )
+      }
+
+      onClear()
+      router.push("/catalogo")
+    } catch {
+      toast.error("No se pudo completar el pedido. Intenta de nuevo.")
     } finally {
-      setIsGeneratingProforma(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -214,10 +222,15 @@ export function CatalogCart({
               <Input
                 id="cc-name"
                 value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
+                onChange={(e) => {
+                  setCustomerName(e.target.value)
+                  setErrors((prev) => ({ ...prev, name: false }))
+                }}
                 placeholder="Ej. Juan Pérez"
                 className="h-10 rounded-xl"
+                aria-invalid={!!errors.name}
               />
+              {errors.name && <p className="text-xs text-destructive">Ingresa tu nombre completo.</p>}
             </div>
 
             <div className="space-y-1.5">
@@ -229,14 +242,19 @@ export function CatalogCart({
                 id="cc-phone"
                 type="tel"
                 value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
+                onChange={(e) => {
+                  setCustomerPhone(e.target.value)
+                  setErrors((prev) => ({ ...prev, phone: false }))
+                }}
                 placeholder="Ej. 89098184"
                 className="h-10 rounded-xl"
+                aria-invalid={!!errors.phone}
               />
+              {errors.phone && <p className="text-xs text-destructive">Ingresa un teléfono válido (mínimo 8 dígitos).</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="cc-payment">
                 <CreditCardIcon className="mr-1 inline size-3.5" />
                 Modalidad de pago
               </Label>
@@ -276,6 +294,22 @@ export function CatalogCart({
               </div>
             </div>
           </div>
+
+          {isAuthenticated && (
+            <div className="space-y-1.5">
+              <Label>
+                <PhoneIcon className="mr-1 inline size-3.5" />
+                Teléfono para compartir proforma por WhatsApp
+              </Label>
+              <Input
+                type="tel"
+                value={proformaPhone}
+                onChange={(e) => setProformaPhone(e.target.value)}
+                placeholder="Ej. 89098184 (dejar vacío para usar teléfono del cliente)"
+                className="h-10 rounded-xl"
+              />
+            </div>
+          )}
         </Card>
 
         <Card className="space-y-3 p-5">
@@ -294,32 +328,17 @@ export function CatalogCart({
             </div>
           </div>
 
-          {!isAuthenticated ? (
-            <Button className="w-full gap-2" size="lg" disabled={!valid} onClick={handlePlaceOrder}>
-              <SendIcon className="size-4" />
-              Pedir por WhatsApp
-            </Button>
-          ) : (
-            <div className="grid grid-cols-1 gap-2">
-              <Button className="w-full gap-2" size="lg" disabled={!valid} onClick={handlePlaceOrder}>
-                <SendIcon className="size-4" />
-                Agregar pedido
-              </Button>
-              <Button
-                className="w-full gap-2"
-                size="lg"
-                variant="outline"
-                disabled={!valid || isGeneratingProforma}
-                onClick={handleSendProforma}
-              >
-                {isGeneratingProforma ? "Generando proforma…" : "Enviar proforma"}
-              </Button>
-            </div>
-          )}
+          <Button className="w-full gap-2" size="lg" onClick={handlePlaceOrder}>
+            <SendIcon className="size-4" />
+            {isSubmitting ? "Procesando…" : isAuthenticated ? "Agregar pedido" : "Pedir por WhatsApp"}
+          </Button>
 
           <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
-            Al hacer clic se registrará tu pedido y se abrirá WhatsApp para enviar la solicitud al
-            {storePhone ? ` +${storePhone}` : " equipo"} de {storeName}.
+            {isAuthenticated ? (
+              <>Al hacer clic se registrará el pedido, se generará la proforma y se abrirá WhatsApp para enviarla al cliente.</>
+            ) : (
+              <>Al hacer clic se registrará tu pedido y se abrirá WhatsApp para enviar la solicitud al{storePhone ? ` +${storePhone}` : " equipo"} de {storeName}.</>
+            )}
           </p>
         </Card>
       </div>

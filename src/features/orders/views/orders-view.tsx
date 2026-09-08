@@ -1,9 +1,10 @@
 "use client"
 
-import { FilterIcon, SearchIcon, CalendarIcon } from "lucide-react"
+import { FilterIcon, SearchIcon, XIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -15,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { OrderDeleteDialog } from "@/features/orders/components/order-delete-dialog"
+import { OrderDetailDialog } from "@/features/orders/components/order-detail-dialog"
 import { OrdersMobileList } from "@/features/orders/components/orders-mobile-list"
 import { OrdersTable } from "@/features/orders/components/orders-table"
 import {
@@ -34,7 +36,10 @@ const STATUS_OPTIONS: { value: OrderStatusFilter; label: string }[] = [
 
 export function OrdersView() {
   const [statusFilter, setStatusFilter] = useState<OrderStatusFilter>("todos")
-  const [dateFilter, setDateFilter] = useState<string>("")
+  const [dateFilter, setDateFilter] = useState<string>(() => {
+    const nicaNow = new Date(Date.now() - 6 * 60 * 60 * 1000)
+    return nicaNow.toISOString().slice(0, 10)
+  })
   const [search, setSearch] = useState("")
 
   const { data: orders = [], isLoading } = useOrders({
@@ -46,18 +51,24 @@ export function OrdersView() {
   const updateStatus = useUpdateOrderStatus()
   const deleteOrder = useDeleteOrder()
   const [deleting, setDeleting] = useState<OrderDto | null>(null)
+  const [viewing, setViewing] = useState<OrderDto | null>(null)
 
   const handleApprove = async (order: OrderDto) => {
-    await updateStatus.mutateAsync({ id: order.id, statusId: 6 })
+    try {
+      await updateStatus.mutateAsync({ id: order.id, statusId: 6 })
+      setViewing(null)
+    } catch {
+      // El toast de error lo muestra el hook
+    }
   }
 
   const handleReject = async (order: OrderDto) => {
-    await updateStatus.mutateAsync({ id: order.id, statusId: 7 })
-  }
-
-  const handleToday = () => {
-    const today = new Date().toISOString().split("T")[0]
-    setDateFilter(today === dateFilter ? "" : today)
+    try {
+      await updateStatus.mutateAsync({ id: order.id, statusId: 7 })
+      setViewing(null)
+    } catch {
+      // El toast de error lo muestra el hook
+    }
   }
 
   return (
@@ -93,15 +104,20 @@ export function OrdersView() {
               ))}
             </SelectContent>
           </Select>
-          <Button
-            variant={dateFilter ? "default" : "outline"}
-            size="sm"
-            onClick={handleToday}
-            className="h-10 rounded-xl"
-          >
-            <CalendarIcon className="h-4 w-4 mr-2" />
-            {dateFilter ? "Hoy" : "Filtrar hoy"}
-          </Button>
+          <div className="flex items-center gap-1">
+            <DatePicker value={dateFilter} onChange={setDateFilter} placeholder="Fecha" />
+            {dateFilter && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 px-2"
+                onClick={() => setDateFilter("")}
+                aria-label="Limpiar filtro de fecha"
+              >
+                <XIcon className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -115,23 +131,24 @@ export function OrdersView() {
       ) : (
         <>
           <div className="hidden md:block">
-            <OrdersTable
-              orders={orders}
-              onApprove={handleApprove}
-              onReject={handleReject}
-              onDelete={setDeleting}
-            />
+            <OrdersTable orders={orders} onView={setViewing} />
           </div>
           <div className="md:hidden">
-            <OrdersMobileList
-              orders={orders}
-              onApprove={handleApprove}
-              onReject={handleReject}
-              onDelete={setDeleting}
-            />
+            <OrdersMobileList orders={orders} onView={setViewing} />
           </div>
         </>
       )}
+
+      <OrderDetailDialog
+        order={viewing}
+        onOpenChange={(open) => {
+          if (!open) setViewing(null)
+        }}
+        onApprove={handleApprove}
+        onReject={handleReject}
+        onDelete={setDeleting}
+        isPending={updateStatus.isPending}
+      />
 
       <OrderDeleteDialog
         order={deleting}
@@ -143,6 +160,7 @@ export function OrdersView() {
           if (!deleting) return
           await deleteOrder.mutateAsync(deleting.id)
           setDeleting(null)
+          setViewing(null)
         }}
       />
     </div>

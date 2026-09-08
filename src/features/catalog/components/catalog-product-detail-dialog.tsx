@@ -18,12 +18,14 @@ import type { ProductDto } from "@/types/interfaces/product.interface"
 
 interface CatalogProductDetailDialogProps {
   product: ProductDto | null
+  inCart: number
   onClose: () => void
   onAdd: (product: ProductDto, quantity: number) => void
 }
 
 export function CatalogProductDetailDialog({
   product,
+  inCart,
   onClose,
   onAdd,
 }: CatalogProductDetailDialogProps) {
@@ -35,6 +37,8 @@ export function CatalogProductDetailDialog({
   const outOfStock = product.stock <= 0
   const hasDiscount = product.discountPercent > 0
   const image = product.images[0]
+  const max = Math.max(0, product.stock - inCart)
+  const cannotAddMore = outOfStock || max <= 0
 
   return (
     <Dialog open={!!product} onOpenChange={(open) => !open && onClose()}>
@@ -83,7 +87,18 @@ export function CatalogProductDetailDialog({
                 C$ {price.toFixed(2)}
               </span>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">Stock disponible: {product.stock}</p>
+            {outOfStock ? (
+              <Badge variant="destructive" className="mt-2">Agotado</Badge>
+            ) : (
+              <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold">
+                {product.stock} disponibles
+              </span>
+            )}
+            {!outOfStock && inCart > 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Ya tienes {inCart} en el carrito. Puedes agregar {Math.max(0, product.stock - inCart)} más.
+              </p>
+            )}
           </div>
 
           <p className="text-sm leading-relaxed text-muted-foreground">
@@ -105,7 +120,7 @@ export function CatalogProductDetailDialog({
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
-                disabled={outOfStock}
+                disabled={outOfStock || quantity >= product.stock}
                 aria-label="Aumentar cantidad"
               >
                 <PlusIcon />
@@ -113,7 +128,7 @@ export function CatalogProductDetailDialog({
             </div>
             <Button
               className="flex-1 gap-2"
-              disabled={outOfStock}
+              disabled={outOfStock || quantity > product.stock - inCart}
               onClick={() => {
                 onAdd(product, quantity)
                 onClose()
