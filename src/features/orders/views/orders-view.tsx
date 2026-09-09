@@ -1,6 +1,6 @@
 "use client"
 
-import { FilterIcon, SearchIcon, XIcon } from "lucide-react"
+import { FilterIcon, PlusIcon, SearchIcon, XIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ import {
 } from "@/features/catalog/lib/whatsapp"
 import { OrderDeleteDialog } from "@/features/orders/components/order-delete-dialog"
 import { OrderDetailDialog } from "@/features/orders/components/order-detail-dialog"
+import { OrderFormDialog } from "@/features/orders/components/order-form-dialog"
 import { OrdersMobileList } from "@/features/orders/components/orders-mobile-list"
 import { OrdersTable } from "@/features/orders/components/orders-table"
 import {
@@ -61,6 +62,7 @@ export function OrdersView() {
   const { data: store } = useStore()
   const [deleting, setDeleting] = useState<OrderDto | null>(null)
   const [viewing, setViewing] = useState<OrderDto | null>(null)
+  const [formOpen, setFormOpen] = useState(false)
   const [sendingMessage, setSendingMessage] = useState(false)
 
   const bankAccounts: BankAccountInfo[] = (store?.bankAccounts ?? []).map((a) => ({
@@ -132,6 +134,10 @@ export function OrdersView() {
           <h1 className="text-xl font-bold tracking-tight">Pedidos</h1>
           <p className="text-sm text-muted-foreground">Gestiona los pedidos de la tienda.</p>
         </div>
+        <Button onClick={() => setFormOpen(true)} className="gap-2">
+          <PlusIcon className="size-4" />
+          Nuevo pedido
+        </Button>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -219,6 +225,8 @@ export function OrdersView() {
           setViewing(null)
         }}
       />
+
+      <OrderFormDialog open={formOpen} onOpenChange={setFormOpen} />
     </div>
   )
 }
