@@ -7,6 +7,7 @@ import {
   SettingsIcon,
   ShieldCheckIcon,
   ShoppingBagIcon,
+  TruckIcon,
   UsersIcon,
   type LucideIcon,
 } from "lucide-react"
@@ -27,6 +28,7 @@ export const NAV_HOME: NavItem = { label: "Inicio", href: "/", icon: HomeIcon }
 export const NAV_PRODUCTS: NavItem = { label: "Productos", href: "/productos", icon: PackageIcon }
 export const NAV_INVENTORIES: NavItem = { label: "Inventarios", href: "/inventarios", icon: BoxesIcon }
 export const NAV_ORDERS: NavItem = { label: "Pedidos", href: "/pedidos", icon: ClipboardListIcon }
+export const NAV_DELIVERIES: NavItem = { label: "Almacén", href: "/almacen", icon: TruckIcon }
 export const NAV_CARTERA: NavItem = { label: "Cartera", href: "/cartera", icon: HandCoinsIcon }
 export const NAV_CATALOG: NavItem = { label: "Catálogo", href: "/catalogo", icon: ShoppingBagIcon }
 export const NAV_USERS: NavItem = { label: "Usuarios", href: "/usuarios", icon: UsersIcon }
@@ -41,7 +43,7 @@ export const SIDEBAR_GROUPS: NavGroup[] = [
   {
     label: "Tienda",
     icon: ShoppingBagIcon,
-    items: [NAV_PRODUCTS, NAV_INVENTORIES, NAV_CATALOG, NAV_ORDERS, NAV_CARTERA],
+    items: [NAV_PRODUCTS, NAV_INVENTORIES, NAV_CATALOG, NAV_ORDERS, NAV_DELIVERIES, NAV_CARTERA],
   },
   {
     label: "Usuarios",

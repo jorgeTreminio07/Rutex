@@ -105,6 +105,22 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
       await recomputePagoEstado(supabase, id)
     }
+
+    // Alta en almacén: una entrega por pedido aprobado (solo la primera vez).
+    const { data: existingDelivery, error: deliverySelectError } = await supabase
+      .from("deliveries")
+      .select("id")
+      .eq("order_id", id)
+      .maybeSingle()
+
+    if (deliverySelectError) return serverError(deliverySelectError)
+
+    if (!existingDelivery) {
+      const { error: deliveryInsertError } = await supabase
+        .from("deliveries")
+        .insert({ order_id: id, status_id: 1 })
+      if (deliveryInsertError) return serverError(deliveryInsertError)
+    }
   }
 
   const { data, error } = await supabase

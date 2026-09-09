@@ -41,6 +41,15 @@
 - UI en `src/features/inventories/` (vista con búsqueda por número + DatePicker, filtro de fecha **vacío por defecto**, tabla + lista móvil, fila clicable → editar) y modal `inventory-form-dialog.tsx` (stepper +/- por producto, cancelar/guardar). Ruta `/inventarios`, nav `NAV_INVENTORIES`.
 - **Stock de producto**: solo entra vía inventario (crear/editar). El campo Stock **se quitó** del formulario de producto (schema, payloads y dialog); la API sigue aceptándolo por tolerancia pero el cliente ya no lo envía. Baja al aprobar pedidos (status 6) y sube al eliminar pedidos aprobados.
 
+## Almacén / Entregas
+- Tabla `public.deliveries` (patch 014): una fila por pedido aprobado (`order_id` FK orders, índice único), `status_id` FK `delivery_statuses` (**1=En almacén, 2=En ruta, 3=Entregado**), `entered_at` (fecha/hora de ingreso al almacén). Identificador = número de pedido (vía join).
+- **Al aprobar** un pedido (status 6), `PUT /api/orders/[id]` inserta la entrega con estado 1 si no existe (solo la primera vez).
+- **Avanzar estado**: `PUT /api/deliveries/[id]` con `{ statusId }`; el servidor solo acepta el estado **siguiente** (actual + 1), nunca revertir ni saltar. Sin DELETE.
+- **Al eliminar** un pedido aprobado (soft delete), el trigger `cleanup_order_cartera` (ampliado en patch 014) borra también su fila de `deliveries`.
+- APIs: `GET /api/deliveries` (join `orders!inner` + `delivery_statuses!inner`, orden por `entered_at desc`), `PUT /api/deliveries/[id]`. DTO `DeliveryDto` (`src/types/interfaces/delivery.interface.ts`) con filtros/helpers: `matchesDeliveryStatus`, `deliveryStatusVariant`, `nextDeliveryStatus`.
+- UI en `src/features/deliveries/` (vista con búsqueda pedido/cliente + Select de estado + DatePicker **vacío por defecto**, filtros client-side con hora Nicaragua, tabla + lista móvil, fila clicable → detalle) y modal `delivery-detail-dialog.tsx` (número de pedido, cliente, teléfono, fecha y hora de ingreso en Nicaragua `nicaDateTime`, lista de productos con cantidad) + `delivery-advance-dialog.tsx` (confirmación: "no se puede revertir"). Ruta `/almacen`, nav `NAV_DELIVERIES`.
+- Hooks `useDeliveries/useAdvanceDeliveryStatus` (`deliveriesKeys.all`); avanzar invalida solo entregas. El modal se deriva de la query fresca (patrón cartera).
+
 ## Cartera y abonos
 - Tabla `public.pago_estados`: ids 1=Pendiente, 2=Pagado, 3=En mora (estado del pago del pedido, NO del pedido).
 - `public.pagos`: una fila por pedido aprobado, PK = `order_id` (FK orders, cascade), `estado_pago_id` FK `pago_estados`.
@@ -54,7 +63,7 @@
 - El modal se deriva de la query: la vista guarda `viewingId` y busca el pedido en los datos frescos de `useCartera`, así al registrar un abono la mutación invalida, refetchea y el modal se actualiza solo.
 
 ## Caché/queries
-- `ordersKeys.all`/`filtered` en `use-orders.ts`; `storeKeys.all` y `citiesKeys.all` en `use-store.ts`. `carteraKeys.all` en `use-cartera.ts` (registrar abono invalida cartera y pedidos). `inventoriesKeys.all` en `use-inventories.ts` (crear/editar invalida inventarios y productos).
+- `ordersKeys.all`/`filtered` en `use-orders.ts`; `storeKeys.all` y `citiesKeys.all` en `use-store.ts`. `carteraKeys.all` en `use-cartera.ts` (registrar abono invalida cartera y pedidos). `inventoriesKeys.all` en `use-inventories.ts` (crear/editar invalida inventarios y productos). `deliveriesKeys.all` en `use-deliveries.ts` (avanzar estado invalida solo entregas).
 
 ## Patches de SQL (aplicar en Supabase SQL Editor, en orden)
 1. `001-fix-is-admin.sql`
@@ -68,6 +77,9 @@
 9. `011-abono-registros.sql`
 10. `012-order-delete-cleanup.sql`
 11. `013-inventories.sql`
+12. `014-entregas.sql`
+13. `015-entregas-backfill.sql` (entregas para pedidos ya aprobados que quedaron sin fila; idempotente)
+14. `016-delivery-statuses-rls.sql` (fix RLS: sin él, Almacén se ve vacío porque el join `delivery_statuses!inner` se filtra a cero)
 
 ## Notas / pendientes
 - **Cuotas por pedido (ROOLBACK)**: se implementó `order_quotas` (patch 007) y se revirtió por decisión del usuario — **no reintroducir**. Si el patch 007 llegó a ejecutarse en la BD, la tabla `order_quotas` sigue existiendo ahí (limpiar si molesta). El código quedó limpio (sin referencias a cuotas). Reemplazada por el modelo `pagos`/`abonos` (patch 010).
