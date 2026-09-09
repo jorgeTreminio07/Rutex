@@ -1,10 +1,11 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ImageIcon, Loader2Icon, UploadCloudIcon } from "lucide-react"
+import { ChevronsUpDownIcon, ImageIcon, Loader2Icon, UploadCloudIcon } from "lucide-react"
 import { useState } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import type { ReactNode } from "react"
+import { z } from "zod"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -30,6 +31,7 @@ interface ProductFormDialogProps {
   onOpenChange: (open: boolean) => void
   product?: ProductDto | null
   isPending: boolean
+  categories?: string[]
   onSubmit: (values: ProductFormData) => Promise<void>
 }
 
@@ -53,24 +55,79 @@ function Field({
   )
 }
 
+function CategoryField({
+  value,
+  onChange,
+  categories,
+}: {
+  value: string
+  onChange: (value: string) => void
+  categories: string[]
+}) {
+  const [open, setOpen] = useState(false)
+  const query = value.trim().toLowerCase()
+  const matches = [...new Set(categories)]
+    .filter((c) => c.toLowerCase().includes(query))
+    .filter((c) => c.toLowerCase() !== query)
+    .slice(0, 8)
+
+  return (
+    <div className="relative">
+      <Input
+        id="product-category"
+        className="h-10 rounded-xl pr-9"
+        placeholder="ej. Calzado, Electrónica"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value)
+          setOpen(true)
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+      />
+      <ChevronsUpDownIcon className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      {open && matches.length > 0 && (
+        <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-xl border bg-popover p-1 shadow-md">
+          {matches.map((category) => (
+            <li key={category}>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange(category)
+                  setOpen(false)
+                }}
+                className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-accent"
+              >
+                {category}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export function ProductFormDialog({
   open,
   onOpenChange,
   product,
   isPending,
+  categories = [],
   onSubmit,
 }: ProductFormDialogProps) {
   const [imageUrl, setImageUrl] = useState("")
   const [isUploading, setIsUploading] = useState(false)
 
-  const form = useForm<ProductFormData>({
+  const form = useForm<z.input<typeof productSchema>, unknown, z.output<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: product?.name ?? "",
       description: product?.description ?? "",
-      purchasePrice: product?.purchasePrice ?? 0,
-      price: product?.price ?? 0,
-      discountPercent: product?.discountPercent ?? 0,
+      purchasePrice: product?.purchasePrice != null ? String(product.purchasePrice) : "",
+      price: product?.price != null ? String(product.price) : "",
+      discountPercent: product?.discountPercent != null ? String(product.discountPercent) : "",
       category: product?.category ?? "",
       images: product?.images ?? [],
     },
@@ -78,6 +135,7 @@ export function ProductFormDialog({
 
   const images = useWatch({ control: form.control, name: "images" }) ?? []
   const productName = useWatch({ control: form.control, name: "name" })
+  const category = useWatch({ control: form.control, name: "category" }) ?? ""
 
   const handleAddImage = () => {
     if (imageUrl.trim()) {
@@ -123,13 +181,12 @@ export function ProductFormDialog({
           </Field>
 
           <Field label="Categoría *" htmlFor="product-category" error={form.formState.errors.category?.message}>
-            <Input
-              id="product-category"
-              className="h-10 rounded-xl"
-              placeholder="ej. Calzado, Electrónica"
-              aria-invalid={!!form.formState.errors.category}
-              {...form.register("category")}
+            <CategoryField
+              value={category}
+              onChange={(v) => form.setValue("category", v)}
+              categories={categories}
             />
+            <p className="text-xs text-muted-foreground">Elige una existente o escribe una nueva.</p>
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
@@ -142,7 +199,7 @@ export function ProductFormDialog({
                 className="h-10 rounded-xl"
                 placeholder="0.00"
                 aria-invalid={!!form.formState.errors.purchasePrice?.message}
-                {...form.register("purchasePrice", { valueAsNumber: true })}
+                {...form.register("purchasePrice")}
               />
             </Field>
 
@@ -154,7 +211,7 @@ export function ProductFormDialog({
                 min="0"
                 className="h-10 rounded-xl"
                 aria-invalid={!!form.formState.errors.price?.message}
-                {...form.register("price", { valueAsNumber: true })}
+                {...form.register("price")}
               />
             </Field>
 
@@ -165,7 +222,7 @@ export function ProductFormDialog({
                 min="0"
                 max="100"
                 className="h-10 rounded-xl"
-                {...form.register("discountPercent", { valueAsNumber: true })}
+                {...form.register("discountPercent")}
               />
             </Field>
           </div>

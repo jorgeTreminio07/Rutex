@@ -3,9 +3,9 @@ import { z } from "zod"
 export const productSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
   description: z.string().optional(),
-  purchasePrice: z.number().min(0, "El precio compra debe ser positivo").optional(),
-  price: z.number().min(0, "El precio venta debe ser positivo"),
-  discountPercent: z.number().min(0).max(100).optional(),
+  purchasePrice: z.coerce.number().min(0, "El precio compra debe ser positivo"),
+  price: z.coerce.number().min(0, "El precio venta debe ser positivo"),
+  discountPercent: z.coerce.number().min(0).max(100),
   category: z.string().min(1, "La categoría es obligatoria"),
   images: z.array(z.string()).optional(),
 })

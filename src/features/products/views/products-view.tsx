@@ -1,9 +1,18 @@
 "use client"
 
-import { PlusIcon } from "lucide-react"
+import { FilterIcon, PlusIcon, SearchIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ProductDeleteDialog } from "@/features/products/components/product-delete-dialog"
 import { ProductFormDialog } from "@/features/products/components/product-form-dialog"
@@ -28,6 +37,19 @@ export function ProductsView() {
   const [editing, setEditing] = useState<ProductDto | null>(null)
   const [deleting, setDeleting] = useState<ProductDto | null>(null)
   const [formKey, setFormKey] = useState(0)
+  const [search, setSearch] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("todas")
+
+  const categories = [...new Set(products.map((p) => p.category).filter(Boolean))]
+    .map((c) => c.trim())
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b))
+
+  const filtered = products.filter((product) => {
+    const matchesName = product.name.toLowerCase().includes(search.trim().toLowerCase())
+    const matchesCategory = categoryFilter === "todas" || product.category === categoryFilter
+    return matchesName && matchesCategory
+  })
 
   const handleCreate = async (values: ProductFormData) => {
     await createProduct.mutateAsync(values)
@@ -66,6 +88,34 @@ export function ProductsView() {
         </Button>
       </div>
 
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1 max-w-sm">
+          <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar producto por nombre…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-10 rounded-xl"
+          />
+        </div>
+        <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v ?? "todas")}>
+          <SelectTrigger className="w-48 h-10 rounded-xl">
+            <FilterIcon className="h-4 w-4 mr-2" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">
+              <SelectItemText>Todas las categorías</SelectItemText>
+            </SelectItem>
+            {categories.map((category) => (
+              <SelectItem key={category} value={category}>
+                <SelectItemText>{category}</SelectItemText>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {isLoading ? (
         <div className="flex flex-col gap-2">
           <Skeleton className="h-10 w-full" />
@@ -76,10 +126,10 @@ export function ProductsView() {
       ) : (
         <>
           <div className="hidden md:block">
-            <ProductsTable products={products} onEdit={openEdit} onDelete={setDeleting} />
+            <ProductsTable products={filtered} onEdit={openEdit} onDelete={setDeleting} />
           </div>
           <div className="md:hidden">
-            <ProductsMobileList products={products} onEdit={openEdit} onDelete={setDeleting} />
+            <ProductsMobileList products={filtered} onEdit={openEdit} onDelete={setDeleting} />
           </div>
         </>
       )}
@@ -90,6 +140,7 @@ export function ProductsView() {
         onOpenChange={setFormOpen}
         product={editing}
         isPending={createProduct.isPending || updateProduct.isPending}
+        categories={categories}
         onSubmit={editing ? handleUpdate : handleCreate}
       />
 
