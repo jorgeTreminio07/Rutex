@@ -57,7 +57,7 @@ export function ProductsView() {
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Inventario</h1>
+          <h1 className="text-xl font-bold tracking-tight">Productos</h1>
           <p className="text-sm text-muted-foreground">Gestiona los productos de la tienda.</p>
         </div>
         <Button onClick={openCreate}>

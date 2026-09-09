@@ -7,7 +7,6 @@ export const productSchema = z.object({
   price: z.number().min(0, "El precio venta debe ser positivo"),
   discountPercent: z.number().min(0).max(100).optional(),
   category: z.string().min(1, "La categoría es obligatoria"),
-  stock: z.number().int().min(0, "El stock no puede ser negativo"),
   images: z.array(z.string()).optional(),
 })
 

@@ -19,7 +19,6 @@ export interface CreateProductPayload {
   price: number
   discountPercent?: number
   category: string
-  stock: number
   images?: string[]
 }
 
@@ -30,6 +29,5 @@ export interface UpdateProductPayload {
   price?: number
   discountPercent?: number
   category?: string
-  stock?: number
   images?: string[]
 }

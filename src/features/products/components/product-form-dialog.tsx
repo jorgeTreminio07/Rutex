@@ -72,7 +72,6 @@ export function ProductFormDialog({
       price: product?.price ?? 0,
       discountPercent: product?.discountPercent ?? 0,
       category: product?.category ?? "",
-      stock: product?.stock ?? 0,
       images: product?.images ?? [],
     },
   })
@@ -167,17 +166,6 @@ export function ProductFormDialog({
                 max="100"
                 className="h-10 rounded-xl"
                 {...form.register("discountPercent", { valueAsNumber: true })}
-              />
-            </Field>
-
-            <Field label="Stock *" htmlFor="product-stock" error={form.formState.errors.stock?.message}>
-              <Input
-                id="product-stock"
-                type="number"
-                min="0"
-                className="h-10 rounded-xl"
-                aria-invalid={!!form.formState.errors.stock?.message}
-                {...form.register("stock", { valueAsNumber: true })}
               />
             </Field>
           </div>
