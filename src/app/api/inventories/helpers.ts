@@ -40,6 +40,18 @@ export function inventoryItemToRow(item: InventoryItemInput, name: string) {
   }
 }
 
+// Valor total del inventario = suma(precio de venta * cantidad) por item.
+export function computeInventoryValue(
+  products: Array<{ id: string; price?: number | string | null }>,
+  items: InventoryItemInput[],
+): number {
+  const priceById = new Map(products.map((p) => [p.id, Number(p.price) || 0]))
+  return items.reduce(
+    (sum, item) => sum + (priceById.get(item.productId) ?? 0) * item.quantity,
+    0,
+  )
+}
+
 // Aplica los deltas (cantidad n - cantidad previa) al stock de los productos.
 // El stock nunca baja de 0. Solo toca productos con delta != 0.
 export async function applyStockDeltas(

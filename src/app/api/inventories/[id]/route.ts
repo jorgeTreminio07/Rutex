@@ -9,6 +9,7 @@ import { requireAdmin } from "@/lib/server/guards"
 import { createClient } from "@/lib/supabase/server"
 import {
   applyStockDeltas,
+  computeInventoryValue,
   inventoryItemToRow,
   parseInventoryItems,
 } from "@/app/api/inventories/helpers"
@@ -22,6 +23,7 @@ interface InventoryRow {
   id: string
   inventory_number: string
   items: InventoryItemDto[] | null
+  total_value: number | null
   created_at: string
   updated_at: string | null
 }
@@ -33,12 +35,13 @@ function mapInventory(row: InventoryRow): InventoryDto {
     inventoryNumber: row.inventory_number,
     items,
     totalUnits: items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
+    totalValue: Number(row.total_value) || 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
 }
 
-const INVENTORY_SELECT = "id, inventory_number, items, created_at, updated_at"
+const INVENTORY_SELECT = "id, inventory_number, items, total_value, created_at, updated_at"
 
 export async function GET(_request: Request, { params }: RouteContext) {
   const guard = await requireAdmin()
@@ -90,11 +93,13 @@ export async function PUT(request: Request, { params }: RouteContext) {
   const productIds = [...new Set(items.map((item) => item.productId))]
   const { data: products } = await supabase
     .from("products")
-    .select("id, name")
+    .select("id, name, price")
     .in("id", productIds)
 
   const nameById = new Map((products ?? []).map((p) => [p.id, p.name]))
   const rows = items.map((item) => inventoryItemToRow(item, nameById.get(item.productId) ?? item.productName ?? "Producto"))
+
+  const totalValue = computeInventoryValue(products ?? [], items)
 
   // delta = nueva cantidad - cantidad anterior (0 si no estaba en el inventario)
   const deltas: Record<string, number> = {}
@@ -111,6 +116,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
     .from("inventories")
     .update({
       items: rows,
+      total_value: totalValue,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)

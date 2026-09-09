@@ -34,6 +34,7 @@ export function InventoriesTable({ inventories, onEdit }: InventoriesTableProps)
             <TableHead>Inventario</TableHead>
             <TableHead>Productos</TableHead>
             <TableHead className="text-right">Unidades</TableHead>
+            <TableHead className="text-right pr-6">Valor inventario</TableHead>
             <TableHead className="w-14 text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
@@ -54,6 +55,7 @@ export function InventoriesTable({ inventories, onEdit }: InventoriesTableProps)
                 </Badge>
               </TableCell>
               <TableCell className="text-right font-semibold">{inventory.totalUnits}</TableCell>
+              <TableCell className="text-right pr-6 font-semibold">C$ {inventory.totalValue.toFixed(2)}</TableCell>
               <TableCell>
                 <div className="flex justify-end">
                   <Button
@@ -73,7 +75,7 @@ export function InventoriesTable({ inventories, onEdit }: InventoriesTableProps)
           ))}
           {rows.length === 0 && (
             <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                 No hay inventarios registrados.
               </TableCell>
             </TableRow>

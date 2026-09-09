@@ -32,16 +32,19 @@ export function InventoriesMobileList({ inventories, onEdit }: InventoriesMobile
                 <BoxesIcon className="size-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-mono text-sm font-medium">{inventory.inventoryNumber}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate font-mono text-sm font-medium">{inventory.inventoryNumber}</p>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {new Date(inventory.createdAt).toLocaleDateString("es-NI")}
+                  </span>
+                </div>
+                <p className="text-xs font-semibold">Valor: C$ {inventory.totalValue.toFixed(2)}</p>
                 <div className="flex items-center gap-1.5">
                   <Badge variant="outline" className="text-[10px]">
                     {inventory.items.length} {inventory.items.length === 1 ? "producto" : "productos"}
                   </Badge>
                   <span className="text-xs text-muted-foreground">{inventory.totalUnits} uds</span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(inventory.createdAt).toLocaleDateString("es-NI")}
-                </p>
               </div>
               <Button
                 variant="ghost"

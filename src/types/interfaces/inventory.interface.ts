@@ -9,6 +9,7 @@ export interface InventoryDto {
   inventoryNumber: string
   items: InventoryItemDto[]
   totalUnits: number
+  totalValue: number
   createdAt: string
   updatedAt: string | null
 }

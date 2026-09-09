@@ -33,7 +33,8 @@
 - APIs: `GET/POST /api/cities`, `DELETE /api/cities/[id]`; hooks `useCities/useAddCity/useDeleteCity` en `use-store.ts`.
 
 ## Inventarios
-- Tabla `public.inventories` (patch 013): `inventory_number`, `items` jsonb `[{ productId, productName, quantity }]`, `created_at`, `updated_at`. **Sin DELETE** (sin política de borrado; la UI no ofrece eliminar).
+- Tabla `public.inventories` (patch 013): `inventory_number`, `items` jsonb `[{ productId, productName, quantity }]`, `total_value` numeric (patch 017, ver abajo), `created_at`, `updated_at`. **Sin DELETE** (sin política de borrado; la UI no ofrece eliminar).
+- **Valor de inventario** (patch 017): columna `total_value` = suma(precio de venta × cantidad) de sus items. Se calcula en el servidor al crear/editar (`computeInventoryValue` en `src/app/api/inventories/helpers.ts`, con los precios vigentes de `products`) y se guarda como snapshot. El DTO expone `totalValue` y aparece como columna "Valor" en tabla y listado móvil.
 - Número de inventario: `INV[YYYYMMDD][6 dígitos]` vía RPC `next_inventory_number()` (tabla `inventory_counters`), mismo patrón que pedidos.
 - **Al crear**: el modal lista TODOS los productos iniciando en 0 (sin importar su stock real); se suma/resta por producto. Al guardar, el stock del producto **AUMENTA** según lo ingresado.
 - **Al editar**: se muestra el inventario con las cantidades guardadas; al bajar/subir y guardar, el stock se ajusta por la **diferencia** (nueva − anterior); nunca baja de 0.
@@ -80,6 +81,7 @@
 12. `014-entregas.sql`
 13. `015-entregas-backfill.sql` (entregas para pedidos ya aprobados que quedaron sin fila; idempotente)
 14. `016-delivery-statuses-rls.sql` (fix RLS: sin él, Almacén se ve vacío porque el join `delivery_statuses!inner` se filtra a cero)
+15. `017-inventories-total-value.sql` (columnas `total_value` en `inventories` + backfill del valor de inventarios existentes)
 
 ## Notas / pendientes
 - **Cuotas por pedido (ROOLBACK)**: se implementó `order_quotas` (patch 007) y se revirtió por decisión del usuario — **no reintroducir**. Si el patch 007 llegó a ejecutarse en la BD, la tabla `order_quotas` sigue existiendo ahí (limpiar si molesta). El código quedó limpio (sin referencias a cuotas). Reemplazada por el modelo `pagos`/`abonos` (patch 010).
