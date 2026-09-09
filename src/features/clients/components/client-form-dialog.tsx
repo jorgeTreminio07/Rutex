@@ -105,6 +105,7 @@ export function ClientFormDialog({
 }: ClientFormDialogProps) {
   const isEditing = Boolean(client)
   const [mapOpen, setMapOpen] = useState(false)
+  const [mapCoords, setMapCoords] = useState<MapCoords | null>(null)
   const { data: cities = [] } = useCities()
 
   const form = useForm<z.input<typeof clientSchema>, unknown, z.output<typeof clientSchema>>({
@@ -133,6 +134,11 @@ export function ClientFormDialog({
     return { lat, lng }
   }, [latitude, longitude])
 
+  const openMap = () => {
+    setMapCoords(coords)
+    setMapOpen(true)
+  }
+
   const handleUseMyLocation = () => {
     if (!navigator.geolocation) {
       toast.error("Tu navegador no soporta geolocalización")
@@ -140,17 +146,30 @@ export function ClientFormDialog({
     }
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        form.setValue("latitude", position.coords.latitude.toFixed(6))
-        form.setValue("longitude", position.coords.longitude.toFixed(6))
+        setMapCoords({ lat: position.coords.latitude, lng: position.coords.longitude })
       },
       () => toast.error("No se pudo obtener tu ubicación"),
     )
+  }
+
+  const applyMapCoords = () => {
+    if (!mapCoords) return
+    form.setValue("latitude", mapCoords.lat.toFixed(6), { shouldValidate: true })
+    form.setValue("longitude", mapCoords.lng.toFixed(6), { shouldValidate: true })
+    setMapOpen(false)
+  }
+
+  const clearLocation = () => {
+    form.setValue("latitude", "")
+    form.setValue("longitude", "")
+    setMapCoords(null)
   }
 
   const locationError =
     form.formState.errors.latitude?.message ?? form.formState.errors.longitude?.message
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100%-2rem)] overflow-y-auto">
         <DialogHeader>
@@ -250,44 +269,26 @@ export function ClientFormDialog({
               type="button"
               variant="outline"
               className="h-10 rounded-xl"
-              onClick={() => setMapOpen((value) => !value)}
+              onClick={openMap}
             >
               <MapPinIcon />
-              {mapOpen ? "Ocultar mapa" : "Abrir mapa para elegir ubicación"}
+              Abrir mapa para elegir ubicación
             </Button>
 
-            {mapOpen && (
-              <div className="flex flex-col gap-2">
-                <MapPicker
-                  value={coords}
-                  onPick={(picked) => {
-                    form.setValue("latitude", picked.lat.toFixed(6), { shouldValidate: true })
-                    form.setValue("longitude", picked.lng.toFixed(6), { shouldValidate: true })
-                  }}
-                />
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleUseMyLocation}
-                  >
-                    Usar mi ubicación
-                  </Button>
-                  {coords && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        form.setValue("latitude", "")
-                        form.setValue("longitude", "")
-                      }}
-                    >
-                      Quitar ubicación
-                    </Button>
-                  )}
-                </div>
+            {coords && (
+              <div className="flex items-center justify-between gap-2 rounded-xl border bg-muted/40 px-3 py-2">
+                <span className="font-mono text-xs text-muted-foreground">
+                  {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={clearLocation}
+                >
+                  Quitar
+                </Button>
               </div>
             )}
           </Field>
@@ -315,5 +316,46 @@ export function ClientFormDialog({
         </form>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={mapOpen} onOpenChange={setMapOpen}>
+      <DialogContent className="flex max-h-[90dvh] max-w-4xl flex-col overflow-hidden gap-4">
+        <DialogHeader>
+          <DialogTitle>Elegir ubicación</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-1 flex-col gap-3 overflow-hidden">
+          <MapPicker
+            value={mapCoords}
+            onPick={setMapCoords}
+            className="h-[55dvh] w-full shrink-0 rounded-xl"
+          />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="secondary" size="sm" onClick={handleUseMyLocation}>
+                Usar mi ubicación
+              </Button>
+              {mapCoords && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setMapCoords(null)}>
+                  Quitar marcador
+                </Button>
+              )}
+            </div>
+            <p className="font-mono text-xs text-muted-foreground">
+              {mapCoords
+                ? `${mapCoords.lat.toFixed(6)}, ${mapCoords.lng.toFixed(6)}`
+                : "Haz clic en el mapa para elegir un punto"}
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => setMapOpen(false)}>
+            Cancelar
+          </Button>
+          <Button type="button" onClick={applyMapCoords} disabled={!mapCoords}>
+            Usar esta ubicación
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }

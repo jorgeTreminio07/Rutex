@@ -89,7 +89,16 @@ export function MapPicker({ value, onPick, className }: MapPickerProps) {
 
   useEffect(() => {
     const ref = mapRef.current
-    if (!ref || !value) return
+    if (!ref) return
+
+    if (!value) {
+      if (ref.marker) {
+        ref.marker.remove()
+        ref.marker = null
+      }
+      return
+    }
+
     const point: [number, number] = [value.lat, value.lng]
     if (ref.marker) {
       ref.marker.setLatLng(point)
