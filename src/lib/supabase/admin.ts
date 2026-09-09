@@ -1,6 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-let client: ReturnType<typeof createClient> | null = null;
+let client: SupabaseClient<any, "public", any> | null = null;
 
 export function createAdminClient() {
   if (client) return client;

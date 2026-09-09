@@ -8,6 +8,7 @@ import {
 } from "@/lib/api-response"
 import { getSession } from "@/lib/server/auth"
 import { orderHasStock, type StockMap } from "@/features/orders/lib/stock"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 
 // La tienda opera en Nicaragua (UTC-6, sin horario de verano).
@@ -115,7 +116,7 @@ export async function POST(request: Request) {
 
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: nextNumber, error: seqError } = await supabase.rpc("next_order_number")
   if (seqError || typeof nextNumber !== "string") {
