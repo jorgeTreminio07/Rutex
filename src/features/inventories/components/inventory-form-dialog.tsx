@@ -132,7 +132,19 @@ export function InventoryFormDialog({
                       >
                         <MinusIcon />
                       </Button>
-                      <span className="w-8 text-center text-sm font-bold tabular-nums">{quantity}</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={quantity}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/[^0-9]/g, "")
+                          setQuantity(product.id, raw === "" ? 0 : parseInt(raw, 10))
+                        }}
+                        onFocus={(e) => e.target.select()}
+                        aria-label={`Cantidad de ${product.name}`}
+                        className="w-12 rounded-md border-0 bg-transparent text-center text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-ring"
+                      />
                       <Button
                         type="button"
                         variant="ghost"
