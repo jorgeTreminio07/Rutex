@@ -17,6 +17,8 @@
 ## Pedidos
 - Número de pedido: `PED[YYYYMMDD][6 dígitos]` sin guiones, seqdiario irrepetible vía RPC `next_order_number()` (tabla `order_counters`, patch 004).
 - Crear pedido → status 5. **Aprobar (6)** descuenta stock de los productos. **Rechazar (7)** NO toca stock. **Eliminar** devuelve stock si estaba aprobado y pone status 4.
+- **`POST /api/orders` es público** (el carrito deslogueado también registra el pedido y avisa por WhatsApp): usa `createAdminClient()` (service role) para no depender de permisos RLS de `anon`. `GET` sigue con sesión/admin. `createAdminClient` (`src/lib/supabase/admin.ts`) está tipado `SupabaseClient<any, "public", any>` (sin ese tipado el TS resuelve `never`).
+- **Nuevo pedido (interno)**: botón "Nuevo pedido" en `/pedidos` abre `order-form-dialog.tsx` (`src/features/orders/components/`). Funciona como el carrito logueado pero el cliente se elige con **combobox de búsqueda** sobre clientes registrados (nombre/teléfono/cédula; sin inputs libres de nombre/teléfono); productos con steppers (límite = stock) + buscador; modalidad de pago contado/2 quincenas/4 semanas. Al guardar crea el pedido, genera y sube la proforma y abre WhatsApp al cliente (mensaje igual al carrito logueado).
 - Al **eliminar** un pedido (soft delete: `deleted_at` + status 4), el trigger `trg_orders_cleanup_cartera` (patch 012) elimina sus filas de `pagos`, `abonos` y `abono_registros` (el `ON DELETE CASCADE` de las FK solo aplica a borrado físico).
 - Las filas/tarjetas de la vista de pedidos son clicables; aprobar/rechazar/eliminar están dentro del **modal de detalle** (`order-detail-dialog.tsx`).
 - El filtro de fecha usa `DatePicker` personalizado (no nativo).
@@ -24,8 +26,10 @@
 
 ## Selectores / UI
 - Tab bar móvil: solo 3 secciones (Inicio, Configuración, Usuarios) vía `MOBILE_TABS` en `src/components/layout/navigation.ts` (`PRIMARY_TABS` ya no se usa en el tab bar).
+- Menú lateral móvil (`mobile-nav-sheet.tsx`): incluye `NAV_CLIENTS` dentro del grupo de Clientes (además del acceso directo del sidebar desktop).
 - Sidebar por grupos ("Tienda", "Usuarios"): cada grupo tiene su propio estado de abierto/cerrado (`openGroups: Set<string>` en `sidebar.tsx`), se abre por defecto el de la ruta activa.
 - **Paleta**: teal "médico" actual (hue oklch ~195-200 en `src/app/colors.css`). Se intentó cambiar a ámbar comercio pero el usuario **lo revirtió** — mantener la paleta teal actual.
+- **Favicon** (`public/favicon.svg`): ícono de tienda en teal `#008484` (antes estetoscopio).
 
 ## Clientes
 - Tabla `public.clients` (patch 018): `full_name`, `phone`, `cedula` (**sin guiones**, se sanitiza en API/UI), `address`, `city` (texto libre con sugerencias de `cities`), `latitude`/`longitude` (opcionales, ambas o ninguna), `created_at`, `updated_at`. **Estados** (patch 019): `status_id` FK `public.statuses` (1=Activo, 2=Inactivo, 3=Bloqueado, 4=Eliminado) + `deleted_at`. RLS lectura autenticada / escritura admin.
@@ -46,7 +50,7 @@
 - **Al crear**: el modal lista TODOS los productos iniciando en 0 (sin importar su stock real); se suma/resta por producto. Al guardar, el stock del producto **AUMENTA** según lo ingresado.
 - **Al editar**: se muestra el inventario con las cantidades guardadas; al bajar/subir y guardar, el stock se ajusta por la **diferencia** (nueva − anterior); nunca baja de 0.
 - APIs: `GET/POST /api/inventories`, `GET/PUT /api/inventories/[id]` (sin DELETE). Lógica de deltas en `src/app/api/inventories/helpers.ts`. Hooks `useInventories/useCreateInventory/useUpdateInventory` (`inventoriesKeys.all`); crear/editar invalida inventarios **y** productos (stock cambia).
-- UI en `src/features/inventories/` (vista con búsqueda por número + DatePicker, filtro de fecha **vacío por defecto**, tabla + lista móvil, fila clicable → editar) y modal `inventory-form-dialog.tsx` (stepper +/- por producto, cancelar/guardar). Ruta `/inventarios`, nav `NAV_INVENTORIES`.
+- UI en `src/features/inventories/` (vista con búsqueda por número + DatePicker, filtro de fecha **vacío por defecto**, tabla + lista móvil, fila clicable → editar) y modal `inventory-form-dialog.tsx` (stepper +/- por producto **con cantidad editable a teclado**: el número es un input numérico que filtra no-dígitos y se selecciona al enfocarlo, además de los botones). Ruta `/inventarios`, nav `NAV_INVENTORIES`.
 - **Stock de producto**: solo entra vía inventario (crear/editar). El campo Stock **se quitó** del formulario de producto (schema, payloads y dialog); la API sigue aceptándolo por tolerancia pero el cliente ya no lo envía. Baja al aprobar pedidos (status 6) y sube al eliminar pedidos aprobados.
 
 ## Almacén / Entregas
@@ -91,6 +95,14 @@
 15. `017-inventories-total-value.sql` (columnas `total_value` en `inventories` + backfill del valor de inventarios existentes)
 16. `018-clients.sql` (tabla `clients` con RLS)
 17. `019-clients-status.sql` (estados de clientes: `status_id` FK `statuses` + `deleted_at`)
+18. `020-wipe-data.sql` (**no es migración**): truncate `RESTART IDENTITY CASCADE` de `abono_registros, abonos, pagos, deliveries, orders, inventories, products, order_counters, inventory_counters`; conserva users/profiles/roles/clients/cities/statuses.
+
+## Despliegue
+- **Producción**: Vercel con **integración nativa de GitHub** (repo `jorgeTreminio07/Rutex`, rama `master`): cada push a master se despliega solo. **NO reintroducir** el workflow de GitHub Actions (`.github/workflows/deploy.yml` se eliminó porque el doble deploy rompió producción con `MIDDLEWARE_INVOCATION_FAILED`). Los secrets `VERCEL_*` de GitHub ya no se usan.
+- Env vars de Vercel (misión de las mismas 6 de `.env.local`): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`, `NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET`, `NEXT_PUBLIC_SUPABASE_STORAGE_URL`.
+
+## Scripts de mantenimiento
+- `scripts/clean-proforma-storage.mjs`: borra los archivos del bucket de storage (`SUPABASE_STORAGE_BUCKET`) dentro de la carpeta `proforma` (SDK, paginado de 1000, recursivo, pide confirmación "borrar"). Requiere variar de entorno `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` al ejecutar.
 
 ## Notas / pendientes
 - **Cuotas por pedido (ROOLBACK)**: se implementó `order_quotas` (patch 007) y se revirtió por decisión del usuario — **no reintroducir**. Si el patch 007 llegó a ejecutarse en la BD, la tabla `order_quotas` sigue existiendo ahí (limpiar si molesta). El código quedó limpio (sin referencias a cuotas). Reemplazada por el modelo `pagos`/`abonos` (patch 010).
