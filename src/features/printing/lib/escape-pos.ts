@@ -66,7 +66,7 @@ function encodeText(text: string): number[] {
   return out
 }
 
-export function encodeEscPos(blocks: ReceiptBlock[]): Uint8Array {
+export function encodeEscPos(blocks: ReceiptBlock[], charsPerLine = 48): Uint8Array {
   const out: number[] = [ESC, 0x40, ESC, 0x74, 0x02]
 
   let align = "left"
@@ -86,7 +86,7 @@ export function encodeEscPos(blocks: ReceiptBlock[]): Uint8Array {
       double = Boolean(block.double)
       out.push(GS, 0x21, double ? 0x11 : 0x00)
     }
-    out.push(...encodeText(block.text).slice(0, block.double ? 24 : 48), 0x0a)
+out.push(...encodeText(block.text).slice(0, block.double ? Math.floor(charsPerLine / 2) : charsPerLine), 0x0a)
   }
 
   // Avanza el papel y corta (la impresora ignora el corte si no tiene cuchilla).

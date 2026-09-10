@@ -18,7 +18,9 @@ import {
   type BankAccountInfo,
 } from "@/features/catalog/lib/whatsapp"
 import { ReceiptPrintView } from "@/features/printing/components/receipt-print-view"
+import { RECEIPT_PAPER_SIZES, RECEIPT_PAPER_WIDTHS, type ReceiptPaperWidth } from "@/features/printing/lib/receipt"
 import { useStore } from "@/features/store/hooks/use-store"
+import { cn } from "@/lib/utils"
 import type { OrderDto } from "@/types/interfaces/order.interface"
 
 interface OrderActionDialogProps {
@@ -58,6 +60,7 @@ function OrderActionBody({
 }) {
   const { data: store } = useStore()
   const [step, setStep] = useState<"choice" | "print">("choice")
+  const [paper, setPaper] = useState<ReceiptPaperWidth>(58)
 
   const bankAccounts: BankAccountInfo[] = (store?.bankAccounts ?? []).map((a) => ({
     bankName: a.bankName,
@@ -124,15 +127,36 @@ function OrderActionBody({
         <div className="flex items-center gap-2 pr-6">
           <AirplayIcon className="size-4 text-muted-foreground" />
           <DialogTitle className="text-base">Imprimir recibo</DialogTitle>
-          <Badge variant="secondary">80 mm</Badge>
+          <Badge variant="secondary">{RECEIPT_PAPER_SIZES[paper].label}</Badge>
         </div>
         <DialogDescription>
           Vista Previa de impresión del recibo.
         </DialogDescription>
       </DialogHeader>
 
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">Tamaño de papel</p>
+        <div className="inline-flex rounded-lg border bg-muted p-0.5">
+          {RECEIPT_PAPER_WIDTHS.map((key) => (
+            <Button
+              key={key}
+              type="button"
+              size="sm"
+              variant="ghost"
+              className={cn(
+                "h-7 px-3 text-xs",
+                paper === key && "bg-background font-semibold shadow-sm",
+              )}
+              onClick={() => setPaper(key)}
+            >
+              {RECEIPT_PAPER_SIZES[key].label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       <div className="pt-1">
-        <ReceiptPrintView store={store} order={order} />
+        <ReceiptPrintView store={store} order={order} size={RECEIPT_PAPER_SIZES[paper]} />
       </div>
 
       <div className="mt-2 flex items-center justify-between gap-2">

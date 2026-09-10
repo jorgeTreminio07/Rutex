@@ -32,6 +32,18 @@ function describeRequestError(error: unknown): string {
   }
 }
 
+// Servicios BLE más usados por las impresoras térmicas esc/p0s baratas.
+// Con acceptAllDevices, Chrome solo permite leer los servicios que se
+// declaran aquí; si no se declaran, al conectar tira "Origin is not allowed
+// to access any service".
+const RECEIPT_SERVICES: BluetoothServiceUUID[] = [
+  0x18f0, // eSSP / modo serie de muchas impresoras ESC/POS
+  0xff00, // servicio genérico privado (muy común)
+  0xff02, // característica de escritura del servicio 0xff00
+  0x1101, // Serial Port Profile
+  0x180a, // Device Information
+]
+
 export async function requestReceiptPrinter(): Promise<ReceiptPrinter> {
   if (!isWebBluetoothSupported()) {
     throw new Error(
@@ -45,7 +57,10 @@ export async function requestReceiptPrinter(): Promise<ReceiptPrinter> {
   // selector de dispositivos.
   let device: BluetoothDevice
   try {
-    device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true })
+    device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: RECEIPT_SERVICES,
+    })
   } catch (error) {
     throw new Error(describeRequestError(error))
   }
@@ -82,9 +97,42 @@ export async function requestReceiptPrinter(): Promise<ReceiptPrinter> {
 async function findWritableCharacteristic(
   server: BluetoothRemoteGATTServer,
 ): Promise<BluetoothRemoteGATTCharacteristic | null> {
-  const services = await server.getPrimaryServices()
+  const visited = new Set<BluetoothRemoteGATTService>()
+  const services: BluetoothRemoteGATTService[] = []
+
+  for (const uuid of RECEIPT_SERVICES) {
+    try {
+      const found = await server.getPrimaryServices(uuid)
+      for (const service of found) {
+        if (!visited.has(service)) {
+          visited.add(service)
+          services.push(service)
+        }
+      }
+    } catch {
+      // servicio no presente en este dispositivo: ignorar
+    }
+  }
+
+  try {
+    const all = await server.getPrimaryServices()
+    for (const service of all) {
+      if (!visited.has(service)) {
+        visited.add(service)
+        services.push(service)
+      }
+    }
+  } catch {
+    // sin permiso para servicios no declarados: ignorar
+  }
+
   for (const service of services) {
-    const characteristics = await service.getCharacteristics()
+    let characteristics: BluetoothRemoteGATTCharacteristic[]
+    try {
+      characteristics = await service.getCharacteristics()
+    } catch {
+      continue
+    }
     for (const characteristic of characteristics) {
       if (characteristic.properties.write || characteristic.properties.writeWithoutResponse) {
         return characteristic

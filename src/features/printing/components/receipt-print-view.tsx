@@ -10,7 +10,7 @@ import {
   requestReceiptPrinter,
   type ReceiptPrinter,
 } from "@/features/printing/lib/bluetooth"
-import { buildReceiptBlocks, encodeReceiptEscPos } from "@/features/printing/lib/receipt"
+import { buildReceiptBlocks, encodeReceiptEscPos, type ReceiptPaperSize } from "@/features/printing/lib/receipt"
 import type { OrderDto } from "@/types/interfaces/order.interface"
 import type { StoreProfileDto } from "@/types/interfaces/store.interface"
 import { cn } from "@/lib/utils"
@@ -18,10 +18,14 @@ import { cn } from "@/lib/utils"
 interface ReceiptPrintViewProps {
   store: StoreProfileDto | null | undefined
   order: OrderDto
+  size: ReceiptPaperSize
 }
 
-export function ReceiptPrintView({ store, order }: ReceiptPrintViewProps) {
-  const blocks = useMemo(() => buildReceiptBlocks(store ?? {}, order), [store, order])
+export function ReceiptPrintView({ store, order, size }: ReceiptPrintViewProps) {
+  const blocks = useMemo(
+    () => buildReceiptBlocks(store ?? {}, order, size),
+    [store, order, size],
+  )
   const [printer, setPrinter] = useState<ReceiptPrinter | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
@@ -62,7 +66,7 @@ export function ReceiptPrintView({ store, order }: ReceiptPrintViewProps) {
     setPrinting(true)
     setError(null)
     try {
-      await printer.write(encodeReceiptEscPos(store ?? {}, order))
+      await printer.write(encodeReceiptEscPos(store ?? {}, order, size))
       toast.success("Recibo enviado a la impresora")
     } catch {
       setError("No se pudo imprimir. Verifica que la impresora siga conectada.")
@@ -82,7 +86,7 @@ export function ReceiptPrintView({ store, order }: ReceiptPrintViewProps) {
       <div className="overflow-x-auto rounded-xl bg-muted/50 p-4">
         <div
           className="mx-auto bg-white px-3 py-4 font-mono text-[9.5px] tabular-nums leading-[1.35] text-neutral-900 shadow-sm"
-          style={{ width: "80mm" }}
+          style={{ width: `${size.widthMm}mm`, maxWidth: "20rem" }}
           aria-label="Vista previa del recibo"
         >
           {blocks.map((block, index) => (
