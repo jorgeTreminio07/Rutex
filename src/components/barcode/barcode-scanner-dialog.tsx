@@ -104,13 +104,14 @@ function ScannerBody({ onScan, onCancel }: { onScan: (barcode: string) => void; 
         })
 
         await scanner.start(
-          {
-            facingMode: "environment",
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
+          { facingMode: "environment" },
           {
             fps: 10,
+            videoConstraints: {
+              facingMode: "environment",
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
           },
           (decodedText: string) => {
             if (handledRef.current) return
