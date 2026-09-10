@@ -61,10 +61,20 @@ function ScannerBody({ onScan, onCancel }: { onScan: (barcode: string) => void; 
   const [error, setError] = useState("")
   const handledRef = useRef(false)
   const onScanRef = useRef(onScan)
+  const scannerRef = useRef<Html5QrcodeInstance | null>(null)
+  const [zoomRange, setZoomRange] = useState<{ min: number; max: number; step: number } | null>(null)
+  const [zoom, setZoom] = useState(1)
 
   useEffect(() => {
     onScanRef.current = onScan
   })
+
+  const handleZoom = (value: number) => {
+    setZoom(value)
+    const s = scannerRef.current
+    if (!s) return
+    s.getRunningTrackCameraCapabilities().zoomFeature().apply(value).catch(() => undefined)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -78,6 +88,7 @@ function ScannerBody({ onScan, onCancel }: { onScan: (barcode: string) => void; 
 
         scanner = new Html5Qrcode(containerId, {
           verbose: false,
+          useBarCodeDetectorIfSupported: true,
           formatsToSupport: [
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.EAN_8,
@@ -93,10 +104,13 @@ function ScannerBody({ onScan, onCancel }: { onScan: (barcode: string) => void; 
         })
 
         await scanner.start(
-          { facingMode: "environment" },
+          {
+            facingMode: "environment",
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
           {
             fps: 10,
-            qrbox: { width: 250, height: 140 },
           },
           (decodedText: string) => {
             if (handledRef.current) return
@@ -115,6 +129,19 @@ function ScannerBody({ onScan, onCancel }: { onScan: (barcode: string) => void; 
         }
 
         started = true
+        scannerRef.current = scanner
+        try {
+          const zoom = scanner.getRunningTrackCameraCapabilities().zoomFeature()
+          if (zoom.isSupported()) {
+            const min = zoom.min()
+            const max = zoom.max()
+            const step = zoom.step() > 0 ? zoom.step() : 0.1
+            setZoomRange({ min, max, step })
+            setZoom(min)
+          }
+        } catch {
+          /* sin soporte de zoom en este dispositivo */
+        }
         setStatus("ready")
       } catch (err) {
         if (cancelled) return
@@ -132,6 +159,7 @@ function ScannerBody({ onScan, onCancel }: { onScan: (barcode: string) => void; 
 
     return () => {
       cancelled = true
+      scannerRef.current = null
       if (started && scanner) {
         scanner.stop().catch(() => undefined).then(() => scanner?.clear())
       }
@@ -141,7 +169,7 @@ function ScannerBody({ onScan, onCancel }: { onScan: (barcode: string) => void; 
   return (
     <div className="flex flex-col gap-3">
       <div className="relative">
-        <div id={containerId} className="h-72 w-full overflow-hidden rounded-xl bg-black/80" />
+        <div id={containerId} className="h-80 w-full overflow-hidden rounded-xl bg-black/80" />
         {status === "starting" && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-sm text-white">
             <Loader2Icon className="mr-2 size-4 animate-spin" />
@@ -149,6 +177,31 @@ function ScannerBody({ onScan, onCancel }: { onScan: (barcode: string) => void; 
           </div>
         )}
       </div>
+
+      {status === "ready" && (
+        <p className="text-xs text-muted-foreground">
+          Apunta al código y espera. Si no lo lee, aléjate/acerca o usa el zoom.
+        </p>
+      )}
+
+      {zoomRange && status === "ready" && (
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-medium">Zoom</span>
+          <input
+            type="range"
+            min={zoomRange.min}
+            max={zoomRange.max}
+            step={zoomRange.step}
+            value={zoom}
+            onChange={(e) => handleZoom(Number(e.target.value))}
+            className="h-2 w-full cursor-pointer accent-teal-600"
+            aria-label="Zoom de la cámara"
+          />
+          <span className="w-10 shrink-0 text-right text-xs tabular-nums opacity-80">
+            {zoom.toFixed(zoom < 10 ? 1 : 0)}×
+          </span>
+        </div>
+      )}
 
       {status === "error" && (
         <div className="flex flex-col gap-2">
