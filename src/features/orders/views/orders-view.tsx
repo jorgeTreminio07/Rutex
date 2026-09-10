@@ -30,6 +30,7 @@ import { OrdersTable } from "@/features/orders/components/orders-table"
 import {
   useDeleteOrder,
   useOrders,
+  useSaveOrderProforma,
   useUpdateOrderStatus,
 } from "@/features/orders/hooks/use-orders"
 import { useStore } from "@/features/store/hooks/use-store"
@@ -59,6 +60,7 @@ export function OrdersView() {
 
   const updateStatus = useUpdateOrderStatus()
   const deleteOrder = useDeleteOrder()
+  const saveProforma = useSaveOrderProforma()
   const { data: store } = useStore()
   const [deleting, setDeleting] = useState<OrderDto | null>(null)
   const [viewing, setViewing] = useState<OrderDto | null>(null)
@@ -75,28 +77,36 @@ export function OrdersView() {
   const sendApprovalMessage = async (order: OrderDto) => {
     setSendingMessage(true)
     try {
-      const pdf = generateProformaPdf({
-        storeName: store?.name ?? "Rutex",
-        storePhone: store?.phone ?? null,
-        customerName: order.customerName,
-        customerPhone: order.customerPhone ?? "",
-        orderNumber: order.orderNumber,
-        items: order.items,
-        total: order.total,
-        paymentType: order.paymentType,
-        bankAccounts,
-      })
+      let proformaUrl = order.proformaUrl
 
-      const blob = new Blob([pdf.output("blob")], { type: "application/pdf" })
-      const uploaded = await uploadProformaRequest(
-        blob,
-        order.customerName.replace(/\s+/g, "-"),
-      )
+      // Pedidos sin proforma guardada (legacy): generarla y subirla una vez,
+      // y persistir la URL para que futuros mensajes la reutilicen.
+      if (!proformaUrl) {
+        const pdf = generateProformaPdf({
+          storeName: store?.name ?? "Rutex",
+          storePhone: store?.phone ?? null,
+          customerName: order.customerName,
+          customerPhone: order.customerPhone ?? "",
+          orderNumber: order.orderNumber,
+          items: order.items,
+          total: order.total,
+          paymentType: order.paymentType,
+          bankAccounts,
+        })
+
+        const blob = new Blob([pdf.output("blob")], { type: "application/pdf" })
+        const uploaded = await uploadProformaRequest(
+          blob,
+          order.customerName.replace(/\s+/g, "-"),
+        )
+        proformaUrl = uploaded.url
+        saveProforma.mutate({ id: order.id, url: proformaUrl })
+      }
 
       const url = generateApprovalWhatsAppUrl({
         order,
         bankAccounts,
-        proformaUrl: uploaded.url,
+        proformaUrl,
       })
       window.open(url, "_blank", "noopener,noreferrer")
     } catch {

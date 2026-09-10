@@ -38,3 +38,10 @@ export async function updateOrderStatusRequest(id: string, statusId: number): Pr
 export async function deleteOrderRequest(id: string): Promise<void> {
   return apiClient.delete(`/api/orders/${id}`)
 }
+
+export async function saveOrderProformaRequest(
+  id: string,
+  url: string,
+): Promise<{ url: string }> {
+  return apiClient.post<{ url: string }>(`/api/orders/${id}/proforma`, { url })
+}

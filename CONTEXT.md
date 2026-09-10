@@ -20,6 +20,7 @@
 - Crear pedido → status 5. **Aprobar (6)** descuenta stock de los productos. **Rechazar (7)** NO toca stock. **Eliminar** devuelve stock si estaba aprobado y pone status 4.
 - **`POST /api/orders` es público** (el carrito deslogueado también registra el pedido y avisa por WhatsApp): usa `createAdminClient()` (service role) para no depender de permisos RLS de `anon`. `GET` sigue con sesión/admin. `createAdminClient` (`src/lib/supabase/admin.ts`) está tipado `SupabaseClient<any, "public", any>` (sin ese tipado el TS resuelve `never`).
 - **Nuevo pedido (interno)**: botón "Nuevo pedido" en `/pedidos` abre `order-form-dialog.tsx` (`src/features/orders/components/`). Funciona como el carrito logueado pero el cliente se elige con **combobox de búsqueda** sobre clientes registrados (nombre/teléfono/cédula; sin inputs libres de nombre/teléfono); productos con steppers (límite = stock) + buscador; modalidad de pago contado/2 quincenas/4 semanas. Al guardar crea el pedido, genera y sube la proforma y abre WhatsApp al cliente (mensaje igual al carrito logueado).
+- **Proforma** (patch 022): `orders.proforma_url` guarda la URL del PDF. Se genera y sube **una sola vez, al crear el pedido, server-side en `POST /api/orders`** (`generateAndStoreProforma`, best-effort: si falla devuelve `null` sin romper el alta). Los mensajes (carrito logueado, pedido interno, aprobación/reenvío en `orders-view`) **reutilizan `order.proformaUrl`** en vez de regenerar/subir de nuevo. Pedidos legacy sin URL: `sendApprovalMessage` genera+sube y persiste vía `POST /api/orders/[id]/proforma` (admin) para que el siguiente envío reutilice.
 - Al **eliminar** un pedido (soft delete: `deleted_at` + status 4), el trigger `trg_orders_cleanup_cartera` (patch 012) elimina sus filas de `pagos`, `abonos` y `abono_registros` (el `ON DELETE CASCADE` de las FK solo aplica a borrado físico).
 - Las filas/tarjetas de la vista de pedidos son clicables; aprobar/rechazar/eliminar están dentro del **modal de detalle** (`order-detail-dialog.tsx`).
 - El filtro de fecha usa `DatePicker` personalizado (no nativo).
@@ -103,6 +104,7 @@
 17. `019-clients-status.sql` (estados de clientes: `status_id` FK `statuses` + `deleted_at`)
 18. `020-wipe-data.sql` (**no es migración**): truncate `RESTART IDENTITY CASCADE` de `abono_registros, abonos, pagos, deliveries, orders, inventories, products, order_counters, inventory_counters`; conserva users/profiles/roles/clients/cities/statuses.
 19. `021-products-barcode.sql` (columna opcional `barcode` en `products` + índice de búsqueda, sin restricción única)
+20. `022-orders-proforma-url.sql` (columna `proforma_url` en `orders` para reutilizar la URL de la proforma al enviar mensajes)
 
 ## Despliegue
 - **Producción**: Vercel con **integración nativa de GitHub** (repo `jorgeTreminio07/Rutex`, rama `master`): cada push a master se despliega solo. **NO reintroducir** el workflow de GitHub Actions (`.github/workflows/deploy.yml` se eliminó porque el doble deploy rompió producción con `MIDDLEWARE_INVOCATION_FAILED`). Los secrets `VERCEL_*` de GitHub ya no se usan.

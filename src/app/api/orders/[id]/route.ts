@@ -130,7 +130,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
-    .select("id, order_number, customer_name, customer_phone, items, total, status_id, payment_type, notes, created_at, order_statuses!inner(name)")
+    .select("id, order_number, customer_name, customer_phone, items, total, status_id, payment_type, notes, proforma_url, created_at, order_statuses!inner(name)")
     .single()
 
   if (error) {
@@ -149,6 +149,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
     status: (data.order_statuses as unknown as { name: string })?.name || "En proceso",
     paymentType: data.payment_type,
     notes: data.notes,
+    proformaUrl: data.proforma_url ?? null,
     createdAt: data.created_at,
     canApprove: false,
   })

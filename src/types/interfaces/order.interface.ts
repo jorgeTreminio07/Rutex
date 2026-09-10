@@ -19,6 +19,7 @@ export interface OrderDto {
   status: OrderStatus
   paymentType: PaymentType
   notes: string | null
+  proformaUrl: string | null
   createdAt: string
   canApprove: boolean
 }

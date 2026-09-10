@@ -81,22 +81,32 @@ export function CatalogCart({
       })
 
       if (isAuthenticated) {
-        const pdf = generateProformaPdf({
-          storeName,
-          storePhone,
-          customerName: customerName.trim(),
-          customerPhone: customerPhone.trim(),
-          orderNumber: order?.orderNumber ?? null,
-          items: orderItems,
-          total,
-          paymentType,
-          bankAccounts,
-        })
+        let proformaUrl = order?.proformaUrl ?? null
 
-        const blob = new Blob([pdf.output("blob")], { type: "application/pdf" })
-        const uploaded = await uploadProformaRequest(blob, customerName.trim().replace(/\s+/g, "-"))
+        // Si el servidor no pudo generar/guardar la proforma, generarla aquí
+        // como hoy para no enviar el mensaje sin ella.
+        if (!proformaUrl) {
+          const pdf = generateProformaPdf({
+            storeName,
+            storePhone,
+            customerName: customerName.trim(),
+            customerPhone: customerPhone.trim(),
+            orderNumber: order?.orderNumber ?? null,
+            items: orderItems,
+            total,
+            paymentType,
+            bankAccounts,
+          })
 
-        const msg = `Hola ${customerName.trim()}, le enviamos la *PROFORMA* de su pedido *${order?.orderNumber ?? ""}* por C$ ${total.toFixed(2)}.\n\nPuede descargarla aquí: ${uploaded.url}\n\n*Métodos de pago:*\n${bankAccounts.length > 0 ? bankAccounts.map((a) => `• ${a.bankName} (${a.currency}): ${a.accountNumber}`).join("\n") : "En efectivo al recibir."}\n\nQuedamos a la espera de su confirmación. ¡Gracias!`
+          const blob = new Blob([pdf.output("blob")], { type: "application/pdf" })
+          const uploaded = await uploadProformaRequest(
+            blob,
+            customerName.trim().replace(/\s+/g, "-"),
+          )
+          proformaUrl = uploaded.url
+        }
+
+        const msg = `Hola ${customerName.trim()}, le enviamos la *PROFORMA* de su pedido *${order?.orderNumber ?? ""}* por C$ ${total.toFixed(2)}.\n\nPuede descargarla aquí: ${proformaUrl}\n\n*Métodos de pago:*\n${bankAccounts.length > 0 ? bankAccounts.map((a) => `• ${a.bankName} (${a.currency}): ${a.accountNumber}`).join("\n") : "En efectivo al recibir."}\n\nQuedamos a la espera de su confirmación. ¡Gracias!`
 
         const destPhone = sanitizePhoneNumber(customerPhone.trim())
         window.open(`https://wa.me/${destPhone}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer")

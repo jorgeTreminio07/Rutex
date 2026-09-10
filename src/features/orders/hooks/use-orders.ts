@@ -7,6 +7,7 @@ import {
   createOrderRequest,
   deleteOrderRequest,
   getOrdersRequest,
+  saveOrderProformaRequest,
   updateOrderStatusRequest,
   type GetOrdersParams,
 } from "@/features/orders/api/orders.api"
@@ -60,5 +61,15 @@ export function useDeleteOrder() {
       queryClient.invalidateQueries({ queryKey: ordersKeys.all })
     },
     onError: (error) => toast.error(getApiErrorMessage(error, "No se pudo eliminar el pedido")),
+  })
+}
+
+export function useSaveOrderProforma() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, url }: { id: string; url: string }) => saveOrderProformaRequest(id, url),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ordersKeys.all })
+    },
   })
 }

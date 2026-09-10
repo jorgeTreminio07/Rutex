@@ -8,8 +8,15 @@ import {
 } from "@/lib/api-response"
 import { getSession } from "@/lib/server/auth"
 import { orderHasStock, type StockMap } from "@/features/orders/lib/stock"
+import { generateProformaPdf } from "@/features/catalog/lib/proforma"
+import type { BankAccountInfo } from "@/features/catalog/lib/whatsapp"
+import { getAssetUrl } from "@/lib/assets"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
+import type { OrderItem, PaymentType } from "@/types/interfaces/order.interface"
+
+const STORE_ROW_ID = "00000000-0000-0000-0000-000000000001"
+const PROFORMA_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET ?? "rutex-storage"
 
 // La tienda opera en Nicaragua (UTC-6, sin horario de verano).
 // Un día local va de las 06:00 UTC a las 06:00 UTC del día siguiente.
@@ -18,6 +25,81 @@ function nicaraguaDayRange(dateStr: string): { start: string; end: string } {
   const start = new Date(Date.UTC(y, m - 1, d, 6, 0, 0))
   const end = new Date(start.getTime() + 86_400_000)
   return { start: start.toISOString(), end: end.toISOString() }
+}
+
+/**
+ * Genera y sube la proforma del pedido recién creado y guarda su URL en la BD.
+ * Best-effort: cualquier fallo devuelve null sin bloquear el alta del pedido.
+ */
+async function generateAndStoreProforma(
+  supabase: ReturnType<typeof createAdminClient>,
+  order: {
+    id: string
+    order_number: string | null
+    customer_name: string
+    customer_phone: string | null
+    items: OrderItem[]
+    total: number
+    payment_type: string | null
+  },
+): Promise<string | null> {
+  try {
+    const { data: profile } = await supabase
+      .from("store_profile")
+      .select("name, phone, address")
+      .eq("id", STORE_ROW_ID)
+      .maybeSingle()
+
+    const { data: bankRows = [] } = await supabase
+      .from("bank_accounts")
+      .select("bank_name, account_number, account_holder, currency")
+      .eq("store_profile_id", STORE_ROW_ID)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true })
+
+    const bankAccounts: BankAccountInfo[] = (bankRows ?? []).map((a) => ({
+      bankName: a.bank_name,
+      accountNumber: a.account_number,
+      accountHolder: a.account_holder,
+      currency: a.currency ?? "C$",
+    }))
+
+    const pdf = generateProformaPdf({
+      storeName: profile?.name ?? "Rutex",
+      storeAddress: profile?.address ?? null,
+      storePhone: profile?.phone ?? null,
+      customerName: order.customer_name,
+      customerPhone: order.customer_phone ?? "",
+      orderNumber: order.order_number,
+      items: order.items,
+      total: order.total,
+      paymentType: (order.payment_type as PaymentType) || "contado",
+      bankAccounts,
+    })
+
+    const slug = order.customer_name.replace(/\s+/g, "-")
+    const now = new Date()
+    const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${Math.random().toString(36).slice(2, 8)}`
+    const path = `proformas/proforma-${slug}-${stamp}.pdf`
+
+    const { data, error } = await supabase.storage.from(PROFORMA_BUCKET).upload(
+      path,
+      pdf.output("arraybuffer") as ArrayBuffer,
+      {
+        contentType: "application/pdf",
+        cacheControl: "3600",
+        upsert: false,
+      },
+    )
+
+    if (error) return null
+
+    const url = getAssetUrl(data?.path ?? path)
+    await supabase.from("orders").update({ proforma_url: url }).eq("id", order.id)
+    return url
+  } catch {
+    return null
+  }
 }
 
 export async function GET(request: Request) {
@@ -34,7 +116,7 @@ export async function GET(request: Request) {
   const supabase = await createClient()
   let query = supabase
     .from("orders")
-    .select("id, order_number, customer_name, customer_phone, items, total, status_id, payment_type, notes, created_at, order_statuses!inner(name)")
+    .select("id, order_number, customer_name, customer_phone, items, total, status_id, payment_type, notes, proforma_url, created_at, order_statuses!inner(name)")
     .is("deleted_at", null)
 
   if (statusFilter && statusFilter !== "todos") {
@@ -93,6 +175,7 @@ export async function GET(request: Request) {
         status: (o.order_statuses as unknown as { name: string })?.name || "En proceso",
         paymentType: o.payment_type,
         notes: o.notes,
+        proformaUrl: o.proforma_url ?? null,
         createdAt: o.created_at,
         canApprove,
       }
@@ -158,6 +241,16 @@ export async function POST(request: Request) {
     createdCanApprove = orderHasStock(items, createdStockMap)
   }
 
+  const proformaUrl = await generateAndStoreProforma(supabase, {
+    id: data.id,
+    order_number: data.order_number,
+    customer_name: data.customer_name,
+    customer_phone: data.customer_phone,
+    items: Array.isArray(data.items) ? (data.items as OrderItem[]) : [],
+    total: Number(data.total),
+    payment_type: data.payment_type,
+  })
+
   return created({
     id: data.id,
     orderNumber: data.order_number,
@@ -169,6 +262,7 @@ export async function POST(request: Request) {
     status: "En proceso",
     paymentType: data.payment_type,
     notes: data.notes,
+    proformaUrl,
     createdAt: data.created_at,
     canApprove: createdCanApprove,
   })
