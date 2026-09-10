@@ -1,7 +1,8 @@
 "use client"
 
-import { AirplayIcon, MessageSquareTextIcon, PrinterIcon } from "lucide-react"
+import { AirplayIcon, Loader2Icon, MessageSquareTextIcon, PrinterIcon } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -17,7 +18,9 @@ import {
   sanitizePhoneNumber,
   type BankAccountInfo,
 } from "@/features/catalog/lib/whatsapp"
+import { uploadReceiptRequest } from "@/features/printing/api/receipts.api"
 import { ReceiptPrintView } from "@/features/printing/components/receipt-print-view"
+import { generateReceiptPdf } from "@/features/printing/lib/receipt-pdf"
 import { useStore } from "@/features/store/hooks/use-store"
 import type { OrderDto } from "@/types/interfaces/order.interface"
 
@@ -58,6 +61,7 @@ function OrderActionBody({
 }) {
   const { data: store } = useStore()
   const [step, setStep] = useState<"choice" | "print">("choice")
+  const [printing, setPrinting] = useState(false)
 
   const bankAccounts: BankAccountInfo[] = (store?.bankAccounts ?? []).map((a) => ({
     bankName: a.bankName,
@@ -65,6 +69,34 @@ function OrderActionBody({
     accountHolder: a.accountHolder,
     currency: a.currency,
   }))
+
+  const handlePrint = async () => {
+    if (printing) return
+    setPrinting(true)
+
+    // Abre la pestaña ahora (gesto del usuario), para que el navegador no la
+    // bloquee; la URL se asigna cuando termine de subir el PDF.
+    const popup = window.open("", "_blank")
+
+    try {
+      const pdf = generateReceiptPdf(store ?? {}, order)
+      const blob = new Blob([pdf.output("blob")], { type: "application/pdf" })
+      const uploaded = await uploadReceiptRequest(blob, order.orderNumber ?? "recibo")
+
+      if (popup) {
+        popup.location.href = uploaded.url
+      } else {
+        window.open(uploaded.url, "_blank")
+      }
+
+      onComplete()
+    } catch {
+      popup?.close()
+      toast.error("No se pudo generar el recibo. Intenta de nuevo.")
+    } finally {
+      setPrinting(false)
+    }
+  }
 
   const handleSendMessage = () => {
     const msg = generateProformaCustomerMessage({
@@ -127,7 +159,8 @@ function OrderActionBody({
           <Badge variant="secondary">80 mm</Badge>
         </div>
         <DialogDescription>
-          Vista Previa de impresión del recibo.
+          Así se verá el recibo (80 mm). Al pulsar {"“Proceder con impresión”"} se guarda el PDF y
+          se abre en una pestaña nueva para imprimirlo desde el navegador.
         </DialogDescription>
       </DialogHeader>
 
@@ -139,12 +172,19 @@ function OrderActionBody({
         <Button type="button" variant="ghost" onClick={() => setStep("choice")}>
           Volver
         </Button>
-        <div className="flex items-center gap-2">
-          <p className="text-xs text-muted-foreground">El pedido ya está registrado.</p>
-          <Button type="button" size="sm" onClick={onComplete}>
-            Finalizar
-          </Button>
-        </div>
+        <Button type="button" size="sm" onClick={handlePrint} disabled={printing} className="gap-2">
+          {printing ? (
+            <>
+              <Loader2Icon className="size-4 animate-spin" />
+              Generando…
+            </>
+          ) : (
+            <>
+              <PrinterIcon className="size-4" />
+              Proceder con impresión
+            </>
+          )}
+        </Button>
       </div>
     </>
   )
