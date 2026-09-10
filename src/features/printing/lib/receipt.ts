@@ -1,17 +1,11 @@
 import type { OrderDto } from "@/types/interfaces/order.interface"
 import type { StoreProfileDto } from "@/types/interfaces/store.interface"
+import { encodeEscPos, type ReceiptBlock } from "@/features/printing/lib/escape-pos"
 import { NICARAGUA_TIME_ZONE } from "@/features/deliveries/lib/format"
 
 // Ancho de papel del recibo. La tienda usa 80 mm (≈48 caracteres/línea, fuente A).
 export const RECEIPT_PAPER_WIDTH = 80
 export const RECEIPT_CHARS = 48
-
-export interface ReceiptBlock {
-  text: string
-  align?: "left" | "center" | "right"
-  bold?: boolean
-  double?: boolean
-}
 
 function separator(): string {
   return "-".repeat(RECEIPT_CHARS)
@@ -99,4 +93,11 @@ export function buildReceiptBlocks(
   blocks.push({ text: "¡Muchas gracias!", align: "center", bold: true })
 
   return blocks
+}
+
+export function encodeReceiptEscPos(
+  store: Partial<StoreProfileDto>,
+  order: OrderDto,
+): Uint8Array {
+  return encodeEscPos(buildReceiptBlocks(store, order))
 }
