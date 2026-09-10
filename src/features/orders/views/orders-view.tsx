@@ -1,5 +1,6 @@
 "use client"
 
+import { toast } from "sonner"
 import { FilterIcon, PlusIcon, SearchIcon, XIcon } from "lucide-react"
 import { useState } from "react"
 
@@ -22,6 +23,7 @@ import {
   generateRejectionWhatsAppUrl,
   type BankAccountInfo,
 } from "@/features/catalog/lib/whatsapp"
+import { OrderActionDialog } from "@/features/orders/components/order-action-dialog"
 import { OrderDeleteDialog } from "@/features/orders/components/order-delete-dialog"
 import { OrderDetailDialog } from "@/features/orders/components/order-detail-dialog"
 import { OrderFormDialog } from "@/features/orders/components/order-form-dialog"
@@ -64,6 +66,7 @@ export function OrdersView() {
   const { data: store } = useStore()
   const [deleting, setDeleting] = useState<OrderDto | null>(null)
   const [viewing, setViewing] = useState<OrderDto | null>(null)
+  const [notifying, setNotifying] = useState<OrderDto | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [sendingMessage, setSendingMessage] = useState(false)
 
@@ -111,6 +114,43 @@ export function OrdersView() {
       window.open(url, "_blank", "noopener,noreferrer")
     } catch {
       // El toast de error lo muestra el hook de la acción
+    } finally {
+      setSendingMessage(false)
+    }
+  }
+
+  const handleNotify = async (order: OrderDto) => {
+    setSendingMessage(true)
+    try {
+      let proformaUrl = order.proformaUrl
+
+      // Pedidos sin proforma guardada (legacy): generarla y subirla una vez,
+      // y persistir la URL para que futuros mensajes la reutilicen.
+      if (!proformaUrl) {
+        const pdf = generateProformaPdf({
+          storeName: store?.name ?? "Rutex",
+          storePhone: store?.phone ?? null,
+          customerName: order.customerName,
+          customerPhone: order.customerPhone ?? "",
+          orderNumber: order.orderNumber,
+          items: order.items,
+          total: order.total,
+          paymentType: order.paymentType,
+          bankAccounts,
+        })
+
+        const blob = new Blob([pdf.output("blob")], { type: "application/pdf" })
+        const uploaded = await uploadProformaRequest(
+          blob,
+          order.customerName.replace(/\s+/g, "-"),
+        )
+        proformaUrl = uploaded.url
+        saveProforma.mutate({ id: order.id, url: proformaUrl })
+      }
+
+      setNotifying({ ...order, proformaUrl })
+    } catch {
+      toast.error("No se pudo preparar la notificación. Intenta de nuevo.")
     } finally {
       setSendingMessage(false)
     }
@@ -217,9 +257,18 @@ export function OrdersView() {
         onApprove={handleApprove}
         onReject={handleReject}
         onDelete={setDeleting}
-        onSendApproval={sendApprovalMessage}
+        onNotify={handleNotify}
         isPending={updateStatus.isPending}
         isSendingMessage={sendingMessage}
+      />
+
+      <OrderActionDialog
+        open={notifying !== null}
+        onOpenChange={(open) => {
+          if (!open) setNotifying(null)
+        }}
+        order={notifying}
+        onComplete={() => setNotifying(null)}
       />
 
       <OrderDeleteDialog

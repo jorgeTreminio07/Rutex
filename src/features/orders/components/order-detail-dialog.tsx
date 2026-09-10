@@ -43,7 +43,7 @@ interface OrderDetailDialogProps {
   onApprove: (order: OrderDto) => void
   onReject: (order: OrderDto) => void
   onDelete: (order: OrderDto) => void
-  onSendApproval: (order: OrderDto) => void
+  onNotify: (order: OrderDto) => void
   isPending: boolean
   isSendingMessage: boolean
 }
@@ -54,7 +54,7 @@ export function OrderDetailDialog({
   onApprove,
   onReject,
   onDelete,
-  onSendApproval,
+  onNotify,
   isPending,
   isSendingMessage,
 }: OrderDetailDialogProps) {
@@ -137,6 +137,19 @@ export function OrderDetailDialog({
                 </p>
               )}
 
+            {(order.statusId === 5 || order.statusId === 6) && (
+              <Button
+                type="button"
+                variant="default"
+                className="w-full gap-2"
+                disabled={isSendingMessage}
+                onClick={() => onNotify(order)}
+              >
+                <SendIcon className="size-4" />
+                {isSendingMessage ? "Preparando…" : "Notificar al cliente"}
+              </Button>
+            )}
+
             <DialogFooter>
               {order.statusId === 5 && (
                 <>
@@ -159,18 +172,6 @@ export function OrderDetailDialog({
                     Aprobar
                   </Button>
                 </>
-              )}
-              {order.statusId === 6 && (
-                <Button
-                  type="button"
-                  variant="default"
-                  className="gap-2"
-                  disabled={isSendingMessage}
-                  onClick={() => onSendApproval(order)}
-                >
-                  <SendIcon className="size-4" />
-                  {isSendingMessage ? "Enviando…" : "Enviar mensaje"}
-                </Button>
               )}
               <Button
                 type="button"

@@ -83,15 +83,18 @@ function pushWrapped(
   }
 }
 
-// Fecha del pedido en Nicaragua (UTC-6), sin hora (ej. 09/09/2026).
-function formatNicaDate(value: string): string {
+// Fecha y hora del pedido en Nicaragua (UTC-6) (ej. 09/09/2026, 19:25).
+function formatNicaDateTime(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ""
-  return date.toLocaleDateString("es-NI", {
+  return date.toLocaleString("es-NI", {
     timeZone: NICARAGUA_TIME_ZONE,
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   })
 }
 
@@ -132,11 +135,12 @@ export function buildReceiptBlocks(
   blocks.push({ text: separator(chars) })
 
   if (order.createdAt) {
-    blocks.push({ text: `Fecha: ${formatNicaDate(order.createdAt)}` })
+    blocks.push({ text: `Fecha: ${formatNicaDateTime(order.createdAt)}` })
   }
   if (order.orderNumber) {
     pushWrapped(blocks, `Pedido: ${order.orderNumber}`, chars)
   }
+  pushWrapped(blocks, `Cliente: ${order.customerName}`, chars)
   pushWrapped(blocks, `Vendedor: ${store.ownerName ?? "—"}`, chars)
   if (store.phone) {
     pushWrapped(blocks, `Tel: ${store.phone}`, chars)
@@ -159,7 +163,7 @@ export function buildReceiptBlocks(
   blocks.push({ text: separator(chars) })
   blocks.push({ text: formatTotalLine(order.total, chars), bold: true })
   blocks.push({ text: " " })
-  blocks.push({ text: "¡Muchas gracias!", align: "center", bold: true })
+  blocks.push({ text: "Muchas gracias!", align: "center", bold: true })
 
   return blocks
 }
