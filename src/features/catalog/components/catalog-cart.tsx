@@ -16,12 +16,12 @@ import {
   cartTotal,
   cartToOrderItems,
   generateOrderWhatsAppUrl,
-  sanitizePhoneNumber,
 } from "@/features/catalog/lib/whatsapp"
+import { OrderActionDialog } from "@/features/orders/components/order-action-dialog"
 import { useCreateOrder } from "@/features/orders/hooks/use-orders"
 import { uploadProformaRequest } from "@/features/catalog/api/catalog.api"
 import type { CartLine } from "@/features/catalog/store/use-cart-store"
-import type { PaymentType } from "@/types/interfaces/order.interface"
+import type { OrderDto, PaymentType } from "@/types/interfaces/order.interface"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -54,6 +54,7 @@ export function CatalogCart({
   const [paymentType, setPaymentType] = useState<PaymentType>("contado")
   const [errors, setErrors] = useState<{ name?: boolean; phone?: boolean }>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [createdOrder, setCreatedOrder] = useState<OrderDto | null>(null)
   const router = useRouter()
 
   const total = cartTotal(items)
@@ -84,7 +85,7 @@ export function CatalogCart({
         let proformaUrl = order?.proformaUrl ?? null
 
         // Si el servidor no pudo generar/guardar la proforma, generarla aquí
-        // como hoy para no enviar el mensaje sin ella.
+        // para no abrir el diálogo sin ella.
         if (!proformaUrl) {
           const pdf = generateProformaPdf({
             storeName,
@@ -106,10 +107,8 @@ export function CatalogCart({
           proformaUrl = uploaded.url
         }
 
-        const msg = `Hola ${customerName.trim()}, le enviamos la *PROFORMA* de su pedido *${order?.orderNumber ?? ""}* por C$ ${total.toFixed(2)}.\n\nPuede descargarla aquí: ${proformaUrl}\n\n*Métodos de pago:*\n${bankAccounts.length > 0 ? bankAccounts.map((a) => `• ${a.bankName} (${a.currency}): ${a.accountNumber}`).join("\n") : "En efectivo al recibir."}\n\nQuedamos a la espera de su confirmación. ¡Gracias!`
-
-        const destPhone = sanitizePhoneNumber(customerPhone.trim())
-        window.open(`https://wa.me/${destPhone}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer")
+        const orderWithProforma = order ? { ...order, proformaUrl } : order
+        setCreatedOrder(orderWithProforma)
       } else {
         window.open(
           generateOrderWhatsAppUrl({
@@ -124,10 +123,9 @@ export function CatalogCart({
           "_blank",
           "noopener,noreferrer",
         )
+        onClear()
+        router.push("/catalogo")
       }
-
-      onClear()
-      router.push("/catalogo")
     } catch {
       toast.error("No se pudo completar el pedido. Intenta de nuevo.")
     } finally {
@@ -153,7 +151,8 @@ export function CatalogCart({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+    <>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
       <div className="space-y-3 lg:col-span-7">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold">
@@ -329,13 +328,27 @@ export function CatalogCart({
 
           <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
             {isAuthenticated ? (
-              <>Al hacer clic se registrará el pedido, se generará la proforma y se abrirá WhatsApp para enviarla al cliente.</>
+              <>Al hacer clic se registrará el pedido y se generará la proforma; luego podrás enviarla por WhatsApp o imprimir el recibo.</>
             ) : (
               <>Al hacer clic se registrará tu pedido y se abrirá WhatsApp para enviar la solicitud al{storePhone ? ` +${storePhone}` : " equipo"} de {storeName}.</>
             )}
           </p>
         </Card>
       </div>
-    </div>
+      </div>
+
+      <OrderActionDialog
+        open={createdOrder !== null}
+        onOpenChange={(open) => {
+          if (!open) setCreatedOrder(null)
+        }}
+        order={createdOrder}
+        onComplete={() => {
+          setCreatedOrder(null)
+          onClear()
+          router.push("/catalogo")
+        }}
+      />
+    </>
   )
 }

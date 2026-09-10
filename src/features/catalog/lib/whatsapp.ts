@@ -62,6 +62,27 @@ export function formatBankAccountsText(bankAccounts?: BankAccountInfo[]): string
     .join("\n")
 }
 
+export interface ProformaCustomerMessagePayload {
+  customerName: string
+  orderNumber?: string | null
+  total: number
+  proformaUrl: string
+  bankAccounts?: BankAccountInfo[]
+}
+
+export function generateProformaCustomerMessage(
+  payload: ProformaCustomerMessagePayload,
+): string {
+  const { customerName, orderNumber, total, proformaUrl, bankAccounts } = payload
+  const bankText =
+    bankAccounts && bankAccounts.length > 0
+      ? bankAccounts
+          .map((a) => `• ${a.bankName} (${a.currency}): ${a.accountNumber}`)
+          .join("\n")
+      : "En efectivo al recibir."
+  return `Hola ${customerName}, le enviamos la *PROFORMA* de su pedido *${orderNumber ?? ""}* por C$ ${total.toFixed(2)}.\n\nPuede descargarla aquí: ${proformaUrl}\n\n*Métodos de pago:*\n${bankText}\n\nQuedamos a la espera de su confirmación. ¡Gracias!`
+}
+
 export interface OrderMessagePayload {
   customerName: string
   customerPhone: string

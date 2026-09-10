@@ -26,11 +26,11 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { OrderActionDialog } from "@/features/orders/components/order-action-dialog"
 import { uploadProformaRequest } from "@/features/catalog/api/catalog.api"
 import { generateProformaPdf } from "@/features/catalog/lib/proforma"
 import {
   getEffectivePrice,
-  sanitizePhoneNumber,
   type BankAccountInfo,
 } from "@/features/catalog/lib/whatsapp"
 import { useClients } from "@/features/clients/hooks/use-clients"
@@ -38,7 +38,7 @@ import { useCreateOrder } from "@/features/orders/hooks/use-orders"
 import { useProducts } from "@/features/products/hooks/use-products"
 import { useStore } from "@/features/store/hooks/use-store"
 import type { ClientDto } from "@/types/interfaces/client.interface"
-import type { OrderItem, PaymentType } from "@/types/interfaces/order.interface"
+import type { OrderDto, OrderItem, PaymentType } from "@/types/interfaces/order.interface"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -60,6 +60,7 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
   const [search, setSearch] = useState("")
   const [scannerOpen, setScannerOpen] = useState(false)
   const [quantities, setQuantities] = useState<Record<string, number>>({})
+  const [createdOrder, setCreatedOrder] = useState<OrderDto | null>(null)
 
   const bankAccounts: BankAccountInfo[] = (store?.bankAccounts ?? []).map((a) => ({
     bankName: a.bankName,
@@ -146,17 +147,8 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
         proformaUrl = uploaded.url
       }
 
-      const msg = `Hola ${client.fullName}, le enviamos la *PROFORMA* de su pedido *${order?.orderNumber ?? ""}* por C$ ${total.toFixed(2)}.\n\nPuede descargarla aquí: ${proformaUrl}\n\n*Métodos de pago:*\n${bankAccounts.length > 0 ? bankAccounts.map((a) => `• ${a.bankName} (${a.currency}): ${a.accountNumber}`).join("\n") : "En efectivo al recibir."}\n\nQuedamos a la espera de su confirmación. ¡Gracias!`
-
-      const destPhone = sanitizePhoneNumber(client.phone)
-      window.open(
-        `https://wa.me/${destPhone}?text=${encodeURIComponent(msg)}`,
-        "_blank",
-        "noopener,noreferrer",
-      )
-
-      onOpenChange(false)
-      reset()
+      const orderWithProforma = order ? { ...order, proformaUrl } : order
+      setCreatedOrder(orderWithProforma)
     } catch {
       toast.error("No se pudo completar el pedido. Intenta de nuevo.")
     }
@@ -423,6 +415,19 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
       onOpenChange={setScannerOpen}
       onScan={handleBarcodeScan}
       description="Apunta la cámara al código de barras para buscar el producto."
+    />
+
+    <OrderActionDialog
+      open={createdOrder !== null}
+      onOpenChange={(open) => {
+        if (!open) setCreatedOrder(null)
+      }}
+      order={createdOrder}
+      onComplete={() => {
+        setCreatedOrder(null)
+        onOpenChange(false)
+        reset()
+      }}
     />
     </>
   )
