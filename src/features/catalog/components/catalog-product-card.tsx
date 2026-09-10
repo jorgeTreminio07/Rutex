@@ -1,6 +1,7 @@
 "use client"
 
 import { MinusIcon, PlusIcon, ShoppingCartIcon } from "lucide-react"
+import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import { getEffectivePrice } from "@/features/catalog/lib/whatsapp"
@@ -36,10 +37,12 @@ export function CatalogProductCard({
     >
       <div className="relative aspect-square w-full overflow-hidden bg-muted">
         {image ? (
-          <img
+          <Image
             src={image}
             alt={product.name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            fill
+            sizes="(max-width: 768px) 100vw, 25vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
             onError={(e) => {
               e.currentTarget.style.display = "none"
             }}

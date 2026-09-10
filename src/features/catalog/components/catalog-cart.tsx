@@ -1,6 +1,7 @@
 "use client"
 
 import { CreditCardIcon, MinusIcon, PhoneIcon, PlusIcon, SendIcon, ShoppingBagIcon, Trash2Icon, UserIcon } from "lucide-react"
+import Image from "next/image"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
@@ -162,7 +163,7 @@ export function CatalogCart({
               <div key={product.id} className="flex items-center gap-3 p-3">
                 <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
                   {product.images[0] ? (
-                    <img src={product.images[0]} alt={product.name} className="h-full w-full object-cover" />
+                    <Image src={product.images[0]} alt={product.name} width={64} height={64} className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-muted-foreground/40">
                       {product.name[0]?.toUpperCase()}

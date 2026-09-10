@@ -1,12 +1,14 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ChevronsUpDownIcon, ImageIcon, Loader2Icon, UploadCloudIcon } from "lucide-react"
+import { ChevronsUpDownIcon, ImageIcon, Loader2Icon, ScanBarcodeIcon, UploadCloudIcon, XIcon } from "lucide-react"
+import Image from "next/image"
 import { useState } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import type { ReactNode } from "react"
 import { z } from "zod"
 
+import { BarcodeScannerDialog } from "@/components/barcode/barcode-scanner-dialog"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -119,12 +121,14 @@ export function ProductFormDialog({
 }: ProductFormDialogProps) {
   const [imageUrl, setImageUrl] = useState("")
   const [isUploading, setIsUploading] = useState(false)
+  const [scannerOpen, setScannerOpen] = useState(false)
 
   const form = useForm<z.input<typeof productSchema>, unknown, z.output<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: product?.name ?? "",
       description: product?.description ?? "",
+      barcode: product?.barcode ?? "",
       purchasePrice: product?.purchasePrice != null ? String(product.purchasePrice) : "",
       price: product?.price != null ? String(product.price) : "",
       discountPercent: product?.discountPercent != null ? String(product.discountPercent) : "",
@@ -136,6 +140,7 @@ export function ProductFormDialog({
   const images = useWatch({ control: form.control, name: "images" }) ?? []
   const productName = useWatch({ control: form.control, name: "name" })
   const category = useWatch({ control: form.control, name: "category" }) ?? ""
+  const barcode = useWatch({ control: form.control, name: "barcode" }) ?? ""
 
   const handleAddImage = () => {
     if (imageUrl.trim()) {
@@ -159,8 +164,14 @@ export function ProductFormDialog({
     form.setValue("images", images.filter((_, i) => i !== index))
   }
 
+  const handleBarcodeScan = (barcode: string) => {
+    form.setValue("barcode", barcode)
+    setScannerOpen(false)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{product ? "Editar producto" : "Nuevo producto"}</DialogTitle>
@@ -187,6 +198,45 @@ export function ProductFormDialog({
               categories={categories}
             />
             <p className="text-xs text-muted-foreground">Elige una existente o escribe una nueva.</p>
+          </Field>
+
+          <Field label="Código de barras" htmlFor="product-barcode" error={form.formState.errors.barcode?.message}>
+            {barcode ? (
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-10 flex-1 items-center overflow-hidden rounded-xl border bg-muted/50 px-3 font-mono text-sm">
+                  {barcode}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 rounded-xl px-3"
+                  onClick={() => setScannerOpen(true)}
+                  aria-label="Re-escanear código de barras"
+                >
+                  <ScanBarcodeIcon className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-10 w-10 rounded-xl px-0"
+                  onClick={() => form.setValue("barcode", "")}
+                  aria-label="Quitar código de barras"
+                >
+                  <XIcon className="size-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 justify-start rounded-xl"
+                onClick={() => setScannerOpen(true)}
+              >
+                <ScanBarcodeIcon className="size-4" />
+                Escanear código de barras
+              </Button>
+            )}
+            <p className="text-xs text-muted-foreground">Opcional. Escanea el código del producto con la cámara.</p>
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
@@ -273,7 +323,7 @@ export function ProductFormDialog({
                 {images.map((url, idx) => (
                   <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border bg-muted">
                     {url ? (
-                      <img src={url} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                      <Image src={url} alt={`Preview ${idx + 1}`} fill sizes="80px" className="object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
                         <ImageIcon className="size-5 text-muted-foreground" />
@@ -303,5 +353,12 @@ export function ProductFormDialog({
         </form>
       </DialogContent>
     </Dialog>
+
+    <BarcodeScannerDialog
+      open={scannerOpen}
+      onOpenChange={setScannerOpen}
+      onScan={handleBarcodeScan}
+    />
+    </>
   )
 }

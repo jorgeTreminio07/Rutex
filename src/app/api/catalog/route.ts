@@ -7,6 +7,7 @@ interface ProductRow {
   id: string
   name: string
   description: string | null
+  barcode: string | null
   price: number
   discount_percent: number
   category: string
@@ -33,7 +34,7 @@ export async function GET() {
 
   const { data: products, error: productsError } = (await admin
     .from("products")
-    .select("id, name, description, price, discount_percent, category, stock, images, created_at")
+    .select("id, name, description, barcode, price, discount_percent, category, stock, images, created_at")
     .is("deleted_at", null)) as unknown as {
     data: ProductRow[] | null
     error: { message: string } | null
@@ -67,6 +68,7 @@ export async function GET() {
       id: p.id,
       name: p.name,
       description: p.description,
+      barcode: p.barcode,
       price: Number(p.price),
       discountPercent: Number(p.discount_percent),
       category: p.category,

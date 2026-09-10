@@ -7,11 +7,14 @@ import {
   PackageIcon,
   PhoneIcon,
   PlusIcon,
+  ScanBarcodeIcon,
   SearchIcon,
   UserIcon,
 } from "lucide-react"
 import { useMemo, useState } from "react"
+import Image from "next/image"
 
+import { BarcodeScannerDialog } from "@/components/barcode/barcode-scanner-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -55,6 +58,7 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
   const [clientOpen, setClientOpen] = useState(false)
   const [paymentType, setPaymentType] = useState<PaymentType>("contado")
   const [search, setSearch] = useState("")
+  const [scannerOpen, setScannerOpen] = useState(false)
   const [quantities, setQuantities] = useState<Record<string, number>>({})
 
   const bankAccounts: BankAccountInfo[] = (store?.bankAccounts ?? []).map((a) => ({
@@ -75,7 +79,9 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return products
-    return products.filter((p) => `${p.name} ${p.category}`.toLowerCase().includes(q))
+    return products.filter((p) =>
+      `${p.name} ${p.category} ${p.barcode ?? ""}`.toLowerCase().includes(q),
+    )
   }, [products, search])
 
   const selectedProducts = products.filter((p) => (quantities[p.id] ?? 0) > 0)
@@ -95,6 +101,7 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
     setClientOpen(false)
     setPaymentType("contado")
     setSearch("")
+    setScannerOpen(false)
     setQuantities({})
   }
 
@@ -148,7 +155,13 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
     }
   }
 
+  const handleBarcodeScan = (barcode: string) => {
+    setSearch(barcode)
+    setScannerOpen(false)
+  }
+
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-4 overflow-hidden p-0">
         <DialogHeader className="px-4 pt-4">
@@ -256,14 +269,27 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
         </div>
 
         <div className="px-4">
-          <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar producto…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-10 rounded-xl pl-9"
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar producto por nombre o código…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-10 rounded-xl pl-9"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 shrink-0 rounded-xl"
+              onClick={() => setScannerOpen(true)}
+              aria-label="Escanear código de barras"
+              title="Escanear código de barras"
+            >
+              <ScanBarcodeIcon className="size-5" />
+            </Button>
           </div>
         </div>
 
@@ -285,9 +311,11 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
                         {product.images[0] ? (
-                          <img
+                          <Image
                             src={product.images[0]}
                             alt={product.name}
+                            width={36}
+                            height={36}
                             className="h-9 w-9 rounded-lg object-cover"
                           />
                         ) : (
@@ -382,5 +410,13 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
         </div>
       </DialogContent>
     </Dialog>
+
+    <BarcodeScannerDialog
+      open={scannerOpen}
+      onOpenChange={setScannerOpen}
+      onScan={handleBarcodeScan}
+      description="Apunta la cámara al código de barras para buscar el producto."
+    />
+    </>
   )
 }

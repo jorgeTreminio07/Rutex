@@ -6,6 +6,7 @@
 - **App**: Next.js (App Router, Tailwind v4, shadcn/ui, React Query, Zustand, jsPDF).
 - **Backend/DB**: Supabase (PostgreSQL). RLS por tabla; API server-side en `src/app/api/**`.
 - **Hora**: la tienda opera en Nicaragua (UTC-6, sin horario de verano). Filtros de fecha y "hoy" por defecto usan offset −6 h. El `DatePicker` (`src/components/ui/date-picker.tsx`) calcula su "Hoy"/vista por defecto con hora Nicaragua (`nicaToday`), no con la hora local de la máquina.
+- **Imágenes**: se usa `next/image` con `images.unoptimized: true` en `next.config.ts` (las imágenes se sirven directo desde Supabase Storage/URLs externas; por eso no se exige `remotePatterns`).
 - **Regla**: NO commitear/pushear sin que el usuario lo pida expresamente.
 
 ## Estados de pedidos (tabla propia)
@@ -45,6 +46,11 @@
 
 ## Inventarios
 - Tabla `public.inventories` (patch 013): `inventory_number`, `items` jsonb `[{ productId, productName, quantity }]`, `total_value` numeric (patch 017, ver abajo), `created_at`, `updated_at`. **Sin DELETE** (sin política de borrado; la UI no ofrece eliminar).
+
+## Productos
+- **Código de barras** (patch 021): columna opcional `barcode` en `products` (sin restricción única, se limpia en la API). El formulario `product-form-dialog.tsx` usa **solo el botón Escanear** (cámara, sin campo de escritura manual): al escanear se muestra el código y se puede re-escanear/quitar. Opcional.
+- **Escáner de cámara**: componente compartido `BarcodeScannerDialog` (`src/components/barcode/barcode-scanner-dialog.tsx`, lib `html5-qrcode`, import dinámico para SSR). Se usa en el form de producto y en el pedido interno (`order-form-dialog.tsx`), donde además la búsqueda de productos matchea por nombre, categoría **y** barcode (botón con ícono al lado del buscador).
+- `ProductDto` expone `barcode` (nullable) y `CreateProductPayload`/`UpdateProductPayload` aceptan `barcode?`. Se incluye en `PRODUCT_SELECT` de `/api/products` (`route.ts` y `[id]/route.ts`) y en el catálogo público `/api/catalog`.
 - **Valor de inventario** (patch 017): columna `total_value` = suma(precio de venta × cantidad) de sus items. Se calcula en el servidor al crear/editar (`computeInventoryValue` en `src/app/api/inventories/helpers.ts`, con los precios vigentes de `products`) y se guarda como snapshot. El DTO expone `totalValue` y aparece como columna "Valor" en tabla y listado móvil.
 - Número de inventario: `INV[YYYYMMDD][6 dígitos]` vía RPC `next_inventory_number()` (tabla `inventory_counters`), mismo patrón que pedidos.
 - **Al crear**: el modal lista TODOS los productos iniciando en 0 (sin importar su stock real); se suma/resta por producto. Al guardar, el stock del producto **AUMENTA** según lo ingresado.
@@ -96,6 +102,7 @@
 16. `018-clients.sql` (tabla `clients` con RLS)
 17. `019-clients-status.sql` (estados de clientes: `status_id` FK `statuses` + `deleted_at`)
 18. `020-wipe-data.sql` (**no es migración**): truncate `RESTART IDENTITY CASCADE` de `abono_registros, abonos, pagos, deliveries, orders, inventories, products, order_counters, inventory_counters`; conserva users/profiles/roles/clients/cities/statuses.
+19. `021-products-barcode.sql` (columna opcional `barcode` en `products` + índice de búsqueda, sin restricción única)
 
 ## Despliegue
 - **Producción**: Vercel con **integración nativa de GitHub** (repo `jorgeTreminio07/Rutex`, rama `master`): cada push a master se despliega solo. **NO reintroducir** el workflow de GitHub Actions (`.github/workflows/deploy.yml` se eliminó porque el doble deploy rompió producción con `MIDDLEWARE_INVOCATION_FAILED`). Los secrets `VERCEL_*` de GitHub ya no se usan.

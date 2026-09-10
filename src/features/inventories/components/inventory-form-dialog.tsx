@@ -1,6 +1,7 @@
 "use client"
 
 import { MinusIcon, PackageIcon, PlusIcon, SearchIcon } from "lucide-react"
+import Image from "next/image"
 import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -105,9 +106,11 @@ export function InventoryFormDialog({
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="h-9 w-9 shrink-0 rounded-lg bg-muted flex items-center justify-center">
                         {product.images[0] ? (
-                          <img
+                          <Image
                             src={product.images[0]}
                             alt={product.name}
+                            width={36}
+                            height={36}
                             className="h-9 w-9 rounded-lg object-cover"
                           />
                         ) : (

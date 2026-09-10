@@ -1,6 +1,7 @@
 "use client"
 
 import { PencilIcon, Trash2Icon, PackageIcon } from "lucide-react"
+import Image from "next/image"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -52,9 +53,11 @@ export function ProductsTable({ products, onEdit, onDelete }: ProductsTableProps
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
                       {product.images[0] ? (
-                        <img
+                        <Image
                           src={product.images[0]}
                           alt={product.name}
+                          width={40}
+                          height={40}
                           className="h-10 w-10 rounded-lg object-cover"
                         />
                       ) : (

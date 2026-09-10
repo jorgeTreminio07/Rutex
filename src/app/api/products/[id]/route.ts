@@ -13,12 +13,13 @@ interface RouteContext {
   params: Promise<{ id: string }>
 }
 
-const PRODUCT_SELECT = "id, name, description, purchase_price, price, discount_percent, category, stock, images, status_id, created_at"
+const PRODUCT_SELECT = "id, name, description, barcode, purchase_price, price, discount_percent, category, stock, images, status_id, created_at"
 
 interface ProductRow {
   id: string
   name: string
   description: string | null
+  barcode: string | null
   purchase_price: number
   price: number
   discount_percent: number
@@ -34,6 +35,7 @@ function mapProduct(p: ProductRow) {
     id: p.id,
     name: p.name,
     description: p.description,
+    barcode: p.barcode,
     purchasePrice: Number(p.purchase_price ?? 0),
     price: Number(p.price),
     discountPercent: Number(p.discount_percent),
@@ -90,6 +92,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (body.name !== undefined) updates.name = (body.name as string).trim()
   if (body.description !== undefined) updates.description = (body.description as string)?.trim() || null
+  if (body.barcode !== undefined) updates.barcode = (body.barcode as string)?.trim() || null
   if (body.purchasePrice !== undefined) updates.purchase_price = Number(body.purchasePrice)
   if (body.price !== undefined) updates.price = Number(body.price)
   if (body.discountPercent !== undefined) updates.discount_percent = Number(body.discountPercent)

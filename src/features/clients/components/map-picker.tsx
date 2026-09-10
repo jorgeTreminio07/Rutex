@@ -34,8 +34,14 @@ export function MapPicker({ value, onPick, className }: MapPickerProps) {
   } | null>(null)
   const onPickRef = useRef(onPick)
   const valueRef = useRef(value)
-  onPickRef.current = onPick
-  valueRef.current = value
+
+  useEffect(() => {
+    onPickRef.current = onPick
+  }, [onPick])
+
+  useEffect(() => {
+    valueRef.current = value
+  }, [value])
 
   useEffect(() => {
     const container = containerRef.current

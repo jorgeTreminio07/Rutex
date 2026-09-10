@@ -1,6 +1,7 @@
 "use client"
 
 import { MinusIcon, PlusIcon, ShoppingCartIcon } from "lucide-react"
+import Image from "next/image"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -37,8 +38,6 @@ export function CatalogProductDetailDialog({
   const outOfStock = product.stock <= 0
   const hasDiscount = product.discountPercent > 0
   const image = product.images[0]
-  const max = Math.max(0, product.stock - inCart)
-  const cannotAddMore = outOfStock || max <= 0
 
   return (
     <Dialog open={!!product} onOpenChange={(open) => !open && onClose()}>
@@ -51,10 +50,12 @@ export function CatalogProductDetailDialog({
         <div className="flex flex-col gap-4">
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted">
             {image ? (
-              <img
+              <Image
                 src={image}
                 alt={product.name}
-                className="h-full w-full object-cover"
+                fill
+                sizes="(max-width: 768px) 100vw, 640px"
+                className="object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = "none"
                 }}

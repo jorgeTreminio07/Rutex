@@ -2,6 +2,7 @@ export interface ProductDto {
   id: string
   name: string
   description: string | null
+  barcode: string | null
   purchasePrice: number
   price: number
   discountPercent: number
@@ -15,6 +16,7 @@ export interface ProductDto {
 export interface CreateProductPayload {
   name: string
   description?: string
+  barcode?: string
   purchasePrice?: number
   price: number
   discountPercent?: number
@@ -25,6 +27,7 @@ export interface CreateProductPayload {
 export interface UpdateProductPayload {
   name?: string
   description?: string
+  barcode?: string
   purchasePrice?: number
   price?: number
   discountPercent?: number

@@ -1,6 +1,7 @@
 "use client"
 
 import { SearchIcon, ShoppingCartIcon, StoreIcon } from "lucide-react"
+import Image from "next/image"
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 
@@ -52,7 +53,7 @@ export function CatalogView() {
       <div className="flex items-center justify-between gap-3 py-5">
         <div className="flex items-center gap-3">
           {logoUrl ? (
-            <img src={logoUrl} alt={store.name} className="h-10 w-10 rounded-xl object-cover" />
+            <Image src={logoUrl} alt={store.name} width={40} height={40} className="h-10 w-10 rounded-xl object-cover" />
           ) : (
             <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <StoreIcon className="size-5" />

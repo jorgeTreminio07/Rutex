@@ -1,6 +1,7 @@
 "use client"
 
 import { ArrowRightIcon, PackageIcon, PhoneIcon, TruckIcon, UserIcon } from "lucide-react"
+import Image from "next/image"
 import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -102,9 +103,11 @@ export function DeliveryDetailDialog({ delivery, onOpenChange }: DeliveryDetailD
                     >
                       <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
                         {image ? (
-                          <img
+                          <Image
                             src={image}
                             alt={item.productName}
+                            width={48}
+                            height={48}
                             className="size-12 rounded-lg object-cover"
                           />
                         ) : (

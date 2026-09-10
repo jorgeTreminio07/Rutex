@@ -3,6 +3,7 @@ import { z } from "zod"
 export const productSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
   description: z.string().optional(),
+  barcode: z.string().trim().max(64, "El código de barras es demasiado largo").optional(),
   purchasePrice: z.coerce.number().min(0, "El precio compra debe ser positivo"),
   price: z.coerce.number().min(0, "El precio venta debe ser positivo"),
   discountPercent: z.coerce.number().min(0).max(100),

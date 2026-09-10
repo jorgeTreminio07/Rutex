@@ -1,6 +1,7 @@
 "use client"
 
 import { PencilIcon, Trash2Icon, PackageIcon } from "lucide-react"
+import Image from "next/image"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -34,9 +35,11 @@ export function ProductsMobileList({ products, onEdit, onDelete }: ProductsMobil
               <Card className="flex flex-row items-center gap-3 p-3">
                 <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
                   {product.images[0] ? (
-                    <img
+                    <Image
                       src={product.images[0]}
                       alt={product.name}
+                      width={48}
+                      height={48}
                       className="h-12 w-12 rounded-lg object-cover"
                     />
                   ) : (

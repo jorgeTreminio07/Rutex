@@ -8,12 +8,13 @@ import {
 import { requireAdmin } from "@/lib/server/guards"
 import { createClient } from "@/lib/supabase/server"
 
-const PRODUCT_SELECT = "id, name, description, purchase_price, price, discount_percent, category, stock, images, status_id, created_at"
+const PRODUCT_SELECT = "id, name, description, barcode, purchase_price, price, discount_percent, category, stock, images, status_id, created_at"
 
 interface ProductRow {
   id: string
   name: string
   description: string | null
+  barcode: string | null
   purchase_price: number
   price: number
   discount_percent: number
@@ -29,6 +30,7 @@ function mapProduct(p: ProductRow) {
     id: p.id,
     name: p.name,
     description: p.description,
+    barcode: p.barcode,
     purchasePrice: Number(p.purchase_price ?? 0),
     price: Number(p.price),
     discountPercent: Number(p.discount_percent),
@@ -81,6 +83,7 @@ export async function POST(request: Request) {
     .insert({
       name,
       description: (body.description as string)?.trim() || null,
+      barcode: (body.barcode as string)?.trim() || null,
       purchase_price: Number(body.purchasePrice) || 0,
       price,
       discount_percent: Number(body.discountPercent) || 0,
