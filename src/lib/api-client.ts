@@ -51,6 +51,12 @@ export const apiClient = {
       headers: body instanceof FormData ? undefined : { "Content-Type": "application/json" },
       body: body instanceof FormData ? body : JSON.stringify(body ?? {}),
     }),
+  patch: <T>(path: string, body?: unknown) =>
+    request<T>(path, {
+      method: "PATCH",
+      headers: body instanceof FormData ? undefined : { "Content-Type": "application/json" },
+      body: body instanceof FormData ? body : JSON.stringify(body ?? {}),
+    }),
   delete: <T = void>(path: string) =>
     request<T>(path, {
       method: "DELETE",

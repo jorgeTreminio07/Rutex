@@ -6,7 +6,7 @@ import { useState } from "react"
 import { ChevronDownIcon } from "lucide-react"
 
 import { StoreLogo } from "@/components/layout/store-logo"
-import { NAV_CLIENTS, NAV_CONFIG, NAV_HOME, SIDEBAR_GROUPS, type NavItem } from "@/components/layout/navigation"
+import { NAV_CLIENTS, NAV_CONFIG, NAV_HOME, NAV_ROUTES, SIDEBAR_GROUPS, type NavItem } from "@/components/layout/navigation"
 import { useStore } from "@/features/store/hooks/use-store"
 import { cn } from "@/lib/utils"
 
@@ -129,6 +129,12 @@ export function Sidebar() {
         <SidebarLink
           item={NAV_CLIENTS}
           active={pathname === "/clientes"}
+          collapsed={collapsed}
+        />
+
+        <SidebarLink
+          item={NAV_ROUTES}
+          active={pathname === "/rutas" || pathname.startsWith("/rutas/")}
           collapsed={collapsed}
         />
 
