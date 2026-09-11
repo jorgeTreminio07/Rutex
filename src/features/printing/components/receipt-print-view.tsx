@@ -1,6 +1,6 @@
 "use client"
 
-import { BluetoothIcon, Loader2Icon, PrinterIcon } from "lucide-react"
+import { BluetoothIcon, CheckIcon, CopyIcon, Loader2Icon, PrinterIcon } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -31,6 +31,20 @@ export function ReceiptPrintView({ store, order, size }: ReceiptPrintViewProps) 
   const [connecting, setConnecting] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [bluetoothOff, setBluetoothOff] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const plainText = useMemo(() => blocks.map((block) => block.text).join("\n"), [blocks])
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(plainText)
+      setCopied(true)
+      toast.success("Texto del recibo copiado")
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      setError("No se pudo copiar el texto.")
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -83,7 +97,13 @@ export function ReceiptPrintView({ store, order, size }: ReceiptPrintViewProps) 
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="overflow-x-auto rounded-xl bg-muted/50 p-4">
+      <div className="relative overflow-x-auto rounded-xl bg-muted/50 p-4">
+        <div className="mb-2 flex justify-end">
+          <Button type="button" variant="outline" size="sm" className="gap-2" onClick={handleCopy}>
+            {copied ? <CheckIcon className="size-4 text-emerald-600" /> : <CopyIcon className="size-4" />}
+            {copied ? "Copiado" : "Copiar texto"}
+          </Button>
+        </div>
         <div
           className="mx-auto bg-white px-3 py-4 font-mono text-[9.5px] tabular-nums leading-[1.35] text-neutral-900 shadow-sm"
           style={{ width: `${size.widthMm}mm`, maxWidth: "20rem" }}

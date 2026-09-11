@@ -38,7 +38,7 @@ export function OrderActionDialog({
 }: OrderActionDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton className="sm:max-w-md">
+      <DialogContent showCloseButton className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-md">
         {order && (
           <OrderActionBody
             key={order.id}
@@ -87,7 +87,7 @@ function OrderActionBody({
   if (step === "choice") {
     return (
       <>
-        <DialogHeader>
+        <DialogHeader className="shrink-0">
           <DialogTitle>Pedido registrado</DialogTitle>
           <DialogDescription>
             El pedido{" "}
@@ -96,26 +96,28 @@ function OrderActionBody({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-2 pt-2">
-          <Button
-            type="button"
-            size="lg"
-            className="justify-start gap-3"
-            onClick={handleSendMessage}
-          >
-            <MessageSquareTextIcon className="size-5" />
-            Enviar mensaje con proforma
-          </Button>
-          <Button
-            type="button"
-            size="lg"
-            variant="outline"
-            className="justify-start gap-3"
-            onClick={() => setStep("print")}
-          >
-            <PrinterIcon className="size-5" />
-            Imprimir recibo
-          </Button>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pt-2">
+          <div className="flex flex-col gap-2">
+            <Button
+              type="button"
+              size="lg"
+              className="justify-start gap-3"
+              onClick={handleSendMessage}
+            >
+              <MessageSquareTextIcon className="size-5" />
+              Enviar mensaje con proforma
+            </Button>
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              className="justify-start gap-3"
+              onClick={() => setStep("print")}
+            >
+              <PrinterIcon className="size-5" />
+              Imprimir recibo
+            </Button>
+          </div>
         </div>
       </>
     )
@@ -123,7 +125,7 @@ function OrderActionBody({
 
   return (
     <>
-      <DialogHeader>
+      <DialogHeader className="shrink-0">
         <div className="flex items-center gap-2 pr-6">
           <AirplayIcon className="size-4 text-muted-foreground" />
           <DialogTitle className="text-base">Imprimir recibo</DialogTitle>
@@ -134,32 +136,34 @@ function OrderActionBody({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">Tamaño de papel</p>
-        <div className="inline-flex rounded-lg border bg-muted p-0.5">
-          {RECEIPT_PAPER_WIDTHS.map((key) => (
-            <Button
-              key={key}
-              type="button"
-              size="sm"
-              variant="ghost"
-              className={cn(
-                "h-7 px-3 text-xs",
-                paper === key && "bg-background font-semibold shadow-sm",
-              )}
-              onClick={() => setPaper(key)}
-            >
-              {RECEIPT_PAPER_SIZES[key].label}
-            </Button>
-          ))}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">Tamaño de papel</p>
+          <div className="inline-flex rounded-lg border bg-muted p-0.5">
+            {RECEIPT_PAPER_WIDTHS.map((key) => (
+              <Button
+                key={key}
+                type="button"
+                size="sm"
+                variant="ghost"
+                className={cn(
+                  "h-7 px-3 text-xs",
+                  paper === key && "bg-background font-semibold shadow-sm",
+                )}
+                onClick={() => setPaper(key)}
+              >
+                {RECEIPT_PAPER_SIZES[key].label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <div className="pt-1">
+          <ReceiptPrintView store={store} order={order} size={RECEIPT_PAPER_SIZES[paper]} />
         </div>
       </div>
 
-      <div className="pt-1">
-        <ReceiptPrintView store={store} order={order} size={RECEIPT_PAPER_SIZES[paper]} />
-      </div>
-
-      <div className="mt-2 flex items-center justify-between gap-2">
+      <div className="mt-2 flex shrink-0 items-center justify-between gap-2">
         <Button type="button" variant="ghost" onClick={() => setStep("choice")}>
           Volver
         </Button>
