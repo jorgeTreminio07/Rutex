@@ -44,10 +44,32 @@ interface RouteMapDialogProps {
 // Mapa de la ruta. Los puntos vienen YA ordenados según la mejor ruta guardada
 // al crear (visit_order). Para poder trazar la ruta se requiere la ubicación
 // actual del dispositivo: sin GPS no se puede ver el mapa.
+// Pide a OSRM (gratis, sin key, datos de OpenStreetMap) la geometría de la ruta
+// por calles/carreteras. Responde con puntos [lat, lng]. Devuelve null si falla.
+async function fetchRoadRoute(latlngs: [number, number][]) {
+  const coordsParam = latlngs.map(([lat, lng]) => `${lng},${lat}`).join(";")
+  try {
+    const res = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${coordsParam}?overview=full&geometries=geojson`,
+    )
+    if (!res.ok) return null
+    const data = (await res.json()) as {
+      code?: string
+      routes?: { geometry?: { coordinates?: [number, number][] } }[]
+    }
+    const coords = data.routes?.[0]?.geometry?.coordinates
+    if (data.code !== "Ok" || !coords || coords.length < 2) return null
+    return coords.map(([lng, lat]) => [lat, lng] as [number, number])
+  } catch {
+    return null
+  }
+}
+
 export function RouteMapDialog({ open, onOpenChange, routeCode, points }: RouteMapDialogProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [start, setStart] = useState<LatLng | null | undefined>(undefined)
   const [retryKey, setRetryKey] = useState(0)
+  const [routeLoading, setRouteLoading] = useState(false)
 
   useEffect(() => {
     if (!open || points.length === 0) return
@@ -94,7 +116,7 @@ export function RouteMapDialog({ open, onOpenChange, routeCode, points }: RouteM
         ]
 
         leaflet.marker([origin.lat, origin.lng], { icon: startIcon(leaflet) }).addTo(localMap)
-        leaflet
+        const routeLine = leaflet
           .polyline(latlngs, { color: "#0d9488", weight: 4, opacity: 0.8 })
           .addTo(localMap)
         points.forEach((p, index) => {
@@ -105,6 +127,15 @@ export function RouteMapDialog({ open, onOpenChange, routeCode, points }: RouteM
 
         localMap.fitBounds(latlngs, { padding: [48, 48] })
         window.setTimeout(() => localMap.invalidateSize(), 150)
+
+        if (active) setRouteLoading(true)
+        const roadLatLngs = await fetchRoadRoute(latlngs)
+        if (!active) return
+        if (roadLatLngs) {
+          routeLine.setLatLngs(roadLatLngs)
+          localMap.fitBounds([...latlngs, ...roadLatLngs], { padding: [48, 48] })
+        }
+        setRouteLoading(false)
       } catch (error) {
         console.error("Error al montar el mapa de la ruta:", error)
       }
@@ -155,6 +186,12 @@ export function RouteMapDialog({ open, onOpenChange, routeCode, points }: RouteM
                 <NavigationIcon className="size-3.5 text-emerald-600" />
                 Inicio: tu ubicación
               </div>
+              {routeLoading && (
+                <div className="pointer-events-none absolute left-3 top-12 z-[500] flex items-center gap-2 rounded-lg bg-background/90 px-2.5 py-1.5 text-xs shadow">
+                  <Loader2Icon className="size-3.5 animate-spin text-emerald-600" />
+                  Calculando ruta por calles…
+                </div>
+              )}
             </div>
           )}
         </div>
