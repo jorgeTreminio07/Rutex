@@ -50,7 +50,6 @@ export function RouteDetailView({ code }: RouteDetailViewProps) {
   const { data: route, isLoading, isError } = useRouteByCode(code)
   const cancelRoute = useCancelRoute(code)
   const [mapOpen, setMapOpen] = useState(false)
-  const [orderedIds, setOrderedIds] = useState<string[] | null>(null)
   const [viewingClient, setViewingClient] = useState<RouteClientDto | null>(null)
 
   const points = useMemo<RoutePoint[]>(
@@ -61,14 +60,9 @@ export function RouteDetailView({ code }: RouteDetailViewProps) {
     [route],
   )
 
-  const orderedClients = useMemo(() => {
-    const clients = route?.clients ?? []
-    if (!orderedIds) return [...clients].sort((a, b) => a.visitOrder - b.visitOrder)
-    const byId = new Map(clients.map((c) => [c.id, c]))
-    return orderedIds
-      .map((id) => byId.get(id))
-      .filter((c): c is RouteClientDto => Boolean(c))
-  }, [route, orderedIds])
+  // Los clientes vienen ordenados por visit_order, que el servidor guardó al
+  // crear la ruta (la mejor ruta desde mi ubicación). No se recalcula cada vez.
+  const orderedClients = route?.clients ?? []
 
   if (isLoading) {
     return (
@@ -143,11 +137,6 @@ export function RouteDetailView({ code }: RouteDetailViewProps) {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-muted-foreground">Orden de visita</h2>
-          {!orderedIds && orderedClients.length > 0 && (
-            <span className="text-xs text-muted-foreground">
-              Abre el mapa para calcular la mejor ruta.
-            </span>
-          )}
         </div>
 
         {orderedClients.length === 0 ? (
@@ -220,7 +209,6 @@ export function RouteDetailView({ code }: RouteDetailViewProps) {
         onOpenChange={setMapOpen}
         routeCode={route.routeCode}
         points={points}
-        onOrdered={(ids) => setOrderedIds(ids)}
       />
 
       <RouteClientDialog

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select"
 import { useClients } from "@/features/clients/hooks/use-clients"
 import { useCreateRoute } from "@/features/routes/hooks/use-routes"
+import { getCurrentPosition } from "@/features/routes/lib/route-path"
 import { useCities } from "@/features/store/hooks/use-store"
 import type { RouteType } from "@/types/interfaces/route.interface"
 
@@ -41,6 +42,8 @@ export function RouteFormDialog({ open, onOpenChange }: RouteFormDialogProps) {
   const [cityFilter, setCityFilter] = useState("")
   const [type, setType] = useState<RouteType>("visita")
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [locationError, setLocationError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const filteredClients = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -72,16 +75,31 @@ export function RouteFormDialog({ open, onOpenChange }: RouteFormDialogProps) {
     setCityFilter("")
     setType("visita")
     setSelectedIds([])
+    setLocationError(null)
+    setSubmitting(false)
   }
 
   const handleSubmit = async () => {
     if (selectedIds.length === 0) return
+    setLocationError(null)
+    setSubmitting(true)
+
     try {
-      await createRoute.mutateAsync({ type, clientIds: selectedIds })
+      const start = await getCurrentPosition()
+      if (!start) {
+        setLocationError(
+          "No pudimos obtener tu ubicación. Enciende la localización y acepta el permiso para calcular el orden de la mejor ruta.",
+        )
+        setSubmitting(false)
+        return
+      }
+
+      await createRoute.mutateAsync({ type, clientIds: selectedIds, start })
       onOpenChange(false)
       reset()
     } catch {
       // El toast de error lo muestra useCreateRoute.
+      setSubmitting(false)
     }
   }
 
@@ -97,9 +115,16 @@ export function RouteFormDialog({ open, onOpenChange }: RouteFormDialogProps) {
         <DialogHeader className="p-6 pb-4">
           <DialogTitle>Nueva ruta</DialogTitle>
           <DialogDescription>
-            Elige el tipo de ruta y los clientes a visitar.
+            Elige el tipo de ruta y los clientes a visitar. Se usará tu ubicación
+            actual para calcular y guardar el orden de la mejor ruta.
           </DialogDescription>
         </DialogHeader>
+
+        {locationError && (
+          <div className="mx-6 mb-4 rounded-xl border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
+            {locationError}
+          </div>
+        )}
 
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 pb-6">
           {/* Tipo de ruta */}
@@ -245,16 +270,16 @@ export function RouteFormDialog({ open, onOpenChange }: RouteFormDialogProps) {
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={createRoute.isPending}
+              disabled={submitting || createRoute.isPending}
             >
               Cancelar
             </Button>
             <Button
               type="button"
               onClick={handleSubmit}
-              disabled={createRoute.isPending || selectedClients.length === 0}
+              disabled={submitting || createRoute.isPending || selectedClients.length === 0}
             >
-              {createRoute.isPending ? (
+              {submitting || createRoute.isPending ? (
                 <>
                   <Loader2Icon className="animate-spin" />
                   Guardando…

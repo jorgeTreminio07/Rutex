@@ -66,6 +66,7 @@ export function labelForRouteType(type: RouteType): string {
 export interface CreateRoutePayload {
   type: RouteType
   clientIds: string[]
+  start: { lat: number; lng: number } | null
 }
 
 export interface UpdateRouteClientPayload {

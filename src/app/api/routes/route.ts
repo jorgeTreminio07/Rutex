@@ -13,6 +13,8 @@ import {
   mapRouteList,
   ROUTE_LIST_SELECT,
 } from "@/app/api/routes/helpers"
+import { computeBestRoute } from "@/features/routes/lib/route-path"
+import type { RoutePoint } from "@/features/routes/lib/route-path"
 import type { RouteType } from "@/types/interfaces/route.interface"
 
 export async function GET() {
@@ -52,6 +54,21 @@ export async function POST(request: Request) {
     return badRequest("La ruta debe tener al menos un cliente")
   }
 
+  const rawStart = (body.start ?? null) as { lat?: unknown; lng?: unknown } | null
+  const start =
+    rawStart &&
+    typeof rawStart.lat === "number" &&
+    Number.isFinite(rawStart.lat) &&
+    typeof rawStart.lng === "number" &&
+    Number.isFinite(rawStart.lng)
+      ? { lat: rawStart.lat, lng: rawStart.lng }
+      : null
+  if (!start) {
+    return badRequest(
+      "Se requiere tu ubicación actual para calcular la mejor ruta. Enciende la localización.",
+    )
+  }
+
   const supabase = await createClient()
 
   const { data: nextNumber, error: seqError } = await supabase.rpc("next_route_number")
@@ -76,8 +93,40 @@ export async function POST(request: Request) {
     return serverError(routeError)
   }
 
+  // Calcular el orden de visita (la mejor ruta) UNA sola vez, al crear:
+  // partiendo de mi ubicación, del cliente más cercano al más lejano.
+  // Los clientes sin coordenadas se agregan al final en el orden dado.
+  const { data: clientRows, error: coordsError } = await supabase
+    .from("clients")
+    .select("id, latitude, longitude")
+    .in("id", clientIds)
+
+  if (coordsError) {
+    if (coordsError.code === "42501") return forbidden()
+    return serverError(coordsError)
+  }
+
+  const coordById = new Map((clientRows ?? []).map((row) => [row.id, row]))
+  const points: RoutePoint[] = clientIds
+    .filter((id) => {
+      const row = coordById.get(id)
+      return (
+        row && typeof row.latitude === "number" && typeof row.longitude === "number"
+      )
+    })
+    .map((id) => ({
+      id,
+      lat: (coordById.get(id) as { latitude: number }).latitude,
+      lng: (coordById.get(id) as { longitude: number }).longitude,
+    }))
+
+  const orderedIds = computeBestRoute(start, points)
+  const orderedSet = new Set(orderedIds)
+  const withoutCoords = clientIds.filter((id) => !orderedSet.has(id))
+  const finalOrder = [...orderedIds, ...withoutCoords]
+
   const { error: clientsError } = await supabase.from("route_clients").insert(
-    clientIds.map((clientId, index) => ({
+    finalOrder.map((clientId, index) => ({
       route_id: route.id,
       client_id: clientId,
       visit_order: index + 1,

@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-import { Loader2Icon } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { Loader2Icon, MapPinOffIcon, NavigationIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -11,24 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { centroid, computeBestRoute } from "@/features/routes/lib/route-path"
-import type { RoutePoint } from "@/features/routes/lib/route-path"
+import { getCurrentPosition } from "@/features/routes/lib/route-path"
+import type { LatLng, RoutePoint } from "@/features/routes/lib/route-path"
 
 const NICARAGUA_CENTER: [number, number] = [12.8654, -85.2072]
-
-function getCurrentPosition(): Promise<{ lat: number; lng: number } | null> {
-  return new Promise((resolve) => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      resolve(null)
-      return
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => resolve(null),
-      { timeout: 5000, maximumAge: 300_000, enableHighAccuracy: true },
-    )
-  })
-}
 
 function startIcon(L: typeof import("leaflet")) {
   return L.divIcon({
@@ -53,29 +39,34 @@ interface RouteMapDialogProps {
   onOpenChange: (open: boolean) => void
   routeCode: string
   points: RoutePoint[]
-  onOrdered?: (orderedIds: string[]) => void
 }
 
-// Mapa de la ruta: el orden se calcula con vecino más cercano desde mi
-// ubicación (GPS), con la distancia en línea recta (Haversine).
-export function RouteMapDialog({
-  open,
-  onOpenChange,
-  routeCode,
-  points,
-  onOrdered,
-}: RouteMapDialogProps) {
+// Mapa de la ruta. Los puntos vienen YA ordenados según la mejor ruta guardada
+// al crear (visit_order). Para poder trazar la ruta se requiere la ubicación
+// actual del dispositivo: sin GPS no se puede ver el mapa.
+export function RouteMapDialog({ open, onOpenChange, routeCode, points }: RouteMapDialogProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const onOrderedRef = useRef(onOrdered)
-  useEffect(() => {
-    onOrderedRef.current = onOrdered
-  }, [onOrdered])
+  const [start, setStart] = useState<LatLng | null | undefined>(undefined)
+  const [retryKey, setRetryKey] = useState(0)
 
   useEffect(() => {
     if (!open || points.length === 0) return
+    let cancelled = false
+    void getCurrentPosition().then((pos) => {
+      if (!cancelled) setStart(pos)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [open, points, retryKey])
+
+  useEffect(() => {
+    if (!open || points.length === 0) return
+    if (!start || typeof start.lat !== "number" || typeof start.lng !== "number") return
 
     let active = true
     let map: ReturnType<typeof import("leaflet").map> | null = null
+    const origin = start
 
     async function mount() {
       try {
@@ -97,31 +88,16 @@ export function RouteMapDialog({
           })
           .addTo(localMap)
 
-        const start = (await getCurrentPosition()) ?? centroid(points)
-        if (!active || !container.isConnected) {
-          localMap.remove()
-          map = null
-          return
-        }
-
-        const orderedIds = computeBestRoute(start, points)
-        onOrderedRef.current?.(orderedIds)
-
-        const pointsById = new Map(points.map((p) => [p.id, p]))
-        const orderedPoints = orderedIds
-          .map((id) => pointsById.get(id))
-          .filter((p): p is RoutePoint => Boolean(p))
-
         const latlngs: [number, number][] = [
-          [start.lat, start.lng],
-          ...orderedPoints.map((p) => [p.lat, p.lng] as [number, number]),
+          [origin.lat, origin.lng],
+          ...points.map((p) => [p.lat, p.lng] as [number, number]),
         ]
 
-        leaflet.marker([start.lat, start.lng], { icon: startIcon(leaflet) }).addTo(localMap)
+        leaflet.marker([origin.lat, origin.lng], { icon: startIcon(leaflet) }).addTo(localMap)
         leaflet
           .polyline(latlngs, { color: "#0d9488", weight: 4, opacity: 0.8 })
           .addTo(localMap)
-        orderedPoints.forEach((p, index) => {
+        points.forEach((p, index) => {
           leaflet
             .marker([p.lat, p.lng], { icon: clientIcon(leaflet, index + 1) })
             .addTo(localMap)
@@ -140,7 +116,7 @@ export function RouteMapDialog({
       map?.remove()
       map = null
     }
-  }, [open, points])
+  }, [open, points, start])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -148,7 +124,7 @@ export function RouteMapDialog({
         <DialogHeader className="p-6 pb-3">
           <DialogTitle>Mapa de la ruta {routeCode}</DialogTitle>
           <DialogDescription>
-            Ruta desde tu ubicación al cliente más cercano, hasta el más lejano.
+            Ruta trazada desde tu ubicación en el orden de la mejor ruta guardada.
           </DialogDescription>
         </DialogHeader>
         <div className="min-h-0 flex-1 px-6 pb-4">
@@ -156,12 +132,28 @@ export function RouteMapDialog({
             <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
               Ningún cliente de la ruta tiene ubicación en el mapa.
             </p>
+          ) : start === null ? (
+            <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed p-10 text-center">
+              <MapPinOffIcon className="size-8 text-destructive" />
+              <p className="max-w-sm text-sm text-muted-foreground">
+                Necesitamos tu ubicación para poder ver el mapa. Enciende la localización del
+                dispositivo y acepta el permiso del navegador, luego reintenta.
+              </p>
+              <Button type="button" variant="outline" onClick={() => setRetryKey((k) => k + 1)}>
+                <NavigationIcon /> Reintentar
+              </Button>
+            </div>
+          ) : start === undefined ? (
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+              <Loader2Icon className="size-5 animate-spin text-emerald-600" />
+              Obteniendo tu ubicación…
+            </div>
           ) : (
             <div className="relative h-[60vh] w-full overflow-hidden rounded-xl">
               <div ref={containerRef} className="h-full w-full" />
               <div className="pointer-events-none absolute left-3 top-3 z-[500] flex items-center gap-2 rounded-lg bg-background/90 px-2.5 py-1.5 text-xs shadow">
-                <Loader2Icon className="size-3.5 animate-pulse text-emerald-600" />
-                Calculando mejor ruta…
+                <NavigationIcon className="size-3.5 text-emerald-600" />
+                Inicio: tu ubicación
               </div>
             </div>
           )}

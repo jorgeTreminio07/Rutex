@@ -57,3 +57,19 @@ export function centroid(points: LatLng[]): LatLng {
   )
   return { lat: sum.lat / points.length, lng: sum.lng / points.length }
 }
+
+// Ubicación actual del dispositivo (GPS del navegador). Devuelve null si no
+// hay soporte, el permiso fue denegado o expiró el timeout.
+export function getCurrentPosition(): Promise<LatLng | null> {
+  return new Promise((resolve) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      resolve(null)
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve(null),
+      { timeout: 5000, maximumAge: 300_000, enableHighAccuracy: true },
+    )
+  })
+}
