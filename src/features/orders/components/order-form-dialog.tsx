@@ -330,19 +330,22 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
                                 <PackageIcon className="h-4 w-4 text-muted-foreground" />
                               )}
                             </div>
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium">{product.name}</p>
-                              <div className="flex items-center gap-1.5">
-                                <Badge variant="outline" className="text-[10px]">
-                                  {product.category}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {product.discountPercent > 0 && (
-                                    <span className="mr-1 line-through">C$ {product.price.toFixed(2)}</span>
-                                  )}
-                                  C$ {price.toFixed(2)} · Stock {product.stock}
-                                </span>
-                              </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="break-words text-sm font-medium leading-snug">
+                                {product.name}
+                              </p>
+                              <Badge
+                                variant="outline"
+                                className="mt-1 text-[10px] font-normal"
+                              >
+                                {product.category}
+                              </Badge>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                {product.discountPercent > 0 && (
+                                  <span className="mr-1 line-through">C$ {product.price.toFixed(2)}</span>
+                                )}
+                                C$ {price.toFixed(2)} · Stock {product.stock}
+                              </p>
                             </div>
                           </div>
                           <div className="flex shrink-0 items-center gap-1 rounded-xl border p-0.5">
@@ -356,9 +359,21 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
                             >
                               <MinusIcon />
                             </Button>
-                            <span className="w-8 text-center text-sm font-bold tabular-nums">
-                              {quantity}
-                            </span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              value={quantity}
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(/[^0-9]/g, "")
+                                const value =
+                                  raw === "" ? 0 : Math.min(parseInt(raw, 10), product.stock)
+                                setQuantity(product.id, value)
+                              }}
+                              onFocus={(e) => e.target.select()}
+                              aria-label={`Cantidad de ${product.name}`}
+                              className="w-10 rounded-md border-0 bg-transparent text-center text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-ring"
+                            />
                             <Button
                               type="button"
                               variant="ghost"
