@@ -157,8 +157,8 @@ export function RouteFormDialog({ open, onOpenChange }: RouteFormDialogProps) {
               />
             </div>
             <Select value={cityFilter} onValueChange={(value) => setCityFilter(value ?? "")}>
-              <SelectTrigger className="h-10 rounded-xl sm:w-48">
-                <SelectValue />
+              <SelectTrigger className="h-10 rounded-xl sm:w-52">
+                <SelectValue placeholder="Todas las ciudades" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">

@@ -80,20 +80,7 @@ export function RouteClientDialog({
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-col gap-2 rounded-b-xl border-t bg-muted/50 px-6 py-4 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cerrar
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            className="sm:order-first"
-            disabled={updateClient.isPending}
-            onClick={() => handleStatus("cancelada")}
-          >
-            {updateClient.isPending ? <Loader2Icon className="animate-spin" /> : <XIcon />}
-            {cancelledLabel}
-          </Button>
+        <div className="flex shrink-0 flex-col gap-2 rounded-b-xl border-t bg-muted/50 p-4">
           <Button
             type="button"
             className="bg-emerald-600 text-white hover:bg-emerald-700"
@@ -102,6 +89,18 @@ export function RouteClientDialog({
           >
             {updateClient.isPending ? <Loader2Icon className="animate-spin" /> : <CheckIcon />}
             {completedLabel}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={updateClient.isPending}
+            onClick={() => handleStatus("cancelada")}
+          >
+            {updateClient.isPending ? <Loader2Icon className="animate-spin" /> : <XIcon />}
+            {cancelledLabel}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cerrar
           </Button>
         </div>
       </DialogContent>
