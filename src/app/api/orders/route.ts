@@ -10,7 +10,7 @@ import { getSession } from "@/lib/server/auth"
 import { orderHasStock, type StockMap } from "@/features/orders/lib/stock"
 import { generateProformaPdf } from "@/features/catalog/lib/proforma"
 import type { BankAccountInfo } from "@/features/catalog/lib/whatsapp"
-import { getAssetUrl } from "@/lib/assets"
+import { getAssetUrl, sanitizeStorageKeySegment } from "@/lib/assets"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import type { OrderItem, PaymentType } from "@/types/interfaces/order.interface"
@@ -77,7 +77,7 @@ async function generateAndStoreProforma(
       bankAccounts,
     })
 
-    const slug = order.customer_name.replace(/\s+/g, "-")
+    const slug = sanitizeStorageKeySegment(order.customer_name, "cliente")
     const now = new Date()
     const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${Math.random().toString(36).slice(2, 8)}`
     const path = `proformas/proforma-${slug}-${stamp}.pdf`

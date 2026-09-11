@@ -1,5 +1,5 @@
 import { badRequest, ok, serverError } from "@/lib/api-response"
-import { getAssetUrl } from "@/lib/assets"
+import { getAssetUrl, sanitizeStorageKeySegment } from "@/lib/assets"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET ?? "rutex-storage"
@@ -10,7 +10,8 @@ export async function POST(request: Request) {
 
   if (!(file instanceof File)) return badRequest("No se recibió el archivo PDF")
 
-  const id = formData.get("customerId")?.toString() ?? Math.random().toString(36).slice(2, 8)
+  const rawId = formData.get("customerId")?.toString() ?? ""
+  const id = rawId ? sanitizeStorageKeySegment(rawId, "cliente") : Math.random().toString(36).slice(2, 8)
   const now = new Date()
   const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${Math.random().toString(36).slice(2, 8)}`
   const path = `proformas/proforma-${id}-${stamp}.pdf`
