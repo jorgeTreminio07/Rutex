@@ -92,6 +92,13 @@
 - UI en `src/features/routes/` (vista con búsqueda por código + Select de estado + DatePicker vacío por defecto, tabla + lista móvil, fila clicable → detalle; modal `route-client-dialog.tsx` con observación y botones apilados en columna: Completada → Cancelada → Cerrar). Rutas `/rutas` y `/rutas/[code]`, nav `NAV_ROUTES` en grupo "Rutas" del sidebar (y menú lateral móvil).
 - **base-ui**: `Button` no soporta `asChild` → usar `nativeButton={false}` + `render={<Link…/>}` (patrón de `pagination.tsx`). Los `<SelectValue>` requieren `placeholder` (un `value=""` con SelectItem de valor `""` no muestra texto). Regla de lint `react-hooks/set-state-in-effect` activa: no setState síncrono en el cuerpo de un efecto (resolver con `.then` asíncrono o remonte vía `key`).
 
+## Gastos
+- Tabla `public.gastos` (patch 027): `title`, `observation` (opcional), `amount` numeric >= 0, `receipt_path` (opcional, guarda el path relativo del recibo en Storage), `created_at`, `updated_at`. RLS: lectura autenticada / escritura y borrado admin. **Borrado físico**.
+- **Recibo**: se sube al guardar vía `POST /api/gastos/receipts` (admin) que valida tipo (imagen o PDF) y máx 15 MB, y guarda en la carpeta `gastos` del bucket (`uploadToStorage` + `getAssetUrl`). El DTO expone `receiptPath` (raw) **y** `receiptUrl` (público); en el modal se gestiona en un par `{ path, url }` para que el enlace "Ver recibo" apunte al archivo recién subido y no al viejo.
+- **Limpiar storage**: al editar, si el recibo cambia o se quita (`receiptPath: null`), `PUT /api/gastos/[id]` borra el archivo anterior del storage (`removeFromStorage`). Al **eliminar** el gasto, `DELETE /api/gastos/[id]` borra también su recibo del storage.
+- APIs: `GET/POST /api/gastos`, `GET/PUT/DELETE /api/gastos/[id]`. DTO `GastoDto`/payloads en `src/types/interfaces/gasto.interface.ts`. Hooks `useGastos/useCreateGasto/useUpdateGasto/useDeleteGasto` (`gastosKeys.all`) en `use-gastos.ts`; crear/editar/eliminar invalida solo gastos.
+- UI en `src/features/gastos/` (vista con búsqueda por título/comentario + DatePicker vacío por defecto, tabla + lista móvil, fila clicable → editar) y modales `gasto-form-dialog.tsx` (título*, monto* C$, comentario opcional y subida de recibo con input de archivo `accept="image/*,pdf"`) y `gasto-delete-dialog.tsx` (avisa que también se elimina el recibo). Acciones editar (lápiz) y eliminar (basura) en tabla y lista móvil. Ruta `/gastos`, nav `NAV_GASTOS` en el área de enlaces del sidebar y menú móvil **debajo de Rutas**.
+
 ## Cartera y abonos
 - Tabla `public.pago_estados`: ids 1=Pendiente, 2=Pagado, 3=En mora (estado del pago del pedido, NO del pedido).
 - `public.pagos`: una fila por pedido aprobado, PK = `order_id` (FK orders, cascade), `estado_pago_id` FK `pago_estados`.
@@ -105,7 +112,7 @@
 - El modal se deriva de la query: la vista guarda `viewingId` y busca el pedido en los datos frescos de `useCartera`, así al registrar un abono la mutación invalida, refetchea y el modal se actualiza solo.
 
 ## Caché/queries
-- `ordersKeys.all`/`filtered` en `use-orders.ts`; `storeKeys.all` y `citiesKeys.all` en `use-store.ts`. `carteraKeys.all` en `use-cartera.ts` (registrar abono invalida cartera y pedidos). `inventoriesKeys.all` en `use-inventories.ts` (crear/editar invalida inventarios y productos). `deliveriesKeys.all` en `use-deliveries.ts` (avanzar estado invalida solo entregas). `routesKeys.all` en `use-routes.ts` (crear/actualizar/cancelar/eliminar invalidan la lista y el detalle). `mermasKeys.all`/`motivos` en `use-mermas.ts` (crear/editar/eliminar invalidan mermas y productos).
+- `ordersKeys.all`/`filtered` en `use-orders.ts`; `storeKeys.all` y `citiesKeys.all` en `use-store.ts`. `carteraKeys.all` en `use-cartera.ts` (registrar abono invalida cartera y pedidos). `inventoriesKeys.all` en `use-inventories.ts` (crear/editar invalida inventarios y productos). `deliveriesKeys.all` en `use-deliveries.ts` (avanzar estado invalida solo entregas). `routesKeys.all` en `use-routes.ts` (crear/actualizar/cancelar/eliminar invalidan la lista y el detalle). `mermasKeys.all`/`motivos` en `use-mermas.ts` (crear/editar/eliminar invalidan mermas y productos). `gastosKeys.all` en `use-gastos.ts` (crear/editar/eliminar invalida solo gastos).
 
 ## Patches de SQL (aplicar en Supabase SQL Editor, en orden)
 1. `001-fix-is-admin.sql`
@@ -132,6 +139,7 @@
 22. `024-routes-delete.sql` (política DELETE admin para rutas; **idempotente** con `drop policy if exists` — aplicar manualmente, sin él eliminar rutas falla 403)
 23. `025-suppliers.sql` (tabla `suppliers` con RLS, estado y borrado lógico)
 24. `026-mermas.sql` (catálogo `merma_motivos` sembrado + tabla `mermas` con contador/RPC `next_merma_number` + RLS; **incluye política DELETE**)
+25. `027-gastos.sql` (tabla `gastos` con RLS: lectura autenticada / escritura y borrado admin)
 
 ## Despliegue
 - **Producción**: Vercel con **integración nativa de GitHub** (repo `jorgeTreminio07/Rutex`, rama `master`): cada push a master se despliega solo. **NO reintroducir** el workflow de GitHub Actions (`.github/workflows/deploy.yml` se eliminó porque el doble deploy rompió producción con `MIDDLEWARE_INVOCATION_FAILED`). Los secrets `VERCEL_*` de GitHub ya no se usan.

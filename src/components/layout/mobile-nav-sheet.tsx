@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { ChevronDownIcon, XIcon } from "lucide-react"
 
 import { StoreLogo } from "@/components/layout/store-logo"
-import { NAV_CLIENTS, NAV_CONFIG, NAV_HOME, NAV_ROUTES, NAV_SUPPLIERS, SIDEBAR_GROUPS, type NavItem } from "@/components/layout/navigation"
+import { NAV_CLIENTS, NAV_CONFIG, NAV_GASTOS, NAV_HOME, NAV_ROUTES, NAV_SUPPLIERS, SIDEBAR_GROUPS, type NavItem } from "@/components/layout/navigation"
 import { useStore } from "@/features/store/hooks/use-store"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -143,6 +143,12 @@ export function MobileNavSheet({ open, onOpenChange }: MobileNavSheetProps) {
           <MobileNavLink
             item={NAV_ROUTES}
             active={pathname === "/rutas" || pathname.startsWith("/rutas/")}
+            onNavigate={close}
+          />
+
+          <MobileNavLink
+            item={NAV_GASTOS}
+            active={pathname === "/gastos"}
             onNavigate={close}
           />
 
