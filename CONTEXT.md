@@ -72,6 +72,17 @@
 - UI en `src/features/deliveries/` (vista con búsqueda pedido/cliente + Select de estado + DatePicker **vacío por defecto**, filtros client-side con hora Nicaragua, tabla + lista móvil, fila clicable → detalle) y modal `delivery-detail-dialog.tsx` (número de pedido, cliente, teléfono, fecha y hora de ingreso en Nicaragua `nicaDateTime`, lista de productos con cantidad) + `delivery-advance-dialog.tsx` (confirmación: "no se puede revertir"). Ruta `/almacen`, nav `NAV_DELIVERIES`.
 - Hooks `useDeliveries/useAdvanceDeliveryStatus` (`deliveriesKeys.all`); avanzar invalida solo entregas. El modal se deriva de la query fresca (patrón cartera).
 
+## Rutas
+- Tablas (patch 023): `public.routes` (route_code `RUT[YYYYMMDD][6 dígitos]` vía RPC `next_route_number()` + tabla `route_counters`, `type` 'visita'|'entregas', `status` 'en_proceso'|'completada'|'cancelada', `created_at`, `updated_at`) y `public.route_clients` (route_id FK routes ON DELETE CASCADE, client_id FK clients, `visit_order` entero, `status` 'pendiente'|'completada'|'cancelada', `observation` nullable, FK única `(route_id, client_id)`).
+- **Estado de ruta**: al actualizar un cliente de ruta (PUT), si **todos** los clientes tienen estado final (completada **o** cancelada, mezcla permitida) → ruta `completada`; si queda algún `pendiente` → `en_proceso`. "Cancelar ruta" (PATCH) pone la ruta en `cancelada` directo, sin recomputar.
+- **Orden de la mejor ruta (definitivo)**: se calcula **una sola vez, al crear la ruta** en `POST /api/routes`: exige la **ubicación actual** (`start: { lat, lng }`, 400 si falta — "Enciende la localización"), lee lat/lng de los clientes, aplica `computeBestRoute` (vecino más cercano desde mi inicio, `src/features/routes/lib/route-path.ts`) y guarda ese orden en `route_clients.visit_order` (los clientes sin coordenadas van al final). El detalle y el mapa **NO recalcular**: usan siempre el `visit_order` guardado. Rutas creadas antes del patch conservan su orden viejo (no hay migración).
+- **GPS obligatorio**: el formulario (`route-form-dialog.tsx`) pide la ubicación al crear ("Enciende la localización…" si se deniega, error inline en el modal); el botón "Agregar ruta" se deshabilita con spinner desde el primer clic (`submitting` local, no solo `createRoute.isPending`, para cubrir el lapso de `getCurrentPosition`). El mapa (`route-map.tsx`) también exige GPS al abrir: si no hay ubicación muestra aviso + botón **Reintentar**; sin GPS no se puede ver el mapa.
+- **Mapa con calles**: los puntos llegan YA ordenados por `visit_order`; se dibuja mi ubicación (marcador verde "INICIO"), clientes numerados y la ruta **por calles/carreteras** consultando a **OSRM** público `https://router.project-osrm.org/route/v1/driving/{lng},{lat};...?overview=full&geometries=geojson` (gratis, sin key, datos OpenStreetMap); `fetchRoadRoute` devuelve `[lat,lng]` o `null`. Si OSRM falla, se mantiene la **línea recta como respaldo**. Indicador "Calculando ruta por calles…" mientras carga. Leaflet dinámico con guardas anti-carreras (`active`, `container.isConnected`, `_leaflet_id`, try/catch).
+- **Cancelar/eliminar**: "Cancelar ruta" junto a "Ver mapa" (solo si `en_proceso`); eliminar (trash en tabla y lista móvil + `RouteDeleteDialog` + `DELETE /api/routes/[code]`). El dialog de eliminar **cierra siempre** (éxito o error) y el error se ve en toast. El patch 024 agrega la política DELETE admin (**idempotente** con `drop policy if exists`; si no se aplica, eliminar falla 403).
+- APIs: `GET/POST /api/routes`, `GET/PATCH/DELETE /api/routes/[code]`, `PUT /api/routes/[code]/clients/[clientId]`. Hooks `useRoutes/useCreateRoute/useRouteByCode/useUpdateRouteClient/useCancelRoute/useDeleteRoute` (`routesKeys.all`). `apiClient` ganó el método `PATCH`.
+- UI en `src/features/routes/` (vista con búsqueda por código + Select de estado + DatePicker vacío por defecto, tabla + lista móvil, fila clicable → detalle; modal `route-client-dialog.tsx` con observación y botones apilados en columna: Completada → Cancelada → Cerrar). Rutas `/rutas` y `/rutas/[code]`, nav `NAV_ROUTES` en grupo "Rutas" del sidebar (y menú lateral móvil).
+- **base-ui**: `Button` no soporta `asChild` → usar `nativeButton={false}` + `render={<Link…/>}` (patrón de `pagination.tsx`). Los `<SelectValue>` requieren `placeholder` (un `value=""` con SelectItem de valor `""` no muestra texto). Regla de lint `react-hooks/set-state-in-effect` activa: no setState síncrono en el cuerpo de un efecto (resolver con `.then` asíncrono o remonte vía `key`).
+
 ## Cartera y abonos
 - Tabla `public.pago_estados`: ids 1=Pendiente, 2=Pagado, 3=En mora (estado del pago del pedido, NO del pedido).
 - `public.pagos`: una fila por pedido aprobado, PK = `order_id` (FK orders, cascade), `estado_pago_id` FK `pago_estados`.
@@ -85,7 +96,7 @@
 - El modal se deriva de la query: la vista guarda `viewingId` y busca el pedido en los datos frescos de `useCartera`, así al registrar un abono la mutación invalida, refetchea y el modal se actualiza solo.
 
 ## Caché/queries
-- `ordersKeys.all`/`filtered` en `use-orders.ts`; `storeKeys.all` y `citiesKeys.all` en `use-store.ts`. `carteraKeys.all` en `use-cartera.ts` (registrar abono invalida cartera y pedidos). `inventoriesKeys.all` en `use-inventories.ts` (crear/editar invalida inventarios y productos). `deliveriesKeys.all` en `use-deliveries.ts` (avanzar estado invalida solo entregas).
+- `ordersKeys.all`/`filtered` en `use-orders.ts`; `storeKeys.all` y `citiesKeys.all` en `use-store.ts`. `carteraKeys.all` en `use-cartera.ts` (registrar abono invalida cartera y pedidos). `inventoriesKeys.all` en `use-inventories.ts` (crear/editar invalida inventarios y productos). `deliveriesKeys.all` en `use-deliveries.ts` (avanzar estado invalida solo entregas). `routesKeys.all` en `use-routes.ts` (crear/actualizar/cancelar/eliminar invalidan la lista y el detalle).
 
 ## Patches de SQL (aplicar en Supabase SQL Editor, en orden)
 1. `001-fix-is-admin.sql`
@@ -108,6 +119,8 @@
 18. `020-wipe-data.sql` (**no es migración**): truncate `RESTART IDENTITY CASCADE` de `abono_registros, abonos, pagos, deliveries, orders, inventories, products, order_counters, inventory_counters`; conserva users/profiles/roles/clients/cities/statuses.
 19. `021-products-barcode.sql` (columna opcional `barcode` en `products` + índice de búsqueda, sin restricción única)
 20. `022-orders-proforma-url.sql` (columna `proforma_url` en `orders` para reutilizar la URL de la proforma al enviar mensajes)
+21. `023-routes.sql` (tablas `routes`/`route_clients` con RLS + RPC `next_route_number`)
+22. `024-routes-delete.sql` (política DELETE admin para rutas; **idempotente** con `drop policy if exists` — aplicar manualmente, sin él eliminar rutas falla 403)
 
 ## Despliegue
 - **Producción**: Vercel con **integración nativa de GitHub** (repo `jorgeTreminio07/Rutex`, rama `master`): cada push a master se despliega solo. **NO reintroducir** el workflow de GitHub Actions (`.github/workflows/deploy.yml` se eliminó porque el doble deploy rompió producción con `MIDDLEWARE_INVOCATION_FAILED`). Los secrets `VERCEL_*` de GitHub ya no se usan.

@@ -2,6 +2,7 @@ import {
   BoxesIcon,
   ClipboardListIcon,
   ContactRoundIcon,
+  FactoryIcon,
   HandCoinsIcon,
   HomeIcon,
   MapIcon,
@@ -33,6 +34,7 @@ export const NAV_ORDERS: NavItem = { label: "Pedidos", href: "/pedidos", icon: C
 export const NAV_DELIVERIES: NavItem = { label: "Almacén", href: "/almacen", icon: TruckIcon }
 export const NAV_CARTERA: NavItem = { label: "Cartera", href: "/cartera", icon: HandCoinsIcon }
 export const NAV_CATALOG: NavItem = { label: "Catálogo", href: "/catalogo", icon: ShoppingBagIcon }
+export const NAV_SUPPLIERS: NavItem = { label: "Proveedores", href: "/proveedores", icon: FactoryIcon }
 export const NAV_CLIENTS: NavItem     = { label: "Clientes",     href: "/clientes",     icon: ContactRoundIcon }
 export const NAV_ROUTES: NavItem      = { label: "Rutas",        href: "/rutas",        icon: MapIcon }
 export const NAV_USERS: NavItem = { label: "Usuarios", href: "/usuarios", icon: UsersIcon }
