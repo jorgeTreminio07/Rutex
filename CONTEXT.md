@@ -99,6 +99,13 @@
 - APIs: `GET/POST /api/gastos`, `GET/PUT/DELETE /api/gastos/[id]`. DTO `GastoDto`/payloads en `src/types/interfaces/gasto.interface.ts`. Hooks `useGastos/useCreateGasto/useUpdateGasto/useDeleteGasto` (`gastosKeys.all`) en `use-gastos.ts`; crear/editar/eliminar invalida solo gastos.
 - UI en `src/features/gastos/` (vista con búsqueda por título/comentario + DatePicker vacío por defecto, tabla + lista móvil, fila clicable → editar) y modales `gasto-form-dialog.tsx` (título*, monto* C$, comentario opcional y subida de recibo con input de archivo `accept="image/*,pdf"`) y `gasto-delete-dialog.tsx` (avisa que también se elimina el recibo). Acciones editar (lápiz) y eliminar (basura) en tabla y lista móvil. Ruta `/gastos`, nav `NAV_GASTOS` en el área de enlaces del sidebar y menú móvil **debajo de Rutas**.
 
+## Compras
+- Tabla `public.compras` (patch 028): `title`, `supplier_id` FK `suppliers` (**ON DELETE SET NULL**), `supplier_name` (snapshot: se guarda al crear/editar desde el proveedor vigente para conservar el nombre aunque el proveedor se elimine), `observation` (opcional), `amount` numeric >= 0, `receipt_path` (opcional, path relativo del recibo en Storage), `created_at`, `updated_at`. RLS: lectura autenticada / escritura y borrado admin. **Borrado físico**.
+- **Recibo**: se sube al guardar vía `POST /api/compras/receipts` (admin, imagen o PDF, máx 15 MB, carpeta `compras` del bucket). El DTO expone `receiptPath` (raw) **y** `receiptUrl` (público); en el modal se gestiona en un par `{ path, url }`. Al editar, si el recibo cambia o se quita (`receiptPath: null`), `PUT /api/compras/[id]` borra el archivo anterior (`removeFromStorage`); al **eliminar** la compra, `DELETE /api/compras/[id]` borra también su recibo.
+- **Proveedor**: el POST/PUT valida el `supplierId` contra `suppliers` activos (`.neq("status_id", 4)`) y guarda el snapshot `supplier_name` (helper `resolveSupplierName` en `src/app/api/compras/helpers.ts`). El combobox del form lista solo proveedores activos (`useSuppliers`).
+- APIs: `GET/POST /api/compras`, `GET/PUT/DELETE /api/compras/[id]`. DTO `CompraDto`/payloads en `src/types/interfaces/compra.interface.ts`. Hooks `useCompras/useCreateCompra/useUpdateCompra/useDeleteCompra` (`comprasKeys.all`) en `use-compras.ts`; crear/editar/eliminar invalida solo compras.
+- UI en `src/features/compras/` (vista con búsqueda por título/proveedor/comentario + DatePicker vacío por defecto, tabla + lista móvil, fila clicable → editar) y modales `compra-form-dialog.tsx` (título*, **combobox de proveedor** con búsqueda por nombre/RUC/teléfono, monto total* C$, comentario y recibo) y `compra-delete-dialog.tsx` (avisa que también se elimina el recibo). Acciones editar (lápiz) y eliminar (basura). Ruta `/compras`, nav `NAV_COMPRAS` en el área de enlaces del sidebar y menú móvil **debajo de Gastos**.
+
 ## Cartera y abonos
 - Tabla `public.pago_estados`: ids 1=Pendiente, 2=Pagado, 3=En mora (estado del pago del pedido, NO del pedido).
 - `public.pagos`: una fila por pedido aprobado, PK = `order_id` (FK orders, cascade), `estado_pago_id` FK `pago_estados`.
@@ -112,7 +119,7 @@
 - El modal se deriva de la query: la vista guarda `viewingId` y busca el pedido en los datos frescos de `useCartera`, así al registrar un abono la mutación invalida, refetchea y el modal se actualiza solo.
 
 ## Caché/queries
-- `ordersKeys.all`/`filtered` en `use-orders.ts`; `storeKeys.all` y `citiesKeys.all` en `use-store.ts`. `carteraKeys.all` en `use-cartera.ts` (registrar abono invalida cartera y pedidos). `inventoriesKeys.all` en `use-inventories.ts` (crear/editar invalida inventarios y productos). `deliveriesKeys.all` en `use-deliveries.ts` (avanzar estado invalida solo entregas). `routesKeys.all` en `use-routes.ts` (crear/actualizar/cancelar/eliminar invalidan la lista y el detalle). `mermasKeys.all`/`motivos` en `use-mermas.ts` (crear/editar/eliminar invalidan mermas y productos). `gastosKeys.all` en `use-gastos.ts` (crear/editar/eliminar invalida solo gastos).
+- `ordersKeys.all`/`filtered` en `use-orders.ts`; `storeKeys.all` y `citiesKeys.all` en `use-store.ts`. `carteraKeys.all` en `use-cartera.ts` (registrar abono invalida cartera y pedidos). `inventoriesKeys.all` en `use-inventories.ts` (crear/editar invalida inventarios y productos). `deliveriesKeys.all` en `use-deliveries.ts` (avanzar estado invalida solo entregas). `routesKeys.all` en `use-routes.ts` (crear/actualizar/cancelar/eliminar invalidan la lista y el detalle). `mermasKeys.all`/`motivos` en `use-mermas.ts` (crear/editar/eliminar invalidan mermas y productos). `gastosKeys.all` en `use-gastos.ts` (crear/editar/eliminar invalida solo gastos). `comprasKeys.all` en `use-compras.ts` (crear/editar/eliminar invalida solo compras).
 
 ## Patches de SQL (aplicar en Supabase SQL Editor, en orden)
 1. `001-fix-is-admin.sql`
@@ -140,6 +147,7 @@
 23. `025-suppliers.sql` (tabla `suppliers` con RLS, estado y borrado lógico)
 24. `026-mermas.sql` (catálogo `merma_motivos` sembrado + tabla `mermas` con contador/RPC `next_merma_number` + RLS; **incluye política DELETE**)
 25. `027-gastos.sql` (tabla `gastos` con RLS: lectura autenticada / escritura y borrado admin)
+26. `028-compras.sql` (tabla `compras` con RLS: lectura autenticada / escritura y borrado admin)
 
 ## Despliegue
 - **Producción**: Vercel con **integración nativa de GitHub** (repo `jorgeTreminio07/Rutex`, rama `master`): cada push a master se despliega solo. **NO reintroducir** el workflow de GitHub Actions (`.github/workflows/deploy.yml` se eliminó porque el doble deploy rompió producción con `MIDDLEWARE_INVOCATION_FAILED`). Los secrets `VERCEL_*` de GitHub ya no se usan.
