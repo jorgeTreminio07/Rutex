@@ -63,6 +63,15 @@
 - UI en `src/features/inventories/` (vista con búsqueda por número + DatePicker, filtro de fecha **vacío por defecto**, tabla + lista móvil, fila clicable → editar) y modal `inventory-form-dialog.tsx` (stepper +/- por producto **con cantidad editable a teclado**: el número es un input numérico que filtra no-dígitos y se selecciona al enfocarlo, además de los botones). Ruta `/inventarios`, nav `NAV_INVENTORIES`.
 - **Stock de producto**: solo entra vía inventario (crear/editar). El campo Stock **se quitó** del formulario de producto (schema, payloads y dialog); la API sigue aceptándolo por tolerancia pero el cliente ya no lo envía. Baja al aprobar pedidos (status 6) y sube al eliminar pedidos aprobados.
 
+## Mermas (bajas de stock)
+- Tablas (patch 026): `public.merma_motivos` (catálogo de motivos genéricos sembrado, id+name, RLS lectura autenticada/escritura admin) y `public.mermas`: `merma_number` `MER[YYYYMMDD][6 dígitos]` vía RPC `next_merma_number()` (tabla `merma_counters`), `motivo_id` FK `merma_motivos`, `items` jsonb `[{ productId, productName, quantity, purchasePrice, sellPrice }]`, `total_value` (suma precio de venta × cantidad, snapshot server-side), `observation`, `created_at`, `updated_at`.
+- **Crear** (POST `/api/mermas`, admin): el server enriquece cada item con nombre y precios de compra/venta **vigentes**, valida el motivo, y aplica **deltas NEGATIVOS** al stock. **No permite dar de baja más de lo que hay en stock** (`validateStock` en `helpers.ts`, rechaza con 400 indicando producto/stock solicitado); el `Math.max(0, …)` de `applyStockDeltas` queda solo como salvaguarda.
+- **Editar** (PUT `/api/mermas/[id]`): ajuste de stock = **anterior − nueva** (bajar la merma devuelve stock, subirla lo resta; productos que se quitan devuelven todo). Validación de stock con allowance = stock actual + cantidad ya restada por la merma.
+- **UI**: el stepper del form (`merma-form-dialog.tsx`) muestra `Stock` y `Máx. baja` por producto y **no deja exceder** el límite (botón + deshabilitado y texto/límite clamp, incluida la edición).
+- **Eliminar** (DELETE `/api/mermas/[id]`, política admin `mermas_delete` — **sin política no se elimina, falla 403**): borrado **físico** y se **devuelve el stock** restado de cada item (reversa).
+- APIs: `GET/POST /api/mermas`, `GET/PUT/DELETE /api/mermas/[id]`, `GET /api/mermas/motivos`. DTO `MermaDto`/`MermaMotivoDto`/payloads en `src/types/interfaces/merma.interface.ts`. Hooks `useMermas/useMermaMotivos/useCreateMerma/useUpdateMerma/useDeleteMerma` (`mermasKeys.all`/`motivos`); crear/editar/eliminar invalidan mermas **y** productos (stock cambia).
+- UI en `src/features/mermas/` (vista con búsqueda por número o motivo + DatePicker vacío por defecto, tabla + lista móvil, fila clicable → editar) y modales `merma-form-dialog.tsx` (**combobox de motivo** con búsqueda + campo Observaciones + steppers por producto que muestran el stock) y `merma-delete-dialog.tsx` (avisa que el stock se devuelve). Acciones editar (lápiz) y eliminar (basura) en tabla y lista móvil. Ruta `/mermas`, nav `NAV_MERMAS` en grupo Tienda del sidebar **debajo de Cartera**.
+
 ## Almacén / Entregas
 - Tabla `public.deliveries` (patch 014): una fila por pedido aprobado (`order_id` FK orders, índice único), `status_id` FK `delivery_statuses` (**1=En almacén, 2=En ruta, 3=Entregado**), `entered_at` (fecha/hora de ingreso al almacén). Identificador = número de pedido (vía join).
 - **Al aprobar** un pedido (status 6), `PUT /api/orders/[id]` inserta la entrega con estado 1 si no existe (solo la primera vez).
@@ -96,7 +105,7 @@
 - El modal se deriva de la query: la vista guarda `viewingId` y busca el pedido en los datos frescos de `useCartera`, así al registrar un abono la mutación invalida, refetchea y el modal se actualiza solo.
 
 ## Caché/queries
-- `ordersKeys.all`/`filtered` en `use-orders.ts`; `storeKeys.all` y `citiesKeys.all` en `use-store.ts`. `carteraKeys.all` en `use-cartera.ts` (registrar abono invalida cartera y pedidos). `inventoriesKeys.all` en `use-inventories.ts` (crear/editar invalida inventarios y productos). `deliveriesKeys.all` en `use-deliveries.ts` (avanzar estado invalida solo entregas). `routesKeys.all` en `use-routes.ts` (crear/actualizar/cancelar/eliminar invalidan la lista y el detalle).
+- `ordersKeys.all`/`filtered` en `use-orders.ts`; `storeKeys.all` y `citiesKeys.all` en `use-store.ts`. `carteraKeys.all` en `use-cartera.ts` (registrar abono invalida cartera y pedidos). `inventoriesKeys.all` en `use-inventories.ts` (crear/editar invalida inventarios y productos). `deliveriesKeys.all` en `use-deliveries.ts` (avanzar estado invalida solo entregas). `routesKeys.all` en `use-routes.ts` (crear/actualizar/cancelar/eliminar invalidan la lista y el detalle). `mermasKeys.all`/`motivos` en `use-mermas.ts` (crear/editar/eliminar invalidan mermas y productos).
 
 ## Patches de SQL (aplicar en Supabase SQL Editor, en orden)
 1. `001-fix-is-admin.sql`
@@ -121,6 +130,8 @@
 20. `022-orders-proforma-url.sql` (columna `proforma_url` en `orders` para reutilizar la URL de la proforma al enviar mensajes)
 21. `023-routes.sql` (tablas `routes`/`route_clients` con RLS + RPC `next_route_number`)
 22. `024-routes-delete.sql` (política DELETE admin para rutas; **idempotente** con `drop policy if exists` — aplicar manualmente, sin él eliminar rutas falla 403)
+23. `025-suppliers.sql` (tabla `suppliers` con RLS, estado y borrado lógico)
+24. `026-mermas.sql` (catálogo `merma_motivos` sembrado + tabla `mermas` con contador/RPC `next_merma_number` + RLS; **incluye política DELETE**)
 
 ## Despliegue
 - **Producción**: Vercel con **integración nativa de GitHub** (repo `jorgeTreminio07/Rutex`, rama `master`): cada push a master se despliega solo. **NO reintroducir** el workflow de GitHub Actions (`.github/workflows/deploy.yml` se eliminó porque el doble deploy rompió producción con `MIDDLEWARE_INVOCATION_FAILED`). Los secrets `VERCEL_*` de GitHub ya no se usan.

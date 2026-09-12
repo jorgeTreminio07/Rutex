@@ -7,6 +7,7 @@ import {
   HomeIcon,
   MapIcon,
   PackageIcon,
+  PackageMinusIcon,
   SettingsIcon,
   ShieldCheckIcon,
   ShoppingBagIcon,
@@ -33,6 +34,7 @@ export const NAV_INVENTORIES: NavItem = { label: "Inventarios", href: "/inventar
 export const NAV_ORDERS: NavItem = { label: "Pedidos", href: "/pedidos", icon: ClipboardListIcon }
 export const NAV_DELIVERIES: NavItem = { label: "Almacén", href: "/almacen", icon: TruckIcon }
 export const NAV_CARTERA: NavItem = { label: "Cartera", href: "/cartera", icon: HandCoinsIcon }
+export const NAV_MERMAS: NavItem = { label: "Mermas", href: "/mermas", icon: PackageMinusIcon }
 export const NAV_CATALOG: NavItem = { label: "Catálogo", href: "/catalogo", icon: ShoppingBagIcon }
 export const NAV_SUPPLIERS: NavItem = { label: "Proveedores", href: "/proveedores", icon: FactoryIcon }
 export const NAV_CLIENTS: NavItem     = { label: "Clientes",     href: "/clientes",     icon: ContactRoundIcon }
@@ -49,7 +51,7 @@ export const SIDEBAR_GROUPS: NavGroup[] = [
   {
     label: "Tienda",
     icon: ShoppingBagIcon,
-    items: [NAV_PRODUCTS, NAV_INVENTORIES, NAV_CATALOG, NAV_ORDERS, NAV_DELIVERIES, NAV_CARTERA],
+    items: [NAV_PRODUCTS, NAV_INVENTORIES, NAV_CATALOG, NAV_ORDERS, NAV_DELIVERIES, NAV_CARTERA, NAV_MERMAS],
   },
   {
     label: "Usuarios",
