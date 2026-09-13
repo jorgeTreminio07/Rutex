@@ -1,5 +1,6 @@
 import {
   badRequest,
+  forbidden,
   noContent,
   notFound,
   ok,
@@ -58,12 +59,16 @@ export async function PUT(request: Request, { params }: Context) {
 
   const { data: existing } = await supabase
     .from("profiles")
-    .select("id, image_url, signature_url")
+    .select("id, username, image_url, signature_url")
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle();
 
   if (!existing) return notFound("Usuario no encontrado");
+
+  if (String(existing.username ?? "").toLowerCase() === "admin") {
+    return forbidden("El usuario admin no se puede editar");
+  }
 
   if (password) {
     try {
@@ -133,12 +138,16 @@ export async function DELETE(_request: Request, { params }: Context) {
 
   const { data: existing } = await supabase
     .from("profiles")
-    .select("id, image_url, signature_url")
+    .select("id, username, image_url, signature_url")
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle();
 
   if (!existing) return notFound("Usuario no encontrado");
+
+  if (String(existing.username ?? "").toLowerCase() === "admin") {
+    return forbidden("El usuario admin no se puede eliminar");
+  }
 
   const admin = createAdminClient();
   const { error: authError } = await admin.auth.admin.updateUserById(id, {

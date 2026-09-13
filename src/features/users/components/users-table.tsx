@@ -1,6 +1,6 @@
 "use client"
 
-import { PencilIcon, Trash2Icon } from "lucide-react"
+import { LockIcon, PencilIcon, Trash2Icon } from "lucide-react"
 
 import { UserAvatar } from "@/components/layout/user-avatar"
 import { Badge } from "@/components/ui/badge"
@@ -19,6 +19,10 @@ import { usePaged } from "@/lib/use-paged"
 import type { UserDto } from "@/types/interfaces/user.interface"
 
 const PAGE_SIZE = 10
+
+function isAdminLockedUser(user: UserDto): boolean {
+  return user.username.toLowerCase() === "admin"
+}
 
 interface UsersTableProps {
   users: UserDto[]
@@ -50,12 +54,16 @@ export function UsersTable({ users, onEdit, onDelete }: UsersTableProps) {
         <TableBody>
           {rows.map((user) => {
             const status = getStatusMeta(user.statusId)
+            const adminLock = isAdminLockedUser(user)
             return (
               <TableRow key={user.id}>
                 <TableCell>
                   <div className="flex items-center gap-2.5">
                     <UserAvatar user={user} size="lg" />
-                    <span className="font-medium">{user.username}</span>
+                    <span className="flex items-center gap-1.5 font-medium">
+                      {user.username}
+                      {adminLock && <LockIcon className="size-3.5 text-muted-foreground" />}
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{fullName(user)}</TableCell>
@@ -72,15 +80,17 @@ export function UsersTable({ users, onEdit, onDelete }: UsersTableProps) {
                       variant="ghost"
                       size="icon-sm"
                       onClick={() => onEdit(user)}
+                      disabled={adminLock}
                       aria-label={`Editar usuario ${user.username}`}
                     >
-                      <PencilIcon />
+                      {adminLock ? <LockIcon /> : <PencilIcon />}
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon-sm"
                       className="text-destructive hover:text-destructive"
                       onClick={() => onDelete(user)}
+                      disabled={adminLock}
                       aria-label={`Eliminar usuario ${user.username}`}
                     >
                       <Trash2Icon />

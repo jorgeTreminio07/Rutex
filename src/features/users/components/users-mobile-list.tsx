@@ -1,6 +1,6 @@
 "use client"
 
-import { PencilIcon, Trash2Icon } from "lucide-react"
+import { LockIcon, PencilIcon, Trash2Icon } from "lucide-react"
 
 import { UserAvatar } from "@/components/layout/user-avatar"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +12,10 @@ import { usePaged } from "@/lib/use-paged"
 import type { UserDto } from "@/types/interfaces/user.interface"
 
 const PAGE_SIZE = 10
+
+function isAdminLockedUser(user: UserDto): boolean {
+  return user.username.toLowerCase() === "admin"
+}
 
 interface UsersMobileListProps {
   users: UserDto[]
@@ -32,12 +36,16 @@ export function UsersMobileList({ users, onEdit, onDelete }: UsersMobileListProp
       <ul className="flex flex-col gap-2.5">
         {rows.map((user) => {
           const status = getStatusMeta(user.statusId)
+          const adminLock = isAdminLockedUser(user)
           return (
             <li key={user.id}>
               <Card className="flex flex-row items-center gap-3 p-3">
                 <UserAvatar user={user} size="lg" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{user.username}</p>
+                  <p className="flex items-center gap-1.5 truncate font-medium">
+                    {user.username}
+                    {adminLock && <LockIcon className="size-3.5 text-muted-foreground" />}
+                  </p>
                   <p className="truncate text-sm text-muted-foreground">{fullName(user)}</p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <Badge variant="secondary">{user.role?.name ?? "Sin rol"}</Badge>
@@ -49,15 +57,17 @@ export function UsersMobileList({ users, onEdit, onDelete }: UsersMobileListProp
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => onEdit(user)}
+                    disabled={adminLock}
                     aria-label={`Editar usuario ${user.username}`}
                   >
-                    <PencilIcon />
+                    {adminLock ? <LockIcon /> : <PencilIcon />}
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon-sm"
                     className="text-destructive hover:text-destructive"
                     onClick={() => onDelete(user)}
+                    disabled={adminLock}
                     aria-label={`Eliminar usuario ${user.username}`}
                   >
                     <Trash2Icon />
