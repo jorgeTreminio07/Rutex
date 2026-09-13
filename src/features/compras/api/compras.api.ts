@@ -1,14 +1,24 @@
 import { apiClient } from "@/lib/api-client"
+import { appendListParams, type ListQueryParams } from "@/lib/query-params"
 import type {
   CompraDto,
   CreateCompraPayload,
   UpdateCompraPayload,
 } from "@/types/interfaces/compra.interface"
+import type { PaginatedResult } from "@/types/interfaces/pagination.interface"
 
 export type { CreateCompraPayload, UpdateCompraPayload }
 
-export async function getComprasRequest(): Promise<CompraDto[]> {
-  return apiClient.get<CompraDto[]>("/api/compras")
+export type GetComprasParams = ListQueryParams
+
+function buildQueryString(params: GetComprasParams): string {
+  const url = new URL("/api/compras", window.location.origin)
+  appendListParams(url, params)
+  return url.pathname + url.search
+}
+
+export async function getComprasRequest(params: GetComprasParams): Promise<PaginatedResult<CompraDto>> {
+  return apiClient.get<PaginatedResult<CompraDto>>(buildQueryString(params))
 }
 
 export async function createCompraRequest(payload: CreateCompraPayload): Promise<CompraDto> {

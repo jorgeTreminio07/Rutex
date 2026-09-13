@@ -1,6 +1,7 @@
 import { ok, serverError } from "@/lib/api-response"
 import { requirePermission } from "@/lib/server/guards"
 import { createClient } from "@/lib/supabase/server"
+import { fetchAllRows } from "@/app/api/pagination"
 import {
   nicaraguaDayRange,
   nicaDate,
@@ -28,17 +29,27 @@ export async function GET(request: Request) {
   const { end } = nicaraguaDayRange(to)
 
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("orders")
-    .select("id, order_number, items, created_at")
-    .eq("status_id", 6)
-    .is("deleted_at", null)
-    .gte("created_at", start)
-    .lt("created_at", end)
-    .order("created_at", { ascending: true })
-    .order("order_number", { ascending: true })
+  const result = await fetchAllRows<{
+    id: string
+    order_number: string | null
+    items: unknown
+    created_at: string
+  }>((from, to) =>
+    supabase
+      .from("orders")
+      .select("id, order_number, items, created_at")
+      .eq("status_id", 6)
+      .is("deleted_at", null)
+      .gte("created_at", start)
+      .lt("created_at", end)
+      .order("created_at", { ascending: true })
+      .order("order_number", { ascending: true })
+      .range(from, to),
+  )
 
-  if (error) return serverError(error)
+  if (!result.data) return serverError(result.error)
+
+  const data = result.data
 
   const rows: ProfitReportRow[] = []
   for (const order of data ?? []) {

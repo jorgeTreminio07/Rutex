@@ -1,6 +1,7 @@
 import { ok, serverError } from "@/lib/api-response"
 import { requirePermission } from "@/lib/server/guards"
 import { createClient } from "@/lib/supabase/server"
+import { fetchAllRows } from "@/app/api/pagination"
 import {
   nicaraguaDayRange,
   parseOrderItems,
@@ -29,15 +30,20 @@ export async function GET(request: Request) {
   const { end } = nicaraguaDayRange(to)
 
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("orders")
-    .select("customer_name, items")
-    .eq("status_id", 6)
-    .is("deleted_at", null)
-    .gte("created_at", start)
-    .lt("created_at", end)
+  const result = await fetchAllRows<{ customer_name: string | null; items: unknown }>((from, to) =>
+    supabase
+      .from("orders")
+      .select("customer_name, items")
+      .eq("status_id", 6)
+      .is("deleted_at", null)
+      .gte("created_at", start)
+      .lt("created_at", end)
+      .range(from, to),
+  )
 
-  if (error) return serverError(error)
+  if (!result.data) return serverError(result.error)
+
+  const data = result.data
 
   const byClient = new Map<string, { pedidos: number; unidades: number; ventas: number; ganancia: number }>()
 

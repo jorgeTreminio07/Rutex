@@ -1,6 +1,6 @@
 "use client"
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import {
@@ -8,23 +8,28 @@ import {
   getInventoriesRequest,
   updateInventoryRequest,
   type CreateInventoryPayload,
+  type GetInventoriesParams,
   type UpdateInventoryPayload,
 } from "@/features/inventories/api/inventories.api"
 import { productsKeys } from "@/features/products/hooks/use-products"
 import { getApiErrorMessage } from "@/lib/api-client"
+import { LIST_PAGE_SIZE, LIST_REFRESH_MS } from "@/lib/query-params"
 
 export const inventoriesKeys = {
   all: ["inventories"] as const,
+  filtered: (filters: GetInventoriesParams) => ["inventories", filters] as const,
 }
 
-export function useInventories() {
+export function useInventories(filters: GetInventoriesParams) {
   return useQuery({
-    queryKey: inventoriesKeys.all,
-    queryFn: getInventoriesRequest,
-    refetchInterval: 10_000,
-    refetchIntervalInBackground: true,
+    queryKey: inventoriesKeys.filtered(filters),
+    queryFn: () => getInventoriesRequest(filters),
+    placeholderData: keepPreviousData,
+    refetchInterval: LIST_REFRESH_MS,
   })
 }
+
+export { LIST_PAGE_SIZE }
 
 export function useCreateInventory() {
   const queryClient = useQueryClient()

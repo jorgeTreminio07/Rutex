@@ -1,6 +1,6 @@
 "use client"
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import {
@@ -9,20 +9,23 @@ import {
   getComprasRequest,
   updateCompraRequest,
   type CreateCompraPayload,
+  type GetComprasParams,
   type UpdateCompraPayload,
 } from "@/features/compras/api/compras.api"
 import { getApiErrorMessage } from "@/lib/api-client"
+import { LIST_REFRESH_MS } from "@/lib/query-params"
 
 export const comprasKeys = {
   all: ["compras"] as const,
+  filtered: (params: GetComprasParams) => ["compras", "list", params] as const,
 }
 
-export function useCompras() {
+export function useCompras(params: GetComprasParams) {
   return useQuery({
-    queryKey: comprasKeys.all,
-    queryFn: getComprasRequest,
-    refetchInterval: 10_000,
-    refetchIntervalInBackground: true,
+    queryKey: comprasKeys.filtered(params),
+    queryFn: () => getComprasRequest(params),
+    placeholderData: keepPreviousData,
+    refetchInterval: LIST_REFRESH_MS,
   })
 }
 

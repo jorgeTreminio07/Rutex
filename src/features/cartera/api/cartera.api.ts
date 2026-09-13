@@ -1,12 +1,27 @@
 import { apiClient } from "@/lib/api-client"
+import { appendListParams, type ListQueryParams } from "@/lib/query-params"
 import type {
   AbonoDto,
   CarteraPagoDto,
   CarteraStatusFilter,
 } from "@/types/interfaces/cartera.interface"
+import type { PaginatedResult } from "@/types/interfaces/pagination.interface"
 
-export async function getCarteraRequest(): Promise<CarteraPagoDto[]> {
-  return apiClient.get<CarteraPagoDto[]>("/api/cartera")
+export type GetCarteraParams = ListQueryParams & { status?: CarteraStatusFilter }
+
+function buildQueryString(params: GetCarteraParams): string {
+  const url = new URL("/api/cartera", window.location.origin)
+  appendListParams(url, params)
+  if (params.status && params.status !== "todos") {
+    url.searchParams.set("status", params.status)
+  }
+  return url.pathname + url.search
+}
+
+export async function getCarteraRequest(
+  params: GetCarteraParams,
+): Promise<PaginatedResult<CarteraPagoDto>> {
+  return apiClient.get<PaginatedResult<CarteraPagoDto>>(buildQueryString(params))
 }
 
 export async function registrarAbonoRequest(
@@ -17,16 +32,6 @@ export async function registrarAbonoRequest(
     `/api/cartera/${orderId}/abonos`,
     { monto },
   )
-}
-
-export function matchesCarteraStatus(
-  estadoPagoId: number,
-  filter: CarteraStatusFilter,
-): boolean {
-  if (filter === "todos") return true
-  if (filter === "pagado") return estadoPagoId === 2
-  if (filter === "en_mora") return estadoPagoId === 3
-  return estadoPagoId !== 2 && estadoPagoId !== 3
 }
 
 export type { AbonoDto }

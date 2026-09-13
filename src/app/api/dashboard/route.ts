@@ -1,6 +1,7 @@
 import { ok, serverError } from "@/lib/api-response"
 import { requirePermission } from "@/lib/server/guards"
 import { createClient } from "@/lib/supabase/server"
+import { fetchAllRows } from "@/app/api/pagination"
 import {
   nicaraguaDayRange,
   nicaDate,
@@ -65,35 +66,58 @@ export async function GET() {
     pagosRes,
     abonosRes,
   ] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("id, order_number, items, total, created_at")
-      .eq("status_id", 6)
-      .is("deleted_at", null)
-      .gte("created_at", windowStart)
-      .lt("created_at", nowIso),
-    supabase
-      .from("orders")
-      .select("total, created_at")
-      .eq("status_id", 6)
-      .is("deleted_at", null)
-      .gte("created_at", cashflowStart),
+    fetchAllRows<{
+      id: string
+      order_number: string | null
+      items: unknown
+      total: number | string | null
+      created_at: string
+    }>((from, to) =>
+      supabase
+        .from("orders")
+        .select("id, order_number, items, total, created_at")
+        .eq("status_id", 6)
+        .is("deleted_at", null)
+        .gte("created_at", windowStart)
+        .lt("created_at", nowIso)
+        .range(from, to),
+    ),
+    fetchAllRows<{ total: number | string | null; created_at: string | null }>((from, to) =>
+      supabase
+        .from("orders")
+        .select("total, created_at")
+        .eq("status_id", 6)
+        .is("deleted_at", null)
+        .gte("created_at", cashflowStart)
+        .range(from, to),
+    ),
     supabase
       .from("orders")
       .select("id", { count: "exact", head: true })
       .eq("status_id", 5)
       .is("deleted_at", null),
-    supabase
-      .from("compras")
-      .select("amount, created_at")
-      .gte("created_at", cashflowStart)
-      .not("amount", "is", null),
-    supabase
-      .from("gastos")
-      .select("amount, created_at")
-      .gte("created_at", cashflowStart)
-      .not("amount", "is", null),
-    supabase.from("deliveries").select("status_id, delivery_statuses(name)"),
+    fetchAllRows<{ amount: number | string | null; created_at: string | null }>((from, to) =>
+      supabase
+        .from("compras")
+        .select("amount, created_at")
+        .gte("created_at", cashflowStart)
+        .not("amount", "is", null)
+        .range(from, to),
+    ),
+    fetchAllRows<{ amount: number | string | null; created_at: string | null }>((from, to) =>
+      supabase
+        .from("gastos")
+        .select("amount, created_at")
+        .gte("created_at", cashflowStart)
+        .not("amount", "is", null)
+        .range(from, to),
+    ),
+    fetchAllRows<{ status_id: number | string | null; delivery_statuses: unknown }>((from, to) =>
+      supabase
+        .from("deliveries")
+        .select("status_id, delivery_statuses(name)")
+        .range(from, to),
+    ),
     supabase
       .from("products")
       .select("name, stock")
@@ -107,20 +131,30 @@ export async function GET() {
       .eq("status_id", 1)
       .is("deleted_at", null)
       .lte("stock", STOCK_BAJO_LIMIT),
-    supabase.from("mermas").select("total_value, motivo_id, merma_motivos(name)"),
-    supabase.from("pagos").select("order_id"),
-    supabase.from("abonos").select("order_id, monto_a_abonar, abonado, pagado, fecha_a_abonar"),
+    fetchAllRows<{ total_value: number | string | null; motivo_id: number; merma_motivos: unknown }>(
+      (from, to) => supabase.from("mermas").select("total_value, motivo_id, merma_motivos(name)").range(from, to),
+    ),
+    fetchAllRows<{ order_id: string }>((from, to) => supabase.from("pagos").select("order_id").range(from, to)),
+    fetchAllRows<{
+      order_id: string
+      monto_a_abonar: number | string | null
+      abonado: number | string | null
+      pagado: boolean | null
+      fecha_a_abonar: string | null
+    }>((from, to) =>
+      supabase
+        .from("abonos")
+        .select("order_id, monto_a_abonar, abonado, pagado, fecha_a_abonar")
+        .range(from, to),
+    ),
   ])
 
   const responses = [
     approvedOrdersRes,
     cashflowOrdersRes,
-    inProcessRes,
     comprasRes,
     gastosRes,
     deliveriesRes,
-    stockListRes,
-    stockCountRes,
     mermasRes,
     pagosRes,
     abonosRes,
@@ -128,6 +162,9 @@ export async function GET() {
   for (const res of responses) {
     if (res.error) return serverError(res.error)
   }
+  if (inProcessRes.error) return serverError(inProcessRes.error)
+  if (stockListRes.error) return serverError(stockListRes.error)
+  if (stockCountRes.error) return serverError(stockCountRes.error)
 
   const approvedOrders = approvedOrdersRes.data ?? []
 
@@ -193,14 +230,17 @@ export async function GET() {
   let carteraPendiente = 0
   let cuotasVencidas = 0
   if (carteraOrderIds.length > 0) {
-    const { data: activeCarteraOrders, error: activeCarteraOrdersError } = await supabase
-      .from("orders")
-      .select("id")
-      .in("id", carteraOrderIds)
-      .is("deleted_at", null)
-    if (activeCarteraOrdersError) return serverError(activeCarteraOrdersError)
+    const activeCarteraResult = await fetchAllRows<{ id: string }>((from, to) =>
+      supabase
+        .from("orders")
+        .select("id")
+        .in("id", carteraOrderIds)
+        .is("deleted_at", null)
+        .range(from, to),
+    )
+    if (!activeCarteraResult.data) return serverError(activeCarteraResult.error)
 
-    const activeCarteraSet = new Set((activeCarteraOrders ?? []).map((o) => o.id))
+    const activeCarteraSet = new Set(activeCarteraResult.data.map((o) => o.id))
     for (const abono of abonosRes.data ?? []) {
       if (!activeCarteraSet.has(abono.order_id)) continue
       const monto = toNumber(abono.monto_a_abonar)

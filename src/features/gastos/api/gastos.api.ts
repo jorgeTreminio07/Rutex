@@ -1,14 +1,24 @@
 import { apiClient } from "@/lib/api-client"
+import { appendListParams, type ListQueryParams } from "@/lib/query-params"
 import type {
   CreateGastoPayload,
   GastoDto,
   UpdateGastoPayload,
 } from "@/types/interfaces/gasto.interface"
+import type { PaginatedResult } from "@/types/interfaces/pagination.interface"
 
 export type { CreateGastoPayload, UpdateGastoPayload }
 
-export async function getGastosRequest(): Promise<GastoDto[]> {
-  return apiClient.get<GastoDto[]>("/api/gastos")
+export type GetGastosParams = ListQueryParams
+
+function buildQueryString(params: GetGastosParams): string {
+  const url = new URL("/api/gastos", window.location.origin)
+  appendListParams(url, params)
+  return url.pathname + url.search
+}
+
+export async function getGastosRequest(params: GetGastosParams): Promise<PaginatedResult<GastoDto>> {
+  return apiClient.get<PaginatedResult<GastoDto>>(buildQueryString(params))
 }
 
 export async function createGastoRequest(payload: CreateGastoPayload): Promise<GastoDto> {

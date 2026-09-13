@@ -3,6 +3,7 @@
 import { FilterIcon, PlusIcon, SearchIcon } from "lucide-react"
 import { useState } from "react"
 
+import { DataTablePagination } from "@/components/data-table/data-table-pagination"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -21,17 +22,20 @@ import { ProductsTable } from "@/features/products/components/products-table"
 import {
   useCreateProduct,
   useDeleteProduct,
-  useProducts,
+  useProductCategories,
+  useProductsList,
   useUpdateProduct,
 } from "@/features/products/hooks/use-products"
 import type { ProductFormData } from "@/features/products/validations/product.schema"
 import type { ProductDto } from "@/types/interfaces/product.interface"
+import { LIST_PAGE_SIZE } from "@/lib/query-params"
+import { useDebouncedValue } from "@/lib/use-debounced-value"
 
 export function ProductsView() {
-  const { data: products = [], isLoading } = useProducts()
   const createProduct = useCreateProduct()
   const updateProduct = useUpdateProduct()
   const deleteProduct = useDeleteProduct()
+  const { data: categories = [] } = useProductCategories()
 
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<ProductDto | null>(null)
@@ -39,17 +43,31 @@ export function ProductsView() {
   const [formKey, setFormKey] = useState(0)
   const [search, setSearch] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("todas")
+  const [page, setPage] = useState(1)
 
-  const categories = [...new Set(products.map((p) => p.category).filter(Boolean))]
-    .map((c) => c.trim())
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b))
+  const debouncedSearch = useDebouncedValue(search.trim(), 300)
 
-  const filtered = products.filter((product) => {
-    const matchesName = product.name.toLowerCase().includes(search.trim().toLowerCase())
-    const matchesCategory = categoryFilter === "todas" || product.category === categoryFilter
-    return matchesName && matchesCategory
+  const result = useProductsList({
+    page,
+    pageSize: LIST_PAGE_SIZE,
+    search: debouncedSearch || undefined,
+    category: categoryFilter || undefined,
   })
+  const products = result.data?.data ?? []
+  const totalItems = result.data?.total ?? 0
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / LIST_PAGE_SIZE))
+  const currentPage = Math.min(result.data?.page ?? 1, totalPages)
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    setPage(1)
+  }
+
+  const handleCategoryChange = (value: string | null) => {
+    setCategoryFilter(value ?? "todas")
+    setPage(1)
+  }
 
   const handleCreate = async (values: ProductFormData) => {
     await createProduct.mutateAsync(values)
@@ -94,11 +112,11 @@ export function ProductsView() {
           <Input
             placeholder="Buscar producto por nombre…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9 h-10 rounded-xl"
           />
         </div>
-        <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v ?? "todas")}>
+        <Select value={categoryFilter} onValueChange={handleCategoryChange}>
           <SelectTrigger className="w-48 h-10 rounded-xl">
             <FilterIcon className="h-4 w-4 mr-2" />
             <SelectValue />
@@ -116,7 +134,7 @@ export function ProductsView() {
         </Select>
       </div>
 
-      {isLoading ? (
+      {result.isLoading ? (
         <div className="flex flex-col gap-2">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -126,11 +144,17 @@ export function ProductsView() {
       ) : (
         <>
           <div className="hidden md:block">
-            <ProductsTable products={filtered} onEdit={openEdit} onDelete={setDeleting} />
+            <ProductsTable products={products} onEdit={openEdit} onDelete={setDeleting} />
           </div>
           <div className="md:hidden">
-            <ProductsMobileList products={filtered} onEdit={openEdit} onDelete={setDeleting} />
+            <ProductsMobileList products={products} onEdit={openEdit} onDelete={setDeleting} />
           </div>
+          <DataTablePagination
+            page={currentPage}
+            totalItems={totalItems}
+            pageSize={LIST_PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </>
       )}
 

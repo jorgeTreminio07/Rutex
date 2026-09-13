@@ -8,6 +8,7 @@ import {
 import { requirePermission } from "@/lib/server/guards"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
+import { fetchAllRows, isPaging, paginated, parsePagination } from "@/app/api/pagination"
 
 const PRODUCT_SELECT = "id, name, description, barcode, purchase_price, price, discount_percent, category, stock, images, status_id, created_at"
 
@@ -43,20 +44,33 @@ function mapProduct(p: ProductRow) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const guard = await requirePermission("productos:ver")
   if (!guard.ok) return guard.response!
 
+  const url = new URL(request.url)
+  const search = url.searchParams.get("search")?.trim() || undefined
+  const category = url.searchParams.get("category")?.trim() || undefined
+  const paging = parsePagination(url)
+
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
 
-  if (error) return serverError(error)
+  const buildQuery = () => {
+    let query = supabase.from("products").select(PRODUCT_SELECT, { count: "exact" }).is("deleted_at", null)
+    if (search) query = query.ilike("name", `%${search}%`)
+    if (category && category !== "todas") query = query.eq("category", category)
+    return query.order("created_at", { ascending: false })
+  }
 
-  return ok(data.map(mapProduct))
+  if (isPaging(url)) {
+    const { data, count, error } = await buildQuery().range(paging.from, paging.to)
+    if (error) return serverError(error)
+    return ok(paginated((data ?? []).map(mapProduct), count ?? 0, paging.page, paging.pageSize))
+  }
+
+  const rows = await fetchAllRows<ProductRow>((from, to) => buildQuery().range(from, to))
+  if (!rows.data) return serverError(rows.error)
+  return ok(rows.data.map(mapProduct))
 }
 
 export async function POST(request: Request) {

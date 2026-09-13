@@ -9,6 +9,7 @@ import { requirePermission } from "@/lib/server/guards"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import { STATUSES } from "@/lib/statuses"
+import { fetchAllRows, isPaging, paginated, parsePagination } from "@/app/api/pagination"
 import type { ClientDto } from "@/types/interfaces/client.interface"
 
 interface ClientRow {
@@ -78,20 +79,36 @@ function validateLocation(
   return null
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const guard = await requirePermission("clientes:ver")
   if (!guard.ok) return guard.response!
 
+  const url = new URL(request.url)
+  const search = url.searchParams.get("search")?.trim() || undefined
+  const paging = parsePagination(url)
+
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("clients")
-    .select(CLIENT_SELECT)
-    .neq("status_id", STATUSES.DELETED)
-    .order("full_name", { ascending: true })
 
-  if (error) return serverError(error)
+  const buildQuery = () => {
+    let query = supabase
+      .from("clients")
+      .select(CLIENT_SELECT, { count: "exact" })
+      .neq("status_id", STATUSES.DELETED)
+    if (search) {
+      query = query.or(`full_name.ilike.%${search}%,cedula.ilike.%${search}%,phone.ilike.%${search}%`)
+    }
+    return query.order("full_name", { ascending: true })
+  }
 
-  return ok((data ?? []).map(mapClient))
+  if (isPaging(url)) {
+    const { data, count, error } = await buildQuery().range(paging.from, paging.to)
+    if (error) return serverError(error)
+    return ok(paginated((data ?? []).map(mapClient), count ?? 0, paging.page, paging.pageSize))
+  }
+
+  const rows = await fetchAllRows<ClientRow>((from, to) => buildQuery().range(from, to))
+  if (!rows.data) return serverError(rows.error)
+  return ok(rows.data.map(mapClient))
 }
 
 export async function POST(request: Request) {

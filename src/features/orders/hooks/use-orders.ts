@@ -1,6 +1,6 @@
 "use client"
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import {
@@ -12,6 +12,7 @@ import {
   type GetOrdersParams,
 } from "@/features/orders/api/orders.api"
 import { getApiErrorMessage } from "@/lib/api-client"
+import { LIST_REFRESH_MS } from "@/lib/query-params"
 
 export const ordersKeys = {
   all: ["orders"] as const,
@@ -22,8 +23,8 @@ export function useOrders(params: GetOrdersParams = {}) {
   return useQuery({
     queryKey: ordersKeys.filtered(params),
     queryFn: () => getOrdersRequest(params),
-    refetchInterval: 10_000,
-    refetchIntervalInBackground: true,
+    placeholderData: keepPreviousData,
+    refetchInterval: LIST_REFRESH_MS,
   })
 }
 

@@ -3,6 +3,7 @@
 import { PlusIcon, SearchIcon } from "lucide-react"
 import { useState } from "react"
 
+import { DataTablePagination } from "@/components/data-table/data-table-pagination"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -11,34 +12,45 @@ import { ClientFormDialog } from "@/features/clients/components/client-form-dial
 import { ClientsMobileList } from "@/features/clients/components/clients-mobile-list"
 import { ClientsTable } from "@/features/clients/components/clients-table"
 import {
-  useClients,
+  useClientsList,
   useCreateClient,
   useDeleteClient,
   useUpdateClient,
 } from "@/features/clients/hooks/use-clients"
 import type { ClientFormValues } from "@/features/clients/validations/client.schema"
 import type { ClientDto } from "@/types/interfaces/client.interface"
+import { LIST_PAGE_SIZE } from "@/lib/query-params"
+import { useDebouncedValue } from "@/lib/use-debounced-value"
 
 export function ClientsView() {
-  const { data: clients = [], isLoading } = useClients()
   const createClient = useCreateClient()
   const updateClient = useUpdateClient()
   const deleteClient = useDeleteClient()
 
   const [search, setSearch] = useState("")
+  const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<ClientDto | null>(null)
   const [deleting, setDeleting] = useState<ClientDto | null>(null)
   const [formKey, setFormKey] = useState(0)
 
-  const filtered = clients.filter((client) => {
-    const q = search.trim().toLowerCase()
-    if (!q) return true
-    return (
-      client.fullName.toLowerCase().includes(q) ||
-      (client.cedula ?? "").toLowerCase().includes(q)
-    )
+  const debouncedSearch = useDebouncedValue(search.trim(), 300)
+
+  const result = useClientsList({
+    page,
+    pageSize: LIST_PAGE_SIZE,
+    search: debouncedSearch || undefined,
   })
+  const clients = result.data?.data ?? []
+  const totalItems = result.data?.total ?? 0
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / LIST_PAGE_SIZE))
+  const currentPage = Math.min(result.data?.page ?? 1, totalPages)
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    setPage(1)
+  }
 
   const buildPayload = (values: ClientFormValues) => ({
     fullName: values.fullName,
@@ -92,12 +104,12 @@ export function ClientsView() {
         <Input
           placeholder="Buscar por nombre o cédula…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           className="pl-9 h-10 rounded-xl"
         />
       </div>
 
-      {isLoading ? (
+      {result.isLoading ? (
         <div className="flex flex-col gap-2">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -107,11 +119,17 @@ export function ClientsView() {
       ) : (
         <>
           <div className="hidden md:block">
-            <ClientsTable clients={filtered} onEdit={openEdit} onDelete={setDeleting} />
+            <ClientsTable clients={clients} onEdit={openEdit} onDelete={setDeleting} />
           </div>
           <div className="md:hidden">
-            <ClientsMobileList clients={filtered} onEdit={openEdit} onDelete={setDeleting} />
+            <ClientsMobileList clients={clients} onEdit={openEdit} onDelete={setDeleting} />
           </div>
+          <DataTablePagination
+            page={currentPage}
+            totalItems={totalItems}
+            pageSize={LIST_PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </>
       )}
 

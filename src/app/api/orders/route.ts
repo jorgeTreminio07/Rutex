@@ -10,9 +10,10 @@ import { orderHasStock, type StockMap } from "@/features/orders/lib/stock"
 import { generateProformaPdf } from "@/features/catalog/lib/proforma"
 import type { BankAccountInfo } from "@/features/catalog/lib/whatsapp"
 import { getAssetUrl, sanitizeStorageKeySegment } from "@/lib/assets"
+import { fetchAllRows, isPaging, paginated, parsePagination } from "@/app/api/pagination"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
-import type { OrderItem, PaymentType } from "@/types/interfaces/order.interface"
+import type { OrderDto, OrderItem, OrderStatus, PaymentType } from "@/types/interfaces/order.interface"
 
 const STORE_ROW_ID = "00000000-0000-0000-0000-000000000001"
 const PROFORMA_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET ?? "rutex-storage"
@@ -101,48 +102,31 @@ async function generateAndStoreProforma(
   }
 }
 
-export async function GET(request: Request) {
-  const guard = await requirePermission("pedidos:ver")
-  if (!guard.ok) return guard.response!
+const ORDER_SELECT =
+  "id, order_number, customer_name, customer_phone, customer_address, items, total, status_id, payment_type, notes, proforma_url, created_at, order_statuses!inner(name)"
 
-  const url = new URL(request.url)
-  const statusFilter = url.searchParams.get("status")
-  const dateFilter = url.searchParams.get("date")
-  const search = url.searchParams.get("search")
+type OrderRow = Record<string, unknown> & {
+  id: string
+  order_number: string | null
+  customer_name: string
+  customer_phone: string | null
+  customer_address: string | null
+  items: OrderItem[]
+  total: number | string | null
+  status_id: number
+  payment_type: string | null
+  notes: string | null
+  proforma_url: string | null
+  created_at: string
+  order_statuses: { name: string } | { name: string }[] | null
+}
 
-  const supabase = await createClient()
-  let query = supabase
-    .from("orders")
-    .select("id, order_number, customer_name, customer_phone, customer_address, items, total, status_id, payment_type, notes, proforma_url, created_at, order_statuses!inner(name)")
-    .is("deleted_at", null)
-
-  if (statusFilter && statusFilter !== "todos") {
-    const statusMap: Record<string, number> = {
-      "en_proceso": 5,
-      "aprobado": 6,
-      "rechazado": 7,
-    }
-    const statusId = statusMap[statusFilter]
-    if (statusId) query = query.eq("status_id", statusId)
-  }
-
-  if (dateFilter) {
-    const { start, end } = nicaraguaDayRange(dateFilter)
-    query = query.gte("created_at", start).lt("created_at", end)
-  }
-
-  if (search) {
-    query = query.or(`customer_name.ilike.%${search}%,order_number.ilike.%${search}%`)
-  }
-
-  query = query.order("created_at", { ascending: false })
-
-  const { data, error } = await query
-
-  if (error) return serverError(error)
-
+async function mapOrders(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  rows: OrderRow[],
+): Promise<OrderDto[]> {
   const productIds = new Set<string>()
-  for (const order of data ?? []) {
+  for (const order of rows) {
     for (const item of Array.isArray(order.items) ? order.items : []) {
       if (item.productId) productIds.add(item.productId)
     }
@@ -157,28 +141,79 @@ export async function GET(request: Request) {
     stockMap = Object.fromEntries((products ?? []).map((p) => [p.id, Number(p.stock ?? 0)]))
   }
 
-  return ok(
-    (data ?? []).map((o) => {
-      const items = Array.isArray(o.items) ? o.items : []
-      const canApprove = o.status_id === 5 && orderHasStock(items, stockMap)
-      return {
-        id: o.id,
-        orderNumber: o.order_number,
-        customerName: o.customer_name,
-        customerPhone: o.customer_phone,
-        customerAddress: o.customer_address ?? null,
-        items,
-        total: Number(o.total),
-        statusId: o.status_id,
-        status: (o.order_statuses as unknown as { name: string })?.name || "En proceso",
-        paymentType: o.payment_type,
-        notes: o.notes,
-        proformaUrl: o.proforma_url ?? null,
-        createdAt: o.created_at,
-        canApprove,
+  return rows.map((o) => {
+    const items = Array.isArray(o.items) ? o.items : []
+    const canApprove = o.status_id === 5 && orderHasStock(items, stockMap)
+    const rawStatus = (o.order_statuses as unknown as { name: string } | null)?.name
+    const status: OrderStatus =
+      rawStatus === "Aprobado" || rawStatus === "Rechazado" ? rawStatus : "En proceso"
+    return {
+      id: o.id,
+      orderNumber: o.order_number,
+      customerName: o.customer_name,
+      customerPhone: o.customer_phone,
+      customerAddress: o.customer_address ?? null,
+      items,
+      total: Number(o.total),
+      statusId: o.status_id,
+      status,
+      paymentType: (o.payment_type as PaymentType) || "contado",
+      notes: o.notes,
+      proformaUrl: o.proforma_url ?? null,
+      createdAt: o.created_at,
+      canApprove,
+    }
+  })
+}
+
+export async function GET(request: Request) {
+  const guard = await requirePermission("pedidos:ver")
+  if (!guard.ok) return guard.response!
+
+  const url = new URL(request.url)
+  const statusFilter = url.searchParams.get("status")
+  const dateFilter = url.searchParams.get("date")
+  const search = url.searchParams.get("search")
+  const paging = parsePagination(url)
+
+  const supabase = await createClient()
+
+  const buildQuery = () => {
+    let query = supabase.from("orders").select(ORDER_SELECT, { count: "exact" }).is("deleted_at", null)
+
+    if (statusFilter && statusFilter !== "todos") {
+      const statusMap: Record<string, number> = {
+        "en_proceso": 5,
+        "aprobado": 6,
+        "rechazado": 7,
       }
-    }),
-  )
+      const statusId = statusMap[statusFilter]
+      if (statusId) query = query.eq("status_id", statusId)
+    }
+
+    if (dateFilter) {
+      const { start, end } = nicaraguaDayRange(dateFilter)
+      query = query.gte("created_at", start).lt("created_at", end)
+    }
+
+    if (search) {
+      query = query.or(`customer_name.ilike.%${search}%,order_number.ilike.%${search}%`)
+    }
+
+    return query.order("created_at", { ascending: false })
+  }
+
+  if (isPaging(url)) {
+    const { data, count, error } = await buildQuery().range(paging.from, paging.to)
+    if (error) return serverError(error)
+    const orders = await mapOrders(supabase, (data ?? []) as OrderRow[])
+    return ok(paginated(orders, count ?? 0, paging.page, paging.pageSize))
+  }
+
+  const rows = await fetchAllRows<OrderRow>((from, to) => buildQuery().range(from, to))
+  if (!rows.data) return serverError(rows.error)
+  const orders = await mapOrders(supabase, rows.data)
+  return ok(orders)
 }
 
 export async function POST(request: Request) {

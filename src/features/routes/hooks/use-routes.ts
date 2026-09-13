@@ -1,6 +1,11 @@
 "use client"
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import {
@@ -10,8 +15,10 @@ import {
   getRouteByCodeRequest,
   getRoutesRequest,
   updateRouteClientRequest,
+  type GetRoutesParams,
 } from "@/features/routes/api/routes.api"
 import { getApiErrorMessage } from "@/lib/api-client"
+import { LIST_REFRESH_MS } from "@/lib/query-params"
 import type {
   CreateRoutePayload,
   RouteDto,
@@ -20,18 +27,19 @@ import type {
 
 export const routesKeys = {
   all: ["routes"] as const,
+  filtered: (params: GetRoutesParams) => ["routes", "list", params] as const,
 }
 
 export function routeByCodeKey(code: string) {
   return ["routes", "detail", code] as const
 }
 
-export function useRoutes() {
+export function useRoutes(params: GetRoutesParams) {
   return useQuery({
-    queryKey: routesKeys.all,
-    queryFn: getRoutesRequest,
-    refetchInterval: 10_000,
-    refetchIntervalInBackground: true,
+    queryKey: routesKeys.filtered(params),
+    queryFn: () => getRoutesRequest(params),
+    placeholderData: keepPreviousData,
+    refetchInterval: LIST_REFRESH_MS,
   })
 }
 
@@ -52,8 +60,7 @@ export function useRouteByCode(code: string) {
     queryKey: routeByCodeKey(code),
     queryFn: () => getRouteByCodeRequest(code),
     enabled: Boolean(code),
-    refetchInterval: 10_000,
-    refetchIntervalInBackground: true,
+    refetchInterval: LIST_REFRESH_MS,
   })
 }
 

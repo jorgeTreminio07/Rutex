@@ -5,6 +5,7 @@ import { FilterIcon, PlusIcon, SearchIcon, XIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { DataTablePagination } from "@/components/data-table/data-table-pagination"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -36,6 +37,8 @@ import {
   useUpdateOrderStatus,
 } from "@/features/orders/hooks/use-orders"
 import { useStore } from "@/features/store/hooks/use-store"
+import { LIST_PAGE_SIZE } from "@/lib/query-params"
+import { useDebouncedValue } from "@/lib/use-debounced-value"
 import type { OrderStatusFilter } from "@/features/orders/api/orders.api"
 import type { OrderDto } from "@/types/interfaces/order.interface"
 
@@ -53,12 +56,38 @@ export function OrdersView() {
     return nicaNow.toISOString().slice(0, 10)
   })
   const [search, setSearch] = useState("")
+  const [page, setPage] = useState(1)
 
-  const { data: orders = [], isLoading } = useOrders({
+  const debouncedSearch = useDebouncedValue(search.trim(), 300)
+
+  const { data, isLoading, isError, error } = useOrders({
+    page,
+    pageSize: LIST_PAGE_SIZE,
     status: statusFilter,
     date: dateFilter || undefined,
-    search: search || undefined,
+    search: debouncedSearch || undefined,
   })
+
+  const orders = data?.data ?? []
+  const totalItems = data?.total ?? 0
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / LIST_PAGE_SIZE))
+  const currentPage = Math.min(data?.page ?? 1, totalPages)
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    setPage(1)
+  }
+
+  const handleStatusChange = (value: string | null) => {
+    setStatusFilter((value as OrderStatusFilter) ?? "todos")
+    setPage(1)
+  }
+
+  const handleDateChange = (value: string) => {
+    setDateFilter(value)
+    setPage(1)
+  }
 
   const updateStatus = useUpdateOrderStatus()
   const deleteOrder = useDeleteOrder()
@@ -179,16 +208,27 @@ export function OrdersView() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Pedidos</h1>
           <p className="text-sm text-muted-foreground">Gestiona los pedidos de la tienda.</p>
+          {!isLoading && !isError && (
+            <p className="mt-1 text-xs font-medium text-muted-foreground">
+              {totalItems} {totalItems === 1 ? "pedido" : "pedidos"}
+            </p>
+          )}
         </div>
         <Button onClick={() => setFormOpen(true)} className="gap-2">
           <PlusIcon className="size-4" />
           Nuevo pedido
         </Button>
       </div>
+
+      {isError && (
+        <div className="rounded-xl border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
+          {error instanceof Error ? error.message : "No se pudieron cargar los pedidos."}
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2 flex-1">
@@ -197,11 +237,11 @@ export function OrdersView() {
             <Input
               placeholder="Buscar por cliente o número..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-9 h-10 rounded-xl"
             />
           </div>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as OrderStatusFilter)}>
+          <Select value={statusFilter} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-40 h-10 rounded-xl">
               <FilterIcon className="h-4 w-4 mr-2" />
               <SelectValue />
@@ -215,13 +255,13 @@ export function OrdersView() {
             </SelectContent>
           </Select>
           <div className="flex items-center gap-1">
-            <DatePicker value={dateFilter} onChange={setDateFilter} placeholder="Fecha" />
+            <DatePicker value={dateFilter} onChange={handleDateChange} placeholder="Fecha" />
             {dateFilter && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-10 px-2"
-                onClick={() => setDateFilter("")}
+                onClick={() => handleDateChange("")}
                 aria-label="Limpiar filtro de fecha"
               >
                 <XIcon className="h-4 w-4" />
@@ -246,6 +286,12 @@ export function OrdersView() {
           <div className="md:hidden">
             <OrdersMobileList orders={orders} onView={setViewing} />
           </div>
+          <DataTablePagination
+            page={currentPage}
+            totalItems={totalItems}
+            pageSize={LIST_PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </>
       )}
 

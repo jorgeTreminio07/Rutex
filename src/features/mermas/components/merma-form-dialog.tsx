@@ -14,6 +14,7 @@ import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DataTablePagination } from "@/components/data-table/data-table-pagination"
 import {
   Dialog,
   DialogContent,
@@ -24,11 +25,14 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { usePaged } from "@/lib/use-paged"
 import type {
   MermaItemDto,
   MermaMotivoDto,
 } from "@/types/interfaces/merma.interface"
 import type { ProductDto } from "@/types/interfaces/product.interface"
+
+const PAGE_SIZE = 10
 
 interface MermaFormDialogProps {
   open: boolean
@@ -77,6 +81,8 @@ export function MermaFormDialog({
     if (!q) return products
     return products.filter((p) => `${p.name} ${p.category} ${p.barcode ?? ""}`.toLowerCase().includes(q))
   }, [products, search])
+
+  const { rows: visibleProducts, page, totalItems, setPage } = usePaged(filtered, PAGE_SIZE)
 
   const motivosMatches = useMemo(() => {
     const q = motivoQuery.trim().toLowerCase()
@@ -217,7 +223,7 @@ export function MermaFormDialog({
               </p>
             ) : (
               <ul className="flex flex-col gap-1.5">
-                {filtered.map((product) => {
+                {visibleProducts.map((product) => {
                   const quantity = quantities[product.id] ?? 0
                   const max = maxQuantity(product.id)
                   const reachedMax = quantity >= max
@@ -304,6 +310,14 @@ export function MermaFormDialog({
                 })}
               </ul>
             )}
+            <div className="pt-2">
+              <DataTablePagination
+                page={page}
+                totalItems={totalItems}
+                pageSize={PAGE_SIZE}
+                onPageChange={setPage}
+              />
+            </div>
           </div>
         </div>
 

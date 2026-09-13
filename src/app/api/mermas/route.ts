@@ -16,6 +16,8 @@ import {
   parseMermaItems,
   validateStock,
 } from "@/app/api/mermas/helpers"
+import { nicaraguaDayRange } from "@/app/api/reports/helpers"
+import { fetchAllRows, isPaging, paginated, parsePagination } from "@/app/api/pagination"
 import type { MermaItemDto, MermaDto } from "@/types/interfaces/merma.interface"
 
 interface MermaRow {
@@ -50,19 +52,53 @@ function mapMerma(row: MermaRow): MermaDto {
 const MERMA_SELECT =
   "id, merma_number, motivo_id, items, total_value, observation, created_at, updated_at, merma_motivos!inner(name)"
 
-export async function GET() {
+export async function GET(request: Request) {
   const guard = await requirePermission("mermas:ver")
   if (!guard.ok) return guard.response!
 
+  const url = new URL(request.url)
+  const search = url.searchParams.get("search")?.trim() || undefined
+  const dateFilter = url.searchParams.get("date")
+  const paging = parsePagination(url)
+
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("mermas")
-    .select(MERMA_SELECT)
-    .order("created_at", { ascending: false })
 
-  if (error) return serverError(error)
+  // La búsqueda matchea número de merma o nombre del motivo. El catálogo de motivos
+  // es pequeño: se pre-consulta y se reduce a un `motivo_id.in.(...)`.
+  let motivoIds: number[] = []
+  if (search) {
+    const { data: motivos } = await supabase
+      .from("merma_motivos")
+      .select("id")
+      .ilike("name", `%${search}%`)
+    if (motivos && motivos.length > 0) {
+      motivoIds = motivos.map((m) => m.id)
+    }
+  }
 
-  return ok((data ?? []).map(mapMerma))
+  const buildQuery = () => {
+    let query = supabase.from("mermas").select(MERMA_SELECT, { count: "exact" })
+    if (dateFilter) {
+      const { start, end } = nicaraguaDayRange(dateFilter)
+      query = query.gte("created_at", start).lt("created_at", end)
+    }
+    if (search) {
+      const conditions = [`merma_number.ilike.%${search}%`]
+      if (motivoIds.length > 0) conditions.push(`motivo_id.in.(${motivoIds.join(",")})`)
+      query = query.or(conditions.join(","))
+    }
+    return query.order("created_at", { ascending: false })
+  }
+
+  if (isPaging(url)) {
+    const { data, count, error } = await buildQuery().range(paging.from, paging.to)
+    if (error) return serverError(error)
+    return ok(paginated((data ?? []).map(mapMerma), count ?? 0, paging.page, paging.pageSize))
+  }
+
+  const rows = await fetchAllRows<MermaRow>((from, to) => buildQuery().range(from, to))
+  if (!rows.data) return serverError(rows.error)
+  return ok(rows.data.map(mapMerma))
 }
 
 export async function POST(request: Request) {

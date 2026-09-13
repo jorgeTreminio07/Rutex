@@ -6,6 +6,7 @@ import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DataTablePagination } from "@/components/data-table/data-table-pagination"
 import {
   Dialog,
   DialogContent,
@@ -14,8 +15,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { usePaged } from "@/lib/use-paged"
 import type { InventoryItemDto } from "@/types/interfaces/inventory.interface"
 import type { ProductDto } from "@/types/interfaces/product.interface"
+
+const PAGE_SIZE = 10
 
 interface InventoryFormDialogProps {
   open: boolean
@@ -46,6 +50,8 @@ export function InventoryFormDialog({
     if (!q) return products
     return products.filter((p) => `${p.name} ${p.category}`.toLowerCase().includes(q))
   }, [products, search])
+
+  const { rows: visibleProducts, page, totalItems, setPage } = usePaged(filtered, PAGE_SIZE)
 
   const totalUnits = Object.values(quantities).reduce((sum, q) => sum + (q || 0), 0)
   const productCount = Object.values(quantities).filter((q) => q > 0).length
@@ -96,7 +102,7 @@ export function InventoryFormDialog({
             </p>
           ) : (
             <ul className="flex flex-col gap-1.5">
-              {filtered.map((product) => {
+              {visibleProducts.map((product) => {
                 const quantity = quantities[product.id] ?? 0
                 return (
                   <li
@@ -163,6 +169,14 @@ export function InventoryFormDialog({
               })}
             </ul>
           )}
+          <div className="pt-2">
+            <DataTablePagination
+              page={page}
+              totalItems={totalItems}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+            />
+          </div>
         </div>
 
         <div className="mt-auto flex flex-col gap-3 rounded-b-xl border-t bg-muted/50 px-6 pt-4 pb-6">

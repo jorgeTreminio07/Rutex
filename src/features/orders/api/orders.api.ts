@@ -1,9 +1,11 @@
 import { apiClient } from "@/lib/api-client"
+import { appendListParams, type ListQueryParams } from "@/lib/query-params"
 import type { OrderDto, CreateOrderPayload } from "@/types/interfaces/order.interface"
+import type { PaginatedResult } from "@/types/interfaces/pagination.interface"
 
 export type OrderStatusFilter = "todos" | "en_proceso" | "aprobado" | "rechazado"
 
-export interface GetOrdersParams {
+export interface GetOrdersParams extends ListQueryParams {
   status?: OrderStatusFilter
   date?: string
   search?: string
@@ -11,6 +13,7 @@ export interface GetOrdersParams {
 
 function buildQueryString(params: GetOrdersParams): string {
   const url = new URL("/api/orders", window.location.origin)
+  appendListParams(url, params)
   if (params.status && params.status !== "todos") {
     url.searchParams.set("status", params.status)
   }
@@ -23,8 +26,10 @@ function buildQueryString(params: GetOrdersParams): string {
   return url.pathname + url.search
 }
 
-export async function getOrdersRequest(params: GetOrdersParams = {}): Promise<OrderDto[]> {
-  return apiClient.get<OrderDto[]>(buildQueryString(params))
+export async function getOrdersRequest(
+  params: GetOrdersParams = {},
+): Promise<PaginatedResult<OrderDto>> {
+  return apiClient.get<PaginatedResult<OrderDto>>(buildQueryString(params))
 }
 
 export async function createOrderRequest(payload: CreateOrderPayload): Promise<OrderDto> {

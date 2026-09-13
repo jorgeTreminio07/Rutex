@@ -12,6 +12,7 @@ import {
   type UpdateSupplierPayload,
 } from "@/features/suppliers/api/suppliers.api"
 import { getApiErrorMessage } from "@/lib/api-client"
+import { LIST_REFRESH_MS } from "@/lib/query-params"
 
 export const suppliersKeys = {
   all: ["suppliers"] as const,
@@ -21,8 +22,7 @@ export function useSuppliers() {
   return useQuery({
     queryKey: suppliersKeys.all,
     queryFn: getSuppliersRequest,
-    refetchInterval: 10_000,
-    refetchIntervalInBackground: true,
+    refetchInterval: LIST_REFRESH_MS,
   })
 }
 

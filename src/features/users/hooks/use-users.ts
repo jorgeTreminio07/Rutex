@@ -12,6 +12,7 @@ import {
   type UpdateUserPayload,
 } from "@/features/users/api/users.api"
 import { getApiErrorMessage } from "@/lib/api-client"
+import { LIST_REFRESH_MS } from "@/lib/query-params"
 
 export const usersKeys = {
   all: ["users"] as const,
@@ -21,8 +22,7 @@ export function useUsers() {
   return useQuery({
     queryKey: usersKeys.all,
     queryFn: getUsersRequest,
-    refetchInterval: 10_000,
-    refetchIntervalInBackground: true,
+    refetchInterval: LIST_REFRESH_MS,
   })
 }
 

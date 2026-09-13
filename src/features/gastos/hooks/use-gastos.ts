@@ -1,6 +1,6 @@
 "use client"
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import {
@@ -9,20 +9,23 @@ import {
   getGastosRequest,
   updateGastoRequest,
   type CreateGastoPayload,
+  type GetGastosParams,
   type UpdateGastoPayload,
 } from "@/features/gastos/api/gastos.api"
 import { getApiErrorMessage } from "@/lib/api-client"
+import { LIST_REFRESH_MS } from "@/lib/query-params"
 
 export const gastosKeys = {
   all: ["gastos"] as const,
+  filtered: (params: GetGastosParams) => ["gastos", "list", params] as const,
 }
 
-export function useGastos() {
+export function useGastos(params: GetGastosParams) {
   return useQuery({
-    queryKey: gastosKeys.all,
-    queryFn: getGastosRequest,
-    refetchInterval: 10_000,
-    refetchIntervalInBackground: true,
+    queryKey: gastosKeys.filtered(params),
+    queryFn: () => getGastosRequest(params),
+    placeholderData: keepPreviousData,
+    refetchInterval: LIST_REFRESH_MS,
   })
 }
 

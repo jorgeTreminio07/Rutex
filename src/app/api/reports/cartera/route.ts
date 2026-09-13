@@ -1,6 +1,7 @@
 import { ok, serverError } from "@/lib/api-response"
 import { requirePermission } from "@/lib/server/guards"
 import { createClient } from "@/lib/supabase/server"
+import { fetchAllRows } from "@/app/api/pagination"
 import { nicaToday, parseReportRange, round2, toNumber } from "@/app/api/reports/helpers"
 import type {
   CarteraReportDto,
@@ -33,40 +34,58 @@ export async function GET(request: Request) {
 
   const supabase = await createClient()
 
-  const { data: pagos } = await supabase.from("pagos").select("order_id")
-  const orderIds = (pagos ?? []).map((p) => p.order_id as string)
+  const pagosResult = await fetchAllRows<{ order_id: string }>((from, to) =>
+    supabase.from("pagos").select("order_id").range(from, to),
+  )
+  if (!pagosResult.data) return serverError(pagosResult.error)
+
+  const orderIds = pagosResult.data.map((p) => p.order_id)
 
   const rows: CarteraReportRow[] = []
   if (orderIds.length > 0) {
-    const { data: abonosEnRango, error: abonosEnRangoError } = await supabase
-      .from("abonos")
-      .select("id, order_id, fecha_a_abonar, monto_a_abonar, abonado, pagado, created_at")
-      .in("order_id", orderIds)
-      .gte("fecha_a_abonar", from)
-      .lte("fecha_a_abonar", to)
-      .order("fecha_a_abonar", { ascending: true })
+    const abonosResult = await fetchAllRows<AbonoFull>((from, to) =>
+      supabase
+        .from("abonos")
+        .select("id, order_id, fecha_a_abonar, monto_a_abonar, abonado, pagado, created_at")
+        .in("order_id", orderIds)
+        .gte("fecha_a_abonar", from)
+        .lte("fecha_a_abonar", to)
+        .order("fecha_a_abonar", { ascending: true })
+        .range(from, to),
+    )
+    if (!abonosResult.data) return serverError(abonosResult.error)
 
-    if (abonosEnRangoError) return serverError(abonosEnRangoError)
+    const abonosEnRango = abonosResult.data
 
-    const involvedOrderIds = [...new Set((abonosEnRango ?? []).map((a) => a.order_id))]
+    const involvedOrderIds = [...new Set(abonosEnRango.map((a) => a.order_id))]
 
     if (involvedOrderIds.length > 0) {
-      const [ordersRes, abonosPlanRes] = await Promise.all([
-        supabase
-          .from("orders")
-          .select("id, order_number, customer_name")
-          .in("id", involvedOrderIds)
-          .is("deleted_at", null),
-        supabase
-          .from("abonos")
-          .select("id, order_id, fecha_a_abonar")
-          .in("order_id", involvedOrderIds)
-          .order("fecha_a_abonar", { ascending: true })
-          .order("id", { ascending: true }),
+      const [ordersResult, abonosPlanResult] = await Promise.all([
+        fetchAllRows<{ id: string; order_number: string | null; customer_name: string | null }>(
+          (from, to) =>
+            supabase
+              .from("orders")
+              .select("id, order_number, customer_name")
+              .in("id", involvedOrderIds)
+              .is("deleted_at", null)
+              .range(from, to),
+        ),
+        fetchAllRows<{ id: string; order_id: string }>((from, to) =>
+          supabase
+            .from("abonos")
+            .select("id, order_id, fecha_a_abonar")
+            .in("order_id", involvedOrderIds)
+            .order("fecha_a_abonar", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
       ])
 
-      if (ordersRes.error) return serverError(ordersRes.error)
-      if (abonosPlanRes.error) return serverError(abonosPlanRes.error)
+      if (!ordersResult.data) return serverError(ordersResult.error)
+      if (!abonosPlanResult.data) return serverError(abonosPlanResult.error)
+
+      const ordersRes = { data: ordersResult.data }
+      const abonosPlanRes = { data: abonosPlanResult.data }
 
       const orderById = new Map(
         (ordersRes.data ?? []).map((o) => [

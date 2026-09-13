@@ -17,6 +17,7 @@ import Image from "next/image"
 import { BarcodeScannerDialog } from "@/components/barcode/barcode-scanner-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DataTablePagination } from "@/components/data-table/data-table-pagination"
 import {
   Dialog,
   DialogContent,
@@ -37,9 +38,12 @@ import { useClients } from "@/features/clients/hooks/use-clients"
 import { useCreateOrder } from "@/features/orders/hooks/use-orders"
 import { useProducts } from "@/features/products/hooks/use-products"
 import { useStore } from "@/features/store/hooks/use-store"
+import { usePaged } from "@/lib/use-paged"
 import type { ClientDto } from "@/types/interfaces/client.interface"
 import type { OrderDto, OrderItem, PaymentType } from "@/types/interfaces/order.interface"
 import { cn } from "@/lib/utils"
+
+const PAGE_SIZE = 10
 
 interface OrderFormDialogProps {
   open: boolean
@@ -83,6 +87,13 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
       `${p.name} ${p.category} ${p.barcode ?? ""}`.toLowerCase().includes(q),
     )
   }, [products, search])
+
+  const {
+    rows: visibleProducts,
+    page,
+    totalItems,
+    setPage,
+  } = usePaged(filteredProducts, PAGE_SIZE)
 
   const selectedProducts = products.filter((p) => (quantities[p.id] ?? 0) > 0)
   const total = selectedProducts.reduce(
@@ -313,7 +324,7 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
                   </p>
                 ) : (
                   <ul className="flex flex-col gap-1.5">
-                    {filteredProducts.map((product) => {
+                    {visibleProducts.map((product) => {
                       const quantity = quantities[product.id] ?? 0
                       const price = getEffectivePrice(product)
                       return (
@@ -395,6 +406,14 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
                     })}
                   </ul>
                 )}
+                <div className="pt-2">
+                  <DataTablePagination
+                    page={page}
+                    totalItems={totalItems}
+                    pageSize={PAGE_SIZE}
+                    onPageChange={setPage}
+                  />
+                </div>
               </div>
             </div>
           </div>

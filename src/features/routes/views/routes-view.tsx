@@ -4,6 +4,7 @@ import { FilterIcon, PlusIcon, SearchIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
+import { DataTablePagination } from "@/components/data-table/data-table-pagination"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Input } from "@/components/ui/input"
@@ -17,38 +18,58 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  matchesRouteStatus,
   ROUTE_STATUS_OPTIONS,
   type RouteDto,
   type RouteStatusFilter,
 } from "@/types/interfaces/route.interface"
-import { nicaDate } from "@/features/deliveries/lib/format"
 import { RouteDeleteDialog } from "@/features/routes/components/route-delete-dialog"
 import { RouteFormDialog } from "@/features/routes/components/route-form-dialog"
 import { RoutesMobileList } from "@/features/routes/components/routes-mobile-list"
 import { RoutesTable } from "@/features/routes/components/routes-table"
 import { useDeleteRoute, useRoutes } from "@/features/routes/hooks/use-routes"
+import { LIST_PAGE_SIZE } from "@/lib/query-params"
+import { useDebouncedValue } from "@/lib/use-debounced-value"
 
 export function RoutesView() {
-  const { data: routes = [], isLoading, isError, error } = useRoutes()
   const deleteRoute = useDeleteRoute()
   const router = useRouter()
 
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<RouteStatusFilter>("todos")
   const [dateFilter, setDateFilter] = useState("")
+  const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
   const [deleting, setDeleting] = useState<RouteDto | null>(null)
 
-  const filtered = (routes as RouteDto[]).filter((route) => {
-    if (!matchesRouteStatus(route.status, statusFilter)) return false
-    if (dateFilter && nicaDate(route.createdAt) !== dateFilter) return false
-    if (search) {
-      const q = search.trim().toLowerCase()
-      if (!route.routeCode.toLowerCase().includes(q)) return false
-    }
-    return true
+  const debouncedSearch = useDebouncedValue(search.trim(), 300)
+
+  const { data, isLoading, isError, error } = useRoutes({
+    page,
+    pageSize: LIST_PAGE_SIZE,
+    search: debouncedSearch || undefined,
+    date: dateFilter || undefined,
+    status: statusFilter,
   })
+  const routes = data?.data ?? []
+  const totalItems = data?.total ?? 0
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / LIST_PAGE_SIZE))
+  const currentPage = Math.min(data?.page ?? 1, totalPages)
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    setPage(1)
+  }
+
+  const handleStatusChange = (value: string | null) => {
+    setStatusFilter((value as RouteStatusFilter) ?? "todos")
+    setPage(1)
+  }
+
+  const handleDateChange = (value: string) => {
+    setDateFilter(value)
+    setPage(1)
+  }
 
   const handleView = (route: RouteDto) => {
     router.push(`/rutas/${route.routeCode}`)
@@ -64,7 +85,7 @@ export function RoutesView() {
           </p>
           {!isLoading && !isError && (
             <p className="mt-1 text-xs font-medium text-muted-foreground">
-              {routes.length} {routes.length === 1 ? "ruta" : "rutas"}
+              {totalItems} {totalItems === 1 ? "ruta" : "rutas"}
             </p>
           )}
         </div>
@@ -86,11 +107,11 @@ export function RoutesView() {
           <Input
             placeholder="Buscar por código de ruta…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="h-10 rounded-xl pl-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as RouteStatusFilter)}>
+        <Select value={statusFilter} onValueChange={handleStatusChange}>
           <SelectTrigger className="h-10 w-44 rounded-xl">
             <FilterIcon className="mr-2 size-4" />
             <SelectValue />
@@ -104,9 +125,9 @@ export function RoutesView() {
           </SelectContent>
         </Select>
         <div className="flex items-center gap-1">
-          <DatePicker value={dateFilter} onChange={setDateFilter} placeholder="Todas las fechas" />
+          <DatePicker value={dateFilter} onChange={handleDateChange} placeholder="Todas las fechas" />
           {dateFilter && (
-            <Button variant="ghost" size="sm" onClick={() => setDateFilter("")}>
+            <Button variant="ghost" size="sm" onClick={() => handleDateChange("")}>
               Limpiar
             </Button>
           )}
@@ -122,11 +143,17 @@ export function RoutesView() {
       ) : (
         <>
           <div className="hidden md:block">
-            <RoutesTable routes={filtered} onView={handleView} onDelete={setDeleting} />
+            <RoutesTable routes={routes} onView={handleView} onDelete={setDeleting} />
           </div>
           <div className="md:hidden">
-            <RoutesMobileList routes={filtered} onView={handleView} onDelete={setDeleting} />
+            <RoutesMobileList routes={routes} onView={handleView} onDelete={setDeleting} />
           </div>
+          <DataTablePagination
+            page={currentPage}
+            totalItems={totalItems}
+            pageSize={LIST_PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </>
       )}
 

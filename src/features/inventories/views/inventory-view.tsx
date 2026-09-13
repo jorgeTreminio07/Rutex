@@ -3,6 +3,7 @@
 import { PlusIcon, SearchIcon, XIcon } from "lucide-react"
 import { useState } from "react"
 
+import { DataTablePagination } from "@/components/data-table/data-table-pagination"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Input } from "@/components/ui/input"
@@ -16,34 +17,45 @@ import {
   useUpdateInventory,
 } from "@/features/inventories/hooks/use-inventories"
 import { useProducts } from "@/features/products/hooks/use-products"
+import { useDebouncedValue } from "@/lib/use-debounced-value"
+import { LIST_PAGE_SIZE } from "@/lib/query-params"
 import type { InventoryDto } from "@/types/interfaces/inventory.interface"
 
-function nicaDate(createdAt: string): string {
-  return new Date(new Date(createdAt).getTime() - 6 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10)
-}
-
 export function InventoryView() {
-  const { data: inventories = [], isLoading } = useInventories()
   const { data: products = [] } = useProducts()
   const createInventory = useCreateInventory()
   const updateInventory = useUpdateInventory()
 
   const [search, setSearch] = useState("")
   const [dateFilter, setDateFilter] = useState<string>("")
+  const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<InventoryDto | null>(null)
   const [formKey, setFormKey] = useState(0)
 
-  const filtered = inventories.filter((inventory) => {
-    if (dateFilter && nicaDate(inventory.createdAt) !== dateFilter) return false
-    if (search) {
-      const q = search.trim().toLowerCase()
-      if (!`${inventory.inventoryNumber}`.toLowerCase().includes(q)) return false
-    }
-    return true
+  const debouncedSearch = useDebouncedValue(search.trim(), 300)
+
+  const result = useInventories({
+    page,
+    pageSize: LIST_PAGE_SIZE,
+    search: debouncedSearch || undefined,
+    date: dateFilter || undefined,
   })
+  const inventories = result.data?.data ?? []
+  const totalItems = result.data?.total ?? 0
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / LIST_PAGE_SIZE))
+  const currentPage = Math.min(result.data?.page ?? 1, totalPages)
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    setPage(1)
+  }
+
+  const handleDateChange = (value: string) => {
+    setDateFilter(value)
+    setPage(1)
+  }
 
   const openCreate = () => {
     setEditing(null)
@@ -91,18 +103,18 @@ export function InventoryView() {
           <Input
             placeholder="Buscar por número de inventario…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9 h-10 rounded-xl"
           />
         </div>
         <div className="flex items-center gap-1">
-          <DatePicker value={dateFilter} onChange={setDateFilter} placeholder="Fecha" />
+          <DatePicker value={dateFilter} onChange={handleDateChange} placeholder="Fecha" />
           {dateFilter && (
             <Button
               variant="ghost"
               size="sm"
               className="h-10 px-2"
-              onClick={() => setDateFilter("")}
+              onClick={() => handleDateChange("")}
               aria-label="Limpiar filtro de fecha"
             >
               <XIcon className="h-4 w-4" />
@@ -111,7 +123,7 @@ export function InventoryView() {
         </div>
       </div>
 
-      {isLoading ? (
+      {result.isLoading ? (
         <div className="flex flex-col gap-2">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -121,11 +133,17 @@ export function InventoryView() {
       ) : (
         <>
           <div className="hidden md:block">
-            <InventoriesTable inventories={filtered} onEdit={openEdit} />
+            <InventoriesTable inventories={inventories} onEdit={openEdit} />
           </div>
           <div className="md:hidden">
-            <InventoriesMobileList inventories={filtered} onEdit={openEdit} />
+            <InventoriesMobileList inventories={inventories} onEdit={openEdit} />
           </div>
+          <DataTablePagination
+            page={currentPage}
+            totalItems={totalItems}
+            pageSize={LIST_PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </>
       )}
 

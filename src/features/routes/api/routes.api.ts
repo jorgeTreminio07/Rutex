@@ -1,12 +1,26 @@
 import { apiClient } from "@/lib/api-client"
+import { appendListParams, type ListQueryParams } from "@/lib/query-params"
 import type {
   CreateRoutePayload,
   RouteDto,
   UpdateRouteClientPayload,
 } from "@/types/interfaces/route.interface"
+import type { RouteStatusFilter } from "@/types/interfaces/route.interface"
+import type { PaginatedResult } from "@/types/interfaces/pagination.interface"
 
-export async function getRoutesRequest(): Promise<RouteDto[]> {
-  return apiClient.get<RouteDto[]>("/api/routes")
+export type GetRoutesParams = ListQueryParams & { status?: RouteStatusFilter }
+
+function buildQueryString(params: GetRoutesParams): string {
+  const url = new URL("/api/routes", window.location.origin)
+  appendListParams(url, params)
+  if (params.status && params.status !== "todos") {
+    url.searchParams.set("status", params.status)
+  }
+  return url.pathname + url.search
+}
+
+export async function getRoutesRequest(params: GetRoutesParams): Promise<PaginatedResult<RouteDto>> {
+  return apiClient.get<PaginatedResult<RouteDto>>(buildQueryString(params))
 }
 
 export async function createRouteRequest(payload: CreateRoutePayload): Promise<RouteDto> {

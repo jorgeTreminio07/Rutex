@@ -12,6 +12,7 @@ import {
   type UpdateRolePayload,
 } from "@/features/roles/api/roles.api"
 import { getApiErrorMessage } from "@/lib/api-client"
+import { LIST_REFRESH_MS } from "@/lib/query-params"
 
 export const rolesKeys = {
   all: ["roles"] as const,
@@ -21,8 +22,7 @@ export function useRoles() {
   return useQuery({
     queryKey: rolesKeys.all,
     queryFn: getRolesRequest,
-    refetchInterval: 10_000,
-    refetchIntervalInBackground: true,
+    refetchInterval: LIST_REFRESH_MS,
   })
 }
 

@@ -8,6 +8,8 @@ import {
 import { requirePermission } from "@/lib/server/guards"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
+import { nicaraguaDayRange } from "@/app/api/reports/helpers"
+import { fetchAllRows, isPaging, paginated, parsePagination } from "@/app/api/pagination"
 import {
   applyStockDeltas,
   computeInventoryValue,
@@ -40,19 +42,36 @@ function mapInventory(row: InventoryRow): InventoryDto {
 
 const INVENTORY_SELECT = "id, inventory_number, items, total_value, created_at, updated_at"
 
-export async function GET() {
+export async function GET(request: Request) {
   const guard = await requirePermission("inventarios:ver")
   if (!guard.ok) return guard.response!
 
+  const url = new URL(request.url)
+  const search = url.searchParams.get("search")?.trim() || undefined
+  const dateFilter = url.searchParams.get("date")
+  const paging = parsePagination(url)
+
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("inventories")
-    .select(INVENTORY_SELECT)
-    .order("created_at", { ascending: false })
 
-  if (error) return serverError(error)
+  const buildQuery = () => {
+    let query = supabase.from("inventories").select(INVENTORY_SELECT, { count: "exact" })
+    if (search) query = query.ilike("inventory_number", `%${search}%`)
+    if (dateFilter) {
+      const { start, end } = nicaraguaDayRange(dateFilter)
+      query = query.gte("created_at", start).lt("created_at", end)
+    }
+    return query.order("created_at", { ascending: false })
+  }
 
-  return ok((data ?? []).map(mapInventory))
+  if (isPaging(url)) {
+    const { data, count, error } = await buildQuery().range(paging.from, paging.to)
+    if (error) return serverError(error)
+    return ok(paginated((data ?? []).map(mapInventory), count ?? 0, paging.page, paging.pageSize))
+  }
+
+  const rows = await fetchAllRows<InventoryRow>((from, to) => buildQuery().range(from, to))
+  if (!rows.data) return serverError(rows.error)
+  return ok(rows.data.map(mapInventory))
 }
 
 export async function POST(request: Request) {

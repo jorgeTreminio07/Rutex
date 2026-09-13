@@ -1,6 +1,6 @@
 "use client"
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import {
@@ -10,22 +10,25 @@ import {
   getMermasRequest,
   updateMermaRequest,
   type CreateMermaPayload,
+  type GetMermasParams,
   type UpdateMermaPayload,
 } from "@/features/mermas/api/mermas.api"
 import { productsKeys } from "@/features/products/hooks/use-products"
 import { getApiErrorMessage } from "@/lib/api-client"
+import { LIST_REFRESH_MS } from "@/lib/query-params"
 
 export const mermasKeys = {
   all: ["mermas"] as const,
+  filtered: (params: GetMermasParams) => ["mermas", "list", params] as const,
   motivos: ["mermas", "motivos"] as const,
 }
 
-export function useMermas() {
+export function useMermas(params: GetMermasParams) {
   return useQuery({
-    queryKey: mermasKeys.all,
-    queryFn: getMermasRequest,
-    refetchInterval: 10_000,
-    refetchIntervalInBackground: true,
+    queryKey: mermasKeys.filtered(params),
+    queryFn: () => getMermasRequest(params),
+    placeholderData: keepPreviousData,
+    refetchInterval: LIST_REFRESH_MS,
   })
 }
 

@@ -1,15 +1,25 @@
 import { apiClient } from "@/lib/api-client"
+import { appendListParams, type ListQueryParams } from "@/lib/query-params"
 import type {
   CreateMermaPayload,
   MermaDto,
   MermaMotivoDto,
   UpdateMermaPayload,
 } from "@/types/interfaces/merma.interface"
+import type { PaginatedResult } from "@/types/interfaces/pagination.interface"
 
 export type { CreateMermaPayload, UpdateMermaPayload }
 
-export async function getMermasRequest(): Promise<MermaDto[]> {
-  return apiClient.get<MermaDto[]>("/api/mermas")
+export type GetMermasParams = ListQueryParams
+
+function buildQueryString(params: GetMermasParams): string {
+  const url = new URL("/api/mermas", window.location.origin)
+  appendListParams(url, params)
+  return url.pathname + url.search
+}
+
+export async function getMermasRequest(params: GetMermasParams): Promise<PaginatedResult<MermaDto>> {
+  return apiClient.get<PaginatedResult<MermaDto>>(buildQueryString(params))
 }
 
 export async function getMermaMotivosRequest(): Promise<MermaMotivoDto[]> {

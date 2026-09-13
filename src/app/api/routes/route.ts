@@ -11,24 +11,46 @@ import { createClient } from "@/lib/supabase/server"
 import {
   mapRouteList,
   ROUTE_LIST_SELECT,
+  type RouteListRow,
 } from "@/app/api/routes/helpers"
+import { nicaraguaDayRange } from "@/app/api/reports/helpers"
+import { fetchAllRows, isPaging, paginated, parsePagination } from "@/app/api/pagination"
 import { computeBestRoute } from "@/features/routes/lib/route-path"
 import type { RoutePoint } from "@/features/routes/lib/route-path"
 import type { RouteType } from "@/types/interfaces/route.interface"
 
-export async function GET() {
+export async function GET(request: Request) {
   const guard = await requirePermission("rutas:ver")
   if (!guard.ok) return guard.response!
 
+  const url = new URL(request.url)
+  const search = url.searchParams.get("search")?.trim() || undefined
+  const status = url.searchParams.get("status")
+  const dateFilter = url.searchParams.get("date")
+  const paging = parsePagination(url)
+
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("routes")
-    .select(ROUTE_LIST_SELECT)
-    .order("created_at", { ascending: false })
 
-  if (error) return serverError(error)
+  const buildQuery = () => {
+    let query = supabase.from("routes").select(ROUTE_LIST_SELECT, { count: "exact" })
+    if (search) query = query.ilike("route_code", `%${search}%`)
+    if (status && status !== "todos") query = query.eq("status", status)
+    if (dateFilter) {
+      const { start, end } = nicaraguaDayRange(dateFilter)
+      query = query.gte("created_at", start).lt("created_at", end)
+    }
+    return query.order("created_at", { ascending: false })
+  }
 
-  return ok((data ?? []).map(mapRouteList))
+  if (isPaging(url)) {
+    const { data, count, error } = await buildQuery().range(paging.from, paging.to)
+    if (error) return serverError(error)
+    return ok(paginated((data ?? []).map(mapRouteList), count ?? 0, paging.page, paging.pageSize))
+  }
+
+  const rows = await fetchAllRows<RouteListRow>((from, to) => buildQuery().range(from, to))
+  if (!rows.data) return serverError(rows.error)
+  return ok(rows.data.map(mapRouteList))
 }
 
 export async function POST(request: Request) {
