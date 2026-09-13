@@ -1,12 +1,19 @@
 "use client"
 
-import { SearchIcon, ShoppingCartIcon, StoreIcon } from "lucide-react"
+import { ChevronDownIcon, SearchIcon, ShoppingCartIcon, StoreIcon } from "lucide-react"
 import Image from "next/image"
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { useCatalog } from "@/features/catalog/hooks/use-catalog"
 import { CatalogProductCard } from "@/features/catalog/components/catalog-product-card"
@@ -22,6 +29,7 @@ export function CatalogView() {
   const router = useRouter()
   const [category, setCategory] = useState<string | null>(null)
   const [search, setSearch] = useState("")
+  const [showAvailable, setShowAvailable] = useState(true)
   const [selected, setSelected] = useState<ProductDto | null>(null)
 
   const products = useMemo(() => data?.products ?? [], [data])
@@ -38,9 +46,10 @@ export function CatalogView() {
     return products.filter((p) => {
       if (category && p.category !== category) return false
       if (q && !p.name.toLowerCase().includes(q) && !p.description?.toLowerCase().includes(q ?? "")) return false
+      if (showAvailable && p.stock <= 0) return false
       return true
     })
-  }, [products, category, search])
+  }, [products, category, search, showAvailable])
 
   const cartCount = items.reduce((sum, i) => sum + i.quantity, 0)
   const logoUrl = getAssetUrl(store.logoUrl)
@@ -79,42 +88,73 @@ export function CatalogView() {
       <div className="space-y-5">
         {/* Search + categories */}
         <div className="flex flex-col gap-3">
-          <div className="relative">
-            <SearchIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar productos…"
-              className="h-11 rounded-xl pl-9"
-            />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="relative min-w-0 flex-1">
+              <SearchIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar productos…"
+                className="h-11 rounded-xl pl-9"
+              />
+            </div>
+
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+              <span className="shrink-0 text-xs font-medium whitespace-nowrap text-muted-foreground">
+                Mostrar disponibles
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showAvailable}
+                aria-label="Mostrar disponibles"
+                title="Mostrar solo productos en stock"
+                onClick={() => setShowAvailable((prev) => !prev)}
+                className={cn(
+                  "inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full border p-0.5 transition-colors outline-none",
+                  "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:border-ring",
+                  showAvailable ? "border-transparent bg-primary" : "border-border bg-input/50",
+                )}
+              >
+                <span
+                  className={cn(
+                    "size-5 rounded-full bg-background shadow-sm transition-transform duration-300 ease-in-out",
+                    showAvailable ? "translate-x-4" : "translate-x-0",
+                  )}
+                />
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setCategory(null)}
-              className={cn(
-                "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
-                category === null
-                  ? "bg-foreground text-background"
-                  : "border text-muted-foreground hover:bg-muted",
-              )}
-            >
-              Todos
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setCategory(cat === category ? null : cat)}
-                className={cn(
-                  "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
-                  category === cat ? "bg-foreground text-background" : "border text-muted-foreground hover:bg-muted",
-                )}
-              >
-                {cat}
-              </button>
-            ))}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button type="button" variant="outline" size="sm" className="gap-2 rounded-full">
+                    <span className="max-w-44 truncate">{category ?? "Todas"}</span>
+                    <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />
+                  </Button>
+                }
+              />
+              <DropdownMenuContent align="start" className="min-w-48">
+                <DropdownMenuItem
+                  onClick={() => setCategory(null)}
+                  className={cn(category === null && "bg-accent text-accent-foreground")}
+                >
+                  Todas las categorías
+                </DropdownMenuItem>
+                {categories.length > 0 && <DropdownMenuSeparator />}
+                {categories.map((cat) => (
+                  <DropdownMenuItem
+                    key={cat}
+                    onClick={() => setCategory(cat === category ? null : cat)}
+                    className={cn(category === cat && "bg-accent text-accent-foreground")}
+                  >
+                    <span className="truncate">{cat}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
