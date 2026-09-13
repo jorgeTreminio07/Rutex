@@ -116,3 +116,67 @@ export interface HourSalesReportDto {
   rows: HourSalesReportRow[]
   summary: HourSalesReportSummary
 }
+
+export interface DashboardKpis {
+  ventasHoy: number
+  gananciaHoy: number
+  pedidosHoy: number
+  pedidosEnProceso: number
+  carteraPendiente: number
+  cuotasVencidas: number
+  stockBajos: number
+}
+
+export interface DashboardVentasDiaRow {
+  fecha: string
+  ventas: number
+  ganancia: number
+  pedidos: number
+}
+
+export interface DashboardTopProductoRow {
+  producto: string
+  unidades: number
+  ventas: number
+}
+
+export interface DashboardCashflowRow {
+  mes: string
+  ventas: number
+  compras: number
+  gastos: number
+}
+
+export interface DashboardHorarioRow {
+  hora: number
+  pedidos: number
+}
+
+export interface DashboardEntregasRow {
+  statusId: number
+  status: string
+  count: number
+}
+
+export interface DashboardStockBajoRow {
+  producto: string
+  stock: number
+}
+
+export interface DashboardMermaMotivoRow {
+  motivo: string
+  total: number
+}
+
+export interface DashboardDto {
+  generatedAt: string
+  kpis: DashboardKpis
+  ventasPorDia: DashboardVentasDiaRow[]
+  topProductos: DashboardTopProductoRow[]
+  cartera: { cobrado: number; pendiente: number }
+  cashflow: DashboardCashflowRow[]
+  horario: DashboardHorarioRow[]
+  entregas: DashboardEntregasRow[]
+  stockBajo: DashboardStockBajoRow[]
+  mermasPorMotivo: DashboardMermaMotivoRow[]
+}
