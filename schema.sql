@@ -63,6 +63,7 @@ create table if not exists public.store_profile (
   address       text,
   phone         text,
   working_hours text,
+  payment_plans_enabled boolean not null default true,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz
 );

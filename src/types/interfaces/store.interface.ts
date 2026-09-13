@@ -26,5 +26,6 @@ export interface StoreProfileDto {
   address: string | null
   phone: string | null
   workingHours: string | null
+  paymentPlansEnabled: boolean
   bankAccounts: BankAccountDto[]
 }

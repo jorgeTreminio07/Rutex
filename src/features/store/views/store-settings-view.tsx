@@ -19,6 +19,7 @@ export function StoreSettingsView() {
       address: values.address || undefined,
       phone: values.phone || undefined,
       workingHours: values.workingHours || undefined,
+      paymentPlansEnabled: values.paymentPlansEnabled,
       logo: values.logo,
       stamp: values.stamp,
       signature: values.signature,

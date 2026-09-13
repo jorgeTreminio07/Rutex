@@ -30,6 +30,7 @@ interface CatalogCartProps {
   storeName: string
   storePhone: string | null
   bankAccounts: BankAccountInfo[]
+  paymentPlansEnabled: boolean
   isAuthenticated: boolean
   onUpdateQuantity: (productId: string, quantity: number) => void
   onRemoveItem: (productId: string) => void
@@ -42,6 +43,7 @@ export function CatalogCart({
   storeName,
   storePhone,
   bankAccounts,
+  paymentPlansEnabled,
   isAuthenticated,
   onUpdateQuantity,
   onRemoveItem,
@@ -59,6 +61,16 @@ export function CatalogCart({
 
   const total = cartTotal(items)
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0)
+
+  const paymentOptions: [PaymentType, string, string][] = [
+    ["contado", "De contado", `1 pago de C$ ${total.toFixed(2)}`],
+    ...(paymentPlansEnabled
+      ? ([
+          ["cuotas_2", "2 pagos quincenales", `2x C$ ${(total / 2).toFixed(2)}`],
+          ["cuotas_4", "4 pagos semanales", `4x C$ ${(total / 4).toFixed(2)}`],
+        ] satisfies [PaymentType, string, string][])
+      : []),
+  ]
 
   const validName = customerName.trim().length > 2
   const validPhone = customerPhone.trim().length >= 8
@@ -268,13 +280,7 @@ export function CatalogCart({
                 Modalidad de pago
               </Label>
               <div className="grid grid-cols-1 gap-2">
-                {(
-                  [
-                    ["contado", "De contado", `1 pago de C$ ${total.toFixed(2)}`],
-                    ["cuotas_2", "2 pagos quincenales", `2x C$ ${(total / 2).toFixed(2)}`],
-                    ["cuotas_4", "4 pagos semanales", `4x C$ ${(total / 4).toFixed(2)}`],
-                  ] as [PaymentType, string, string][]
-                ).map(([value, label, detail]) => (
+                {paymentOptions.map(([value, label, detail]) => (
                   <button
                     key={value}
                     type="button"

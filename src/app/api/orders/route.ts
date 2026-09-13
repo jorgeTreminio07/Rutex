@@ -203,6 +203,17 @@ export async function POST(request: Request) {
 
   const supabase = createAdminClient()
 
+  // Si la tienda deshabilitó los pagos en cuotas, se fuerza contado.
+  const { data: storeProfile } = await supabase
+    .from("store_profile")
+    .select("payment_plans_enabled")
+    .eq("id", STORE_ROW_ID)
+    .maybeSingle()
+  const paymentType =
+    storeProfile?.payment_plans_enabled === false
+      ? "contado"
+      : ((body.paymentType as string) || "contado")
+
   // Snapshot del precio de compra vigente de cada producto (reporte de ganancias).
   const snapshotProductIds = [...new Set(items.map((item) => item.productId).filter(Boolean))] as string[]
   const { data: snapshotProducts } = await supabase
@@ -234,7 +245,7 @@ export async function POST(request: Request) {
       items: itemsWithSnapshot,
       total,
       status_id: 5,
-      payment_type: (body.paymentType as string) || "contado",
+      payment_type: paymentType,
       notes: (body.notes as string)?.trim() || null,
     })
     .select("id, order_number, customer_name, customer_phone, customer_address, items, total, status_id, payment_type, notes, created_at")

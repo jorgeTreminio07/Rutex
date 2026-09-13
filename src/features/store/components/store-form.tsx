@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { getAssetUrl } from "@/lib/assets"
+import { cn } from "@/lib/utils"
 import { ImageUploadField } from "@/features/store/components/image-upload-field"
 import { SignatureField } from "@/features/store/components/signature-field"
 import {
@@ -64,12 +65,14 @@ export function StoreForm({ store, isPending, onSubmit }: StoreFormProps) {
       address: "",
       phone: "",
       workingHours: "",
+      paymentPlansEnabled: true,
     },
   })
 
   const selectedLogo = useWatch({ control: form.control, name: "logo" })
   const selectedStamp = useWatch({ control: form.control, name: "stamp" })
   const selectedSignature = useWatch({ control: form.control, name: "signature" })
+  const paymentPlansEnabled = useWatch({ control: form.control, name: "paymentPlansEnabled" })
 
   useEffect(() => {
     if (store) {
@@ -81,6 +84,7 @@ export function StoreForm({ store, isPending, onSubmit }: StoreFormProps) {
         address: store.address ?? "",
         phone: store.phone ?? "",
         workingHours: store.workingHours ?? "",
+        paymentPlansEnabled: store.paymentPlansEnabled ?? true,
       })
     }
   }, [store, form])
@@ -216,6 +220,44 @@ export function StoreForm({ store, isPending, onSubmit }: StoreFormProps) {
               {...form.register("workingHours")}
             />
           </Field>
+
+          <div className="flex items-start justify-between gap-4 rounded-xl border p-4">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="store-payment-plans" className="text-sm font-semibold">
+                Permitir pagos en cuotas
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Si está desactivado, los pedidos solo podrán pagarse de contado
+                (se ocultan las opciones de 2 quincenales y 4 semanales).
+              </p>
+            </div>
+            <button
+              type="button"
+              id="store-payment-plans"
+              role="switch"
+              aria-checked={paymentPlansEnabled}
+              aria-label="Permitir pagos en cuotas"
+              onClick={() =>
+                form.setValue("paymentPlansEnabled", !paymentPlansEnabled, {
+                  shouldValidate: true,
+                })
+              }
+              className={cn(
+                "inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border p-0.5 transition-colors outline-none",
+                "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:border-ring",
+                paymentPlansEnabled
+                  ? "border-transparent bg-primary"
+                  : "border-border bg-input/50",
+              )}
+            >
+              <span
+                className={cn(
+                  "size-6 rounded-full bg-background shadow-sm transition-transform duration-300 ease-in-out",
+                  paymentPlansEnabled ? "translate-x-5" : "translate-x-0",
+                )}
+              />
+            </button>
+          </div>
         </CardContent>
 
         <CardFooter className="justify-end">

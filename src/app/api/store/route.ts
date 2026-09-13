@@ -79,6 +79,7 @@ export async function GET() {
     address: profile.address,
     phone: profile.phone,
     workingHours: profile.working_hours,
+    paymentPlansEnabled: profile.payment_plans_enabled,
     bankAccounts: mappedBankAccounts,
   });
 }
@@ -103,6 +104,7 @@ export async function PUT(request: Request) {
   const removeLogo = String(formData.get("removeLogo") ?? "") === "true";
   const removeStamp = String(formData.get("removeStamp") ?? "") === "true";
   const removeSignature = String(formData.get("removeSignature") ?? "") === "true";
+  const paymentPlansEnabled = String(formData.get("paymentPlansEnabled") ?? "") === "true";
 
   const supabase = await createClient();
 
@@ -157,6 +159,7 @@ export async function PUT(request: Request) {
       address: address || null,
       phone: phone || null,
       working_hours: workingHours || null,
+      payment_plans_enabled: paymentPlansEnabled,
       logo_url: logoUrl,
       stamp_url: stampUrl,
       signature_url: signatureUrl,
@@ -203,6 +206,7 @@ export async function PUT(request: Request) {
     address: data.address,
     phone: data.phone,
     workingHours: data.working_hours,
+    paymentPlansEnabled: data.payment_plans_enabled,
     bankAccounts: mappedBankAccounts,
   });
 }

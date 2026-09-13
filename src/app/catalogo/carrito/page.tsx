@@ -18,7 +18,7 @@ export default function CarritoPage() {
   const { data } = useCatalog()
   const { items, updateQuantity, removeItem, clear } = useCartStore()
 
-  const store = data?.store ?? { name: "Rutex", logoUrl: null, phone: null }
+  const store = data?.store ?? { name: "Rutex", logoUrl: null, phone: null, paymentPlansEnabled: true }
   const bankAccounts = data?.bankAccounts ?? []
   const logoUrl = getAssetUrl(store.logoUrl)
 
@@ -52,6 +52,7 @@ export default function CarritoPage() {
         storeName={store.name}
         storePhone={store.phone}
         bankAccounts={bankAccounts}
+        paymentPlansEnabled={store.paymentPlansEnabled}
         isAuthenticated={isAuthenticated}
         onUpdateQuantity={updateQuantity}
         onRemoveItem={removeItem}

@@ -20,6 +20,7 @@ interface StoreProfileRow {
   name: string | null
   logo_url: string | null
   phone: string | null
+  payment_plans_enabled: boolean
 }
 
 interface BankAccountRow {
@@ -44,7 +45,7 @@ export async function GET() {
 
   const { data: profile, error: profileError } = (await admin
     .from("store_profile")
-    .select("name, logo_url, phone")
+    .select("name, logo_url, phone, payment_plans_enabled")
     .eq("id", STORE_ROW_ID)
     .maybeSingle()) as unknown as {
     data: StoreProfileRow | null
@@ -80,6 +81,7 @@ export async function GET() {
       name: profile?.name ?? "Rutex",
       logoUrl: profile?.logo_url ?? null,
       phone: profile?.phone ?? null,
+      paymentPlansEnabled: profile?.payment_plans_enabled ?? true,
     },
     bankAccounts: (bankAccounts ?? []).map((b) => ({
       bankName: b.bank_name,

@@ -13,6 +13,7 @@ export interface UpdateStorePayload {
   address?: string
   phone?: string
   workingHours?: string
+  paymentPlansEnabled?: boolean
   logo?: File | null
   stamp?: File | null
   signature?: File | null
@@ -37,6 +38,10 @@ function buildStoreFormData(payload: UpdateStorePayload): FormData {
 
   for (const key of ["ruc", "email", "address", "phone", "workingHours"] as const) {
     formData.append(key, payload[key] ?? "")
+  }
+
+  if (payload.paymentPlansEnabled !== undefined) {
+    formData.append("paymentPlansEnabled", String(payload.paymentPlansEnabled))
   }
 
   if (payload.logo) {

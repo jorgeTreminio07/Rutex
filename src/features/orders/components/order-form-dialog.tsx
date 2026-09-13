@@ -240,8 +240,12 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
                   {(
                     [
                       ["contado", "De contado", `1 pago de C$ ${total.toFixed(2)}`],
-                      ["cuotas_2", "2 pagos quincenales", `2x C$ ${(total / 2).toFixed(2)}`],
-                      ["cuotas_4", "4 pagos semanales", `4x C$ ${(total / 4).toFixed(2)}`],
+                      ...((store?.paymentPlansEnabled ?? true)
+                        ? ([
+                            ["cuotas_2", "2 pagos quincenales", `2x C$ ${(total / 2).toFixed(2)}`],
+                            ["cuotas_4", "4 pagos semanales", `4x C$ ${(total / 4).toFixed(2)}`],
+                          ] satisfies [PaymentType, string, string][])
+                        : []),
                     ] as [PaymentType, string, string][]
                   ).map(([value, label, detail]) => (
                     <button
