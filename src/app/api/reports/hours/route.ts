@@ -1,5 +1,5 @@
 import { ok, serverError } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
 import { createClient } from "@/lib/supabase/server"
 import {
   nicaraguaDayRange,
@@ -15,7 +15,7 @@ import type { HourSalesReportDto, HourSalesReportRow } from "@/types/interfaces/
  * detectar en qué horas del día se concentra la venta.
  */
 export async function GET(request: Request) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("reportes:ver")
   if (!guard.ok) return guard.response!
 
   const range = parseReportRange(new URL(request.url))

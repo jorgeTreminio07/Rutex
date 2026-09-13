@@ -14,6 +14,8 @@ export async function GET() {
       lastName: user.lastName,
       email: user.email,
       imageUrl: user.imageUrl,
+      roleId: user.roleId,
+      permissions: user.permissions,
     });
   } catch (error) {
     return serverError(error);

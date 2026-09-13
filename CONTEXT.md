@@ -152,6 +152,7 @@
 27. `029-orders-purchase-price.sql` (backfill del snapshot `purchasePrice` en los `items` jsonb de pedidos existentes; **idempotente** — los pedidos nuevos lo capturan server-side en `POST /api/orders`)
 28. `030-orders-customer-address.sql` (columna `customer_address` en `orders`; snapshot que muestra la dirección del cliente en el recibo térmico — los pedidos internos la envían desde el cliente registrado)
 29. `031-store-payment-plans.sql` (bandera `payment_plans_enabled` en `store_profile`, por defecto `true`; desactivada, los formularios solo ofrecen "De contado" y `POST /api/orders` fuerza contado)
+30. `032-role-permissions.sql` (tablas `role_permissions` con RPC `role_bulk_set_permissions` + `permission_modules`/`permission_actions`/`permissions` catalogadas; RLS lectura autenticada / escritura admin; **idempotente** vía `drop policy if exists`)
 
 ## Reportes
 - Sección **Reportes** (ruta `/reportes`, nav `NAV_REPORTS` en sidebar/menú móvil **debajo de Compras**). Pills horizontales para cambiar de reporte; **todos disponibles** (Ganancias por día, Ventas por producto, Pedidos por cliente, Cartera por período, Horario de compras). Infraestructura compartida en `src/features/reports/`: `useReportDateRange` (`lib/date-range.ts`, arranca en "Hoy" Nicaragua con accesos Hoy/7 días/Este mes), `ReportToolbar` (`components/report-toolbar.tsx`: Desde/Hasta + rápidos + Exportar Excel + contador), `SummaryCard` y `fmtMoney/fmtDate/fmtHora/rangeName` en `lib/format.ts`.

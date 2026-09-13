@@ -5,4 +5,6 @@ export interface AuthUser {
   lastName: string | null
   email: string | null
   imageUrl: string | null
+  roleId: string | null
+  permissions: string[]
 }

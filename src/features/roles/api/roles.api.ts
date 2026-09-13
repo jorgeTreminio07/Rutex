@@ -5,12 +5,14 @@ export interface CreateRolePayload {
   name: string
   description?: string
   statusId?: number
+  permissions?: string[]
 }
 
 export interface UpdateRolePayload {
   name?: string
   description?: string
   statusId?: number
+  permissions?: string[]
 }
 
 export async function getRolesRequest(): Promise<RoleDto[]> {

@@ -1,6 +1,6 @@
 "use client"
 
-import { PencilIcon, Trash2Icon } from "lucide-react"
+import { LockIcon, PencilIcon, Trash2Icon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { getStatusMeta } from "@/lib/statuses"
+import { isAdminRoleName } from "@/lib/permissions"
 import { usePaged } from "@/lib/use-paged"
 import type { RoleDto } from "@/types/interfaces/user.interface"
 
@@ -24,9 +25,11 @@ interface RolesTableProps {
   roles: RoleDto[]
   onEdit: (role: RoleDto) => void
   onDelete: (role: RoleDto) => void
+  canEdit: boolean
+  canDelete: boolean
 }
 
-export function RolesTable({ roles, onEdit, onDelete }: RolesTableProps) {
+export function RolesTable({ roles, onEdit, onDelete, canEdit, canDelete }: RolesTableProps) {
   const { rows, page, totalItems, pageSize, setPage } = usePaged(roles, PAGE_SIZE)
 
   return (
@@ -43,9 +46,15 @@ export function RolesTable({ roles, onEdit, onDelete }: RolesTableProps) {
         <TableBody>
           {rows.map((role) => {
             const status = getStatusMeta(role.statusId)
+            const adminLock = isAdminRoleName(role.name)
             return (
               <TableRow key={role.id}>
-                <TableCell className="font-medium">{role.name}</TableCell>
+                <TableCell className="font-medium">
+                  <span className="flex items-center gap-1.5">
+                    {role.name}
+                    {adminLock && <LockIcon className="size-3.5 text-muted-foreground" />}
+                  </span>
+                </TableCell>
                 <TableCell className="max-w-64 truncate text-muted-foreground">
                   {role.description ?? "—"}
                 </TableCell>
@@ -58,15 +67,17 @@ export function RolesTable({ roles, onEdit, onDelete }: RolesTableProps) {
                       variant="ghost"
                       size="icon-sm"
                       onClick={() => onEdit(role)}
+                      disabled={adminLock || !canEdit}
                       aria-label={`Editar rol ${role.name}`}
                     >
-                      <PencilIcon />
+                      {adminLock ? <LockIcon /> : <PencilIcon />}
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon-sm"
                       className="text-destructive hover:text-destructive"
                       onClick={() => onDelete(role)}
+                      disabled={adminLock || !canDelete}
                       aria-label={`Eliminar rol ${role.name}`}
                     >
                       <Trash2Icon />

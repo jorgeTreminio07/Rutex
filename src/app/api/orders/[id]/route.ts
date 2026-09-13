@@ -6,8 +6,8 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
-import { createClient } from "@/lib/supabase/server"
+import { requireOneOf, requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { recomputePagoEstado } from "@/app/api/cartera/helpers"
 import { buildAbonoPlan } from "@/features/cartera/lib/pagos"
 
@@ -19,7 +19,7 @@ type OrderItemRow = { productId?: string; productName?: string; quantity?: numbe
 
 export async function PUT(request: Request, { params }: RouteContext) {
   const { id } = await params
-  const guard = await requireAdmin()
+  const guard = await requireOneOf(["pedidos:aprobar", "pedidos:rechazar"])
   if (!guard.ok) return guard.response!
 
   let body: Record<string, unknown>
@@ -32,7 +32,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
   const statusId = Number(body.statusId)
   if (![5, 6, 7].includes(statusId)) return badRequest("Estado inválido")
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: existing } = await supabase
     .from("orders")
@@ -158,10 +158,10 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
   const { id } = await params
-  const guard = await requireAdmin()
+  const guard = await requirePermission("pedidos:eliminar")
   if (!guard.ok) return guard.response!
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: existing } = await supabase
     .from("orders")

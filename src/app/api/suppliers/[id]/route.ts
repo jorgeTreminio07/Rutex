@@ -6,7 +6,8 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import { STATUSES } from "@/lib/statuses"
 import type { SupplierDto } from "@/types/interfaces/supplier.interface"
@@ -62,7 +63,7 @@ function validateEmail(value: string | null): string | null {
 }
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("proveedores:ver")
   if (!guard.ok) return guard.response!
 
   const { id } = await params
@@ -80,7 +81,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("proveedores:editar")
   if (!guard.ok) return guard.response!
 
   const { id } = await params
@@ -104,7 +105,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
   const emailError = validateEmail(email)
   if (emailError) return badRequest(emailError)
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data: existing } = await supabase
     .from("suppliers")
     .select("id")
@@ -137,12 +138,12 @@ export async function PUT(request: Request, { params }: RouteContext) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("proveedores:eliminar")
   if (!guard.ok) return guard.response!
 
   const { id } = await params
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data: existing } = await supabase
     .from("suppliers")
     .select("id, status_id")

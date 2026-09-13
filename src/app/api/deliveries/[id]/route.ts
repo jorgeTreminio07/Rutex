@@ -5,8 +5,8 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
-import { createClient } from "@/lib/supabase/server"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { DELIVERY_SELECT, mapDelivery } from "@/app/api/deliveries/helpers"
 
 interface RouteContext {
@@ -15,7 +15,7 @@ interface RouteContext {
 
 export async function PUT(request: Request, { params }: RouteContext) {
   const { id } = await params
-  const guard = await requireAdmin()
+  const guard = await requirePermission("almacen:avanzar")
   if (!guard.ok) return guard.response!
 
   let body: Record<string, unknown>
@@ -28,7 +28,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
   const statusId = Number(body.statusId)
   if (!Number.isInteger(statusId)) return badRequest("Estado inválido")
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: existing } = await supabase
     .from("deliveries")

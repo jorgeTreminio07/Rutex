@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ALL_PERMISSION_KEYS, normalizePermissions } from "@/lib/permissions";
 
 export interface CurrentProfile {
   id: string;
@@ -10,6 +11,7 @@ export interface CurrentProfile {
   roleId: string | null;
   roleName: string | null;
   statusId: number;
+  permissions: string[];
 }
 
 export function getEmbeddedRoleName(raw: unknown): string | null {
@@ -17,6 +19,18 @@ export function getEmbeddedRoleName(raw: unknown): string | null {
   const arr = Array.isArray(raw) ? raw : [raw];
   const first = arr[0] as { name?: string } | undefined;
   return first?.name ?? null;
+}
+
+export function getEmbeddedRolePermissions(raw: unknown): string[] {
+  if (!raw) return [];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  const first = arr[0] as { permissions?: unknown } | undefined;
+  return normalizePermissions(first?.permissions);
+}
+
+export function rolePermissionsFor(roleName: string | null, permissions: string[]): string[] {
+  if (isAdminRole(roleName)) return [...ALL_PERMISSION_KEYS];
+  return permissions;
 }
 
 export async function getSession() {
@@ -36,9 +50,15 @@ export async function getCurrentUser(): Promise<CurrentProfile | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, first_name, last_name, email, image_url, role_id, status_id, roles(name)")
+    .select("id, username, first_name, last_name, email, image_url, role_id, status_id, roles(name, permissions)")
     .eq("id", user.id)
     .maybeSingle();
+
+  const roleName = getEmbeddedRoleName(profile?.roles);
+  const permissions = rolePermissionsFor(
+    roleName,
+    getEmbeddedRolePermissions(profile?.roles),
+  );
 
   return {
     id: user.id,
@@ -48,14 +68,18 @@ export async function getCurrentUser(): Promise<CurrentProfile | null> {
     email: profile?.email ?? user.email ?? null,
     imageUrl: profile?.image_url ?? null,
     roleId: profile?.role_id ?? null,
-    roleName: getEmbeddedRoleName(profile?.roles),
+    roleName,
     statusId: profile?.status_id ?? 1,
+    permissions,
   };
 }
 
 export function isAdminRole(roleName: string | null): boolean {
-  if (!roleName) return false;
-  return roleName.toLowerCase().replace(/[^a-z]/g, "") === "admin";
+  return normalizeRoleName(roleName) === "admin";
+}
+
+export function normalizeRoleName(roleName: string | null): string {
+  return (roleName ?? "").toLowerCase().replace(/[^a-z]/g, "");
 }
 
 export async function requireUser(): Promise<CurrentProfile> {

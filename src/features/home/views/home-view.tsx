@@ -281,7 +281,7 @@ export function HomeView() {
           )}
         </ChartCard>
 
-        <ChartCard title="Horario de ventas" description="Pedidos aprobados por hora (hora de Nicaragua)." icon={Clock3Icon}>
+        <ChartCard title="Horario de ventas" description="Pedidos aprobados por hora." icon={Clock3Icon}>
           {data.horario.length > 0 ? (
             <HoursChart data={data.horario} />
           ) : (

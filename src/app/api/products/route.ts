@@ -5,7 +5,8 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 
 const PRODUCT_SELECT = "id, name, description, barcode, purchase_price, price, discount_percent, category, stock, images, status_id, created_at"
@@ -43,7 +44,7 @@ function mapProduct(p: ProductRow) {
 }
 
 export async function GET() {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("productos:ver")
   if (!guard.ok) return guard.response!
 
   const supabase = await createClient()
@@ -59,7 +60,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("productos:crear")
   if (!guard.ok) return guard.response!
 
   let body: Record<string, unknown>
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
   if (!category) return badRequest("La categoría es obligatoria")
   if (isNaN(price) || price < 0) return badRequest("El precio debe ser un número positivo")
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data, error } = await supabase
     .from("products")
     .insert({

@@ -1,8 +1,8 @@
 import { badRequest, notFound, ok, serverError } from "@/lib/api-response"
 import { recomputePagoEstado } from "@/app/api/cartera/helpers"
 import { round2 } from "@/features/cartera/lib/pagos"
-import { requireAdmin } from "@/lib/server/guards"
-import { createClient } from "@/lib/supabase/server"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 interface RouteContext {
   params: Promise<{ orderId: string }>
@@ -18,7 +18,7 @@ interface AbonoRow {
 
 export async function POST(request: Request, { params }: RouteContext) {
   const { orderId } = await params
-  const guard = await requireAdmin()
+  const guard = await requirePermission("cartera:abonar")
   if (!guard.ok) return guard.response!
 
   let body: Record<string, unknown>
@@ -31,7 +31,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   const monto = round2(Number(body.monto))
   if (!Number.isFinite(monto) || monto <= 0) return badRequest("El monto del abono es obligatorio")
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: pago } = await supabase
     .from("pagos")

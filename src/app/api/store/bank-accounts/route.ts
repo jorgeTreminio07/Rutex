@@ -4,14 +4,14 @@ import {
   created,
   serverError,
 } from "@/lib/api-response";
-import { requireAdmin } from "@/lib/server/guards";
+import { requirePermission } from "@/lib/server/guards";
 import { uploadToStorage } from "@/lib/server/storage";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const STORE_ROW_ID = "00000000-0000-0000-0000-000000000001";
 
 export async function POST(request: Request) {
-  const guard = await requireAdmin();
+  const guard = await requirePermission("configuracion:editar");
   if (!guard.ok) return guard.response!;
 
   const formData = await request.formData();
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   if (!accountNumber) return badRequest("El número de cuenta es obligatorio");
   if (!accountHolder) return badRequest("El titular es obligatorio");
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: profile } = await supabase
     .from("store_profile")

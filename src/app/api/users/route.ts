@@ -4,7 +4,7 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response";
-import { requireAdmin } from "@/lib/server/guards";
+import { requirePermission } from "@/lib/server/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { uploadToStorage } from "@/lib/server/storage";
@@ -28,6 +28,9 @@ function mapEmbeddedRole(raw: unknown): { id: string; name: string; description:
 }
 
 export async function GET() {
+  const guard = await requirePermission("usuarios:ver");
+  if (!guard.ok) return guard.response!;
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
@@ -53,7 +56,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireAdmin();
+  const guard = await requirePermission("usuarios:crear");
   if (!guard.ok) return guard.response!;
 
   const formData = await request.formData();
@@ -93,7 +96,7 @@ export async function POST(request: Request) {
   const imageUrl = photoFile instanceof File ? await uploadToStorage(photoFile, "users", "photo", newUserId) : null;
   const signatureUrl = signatureFile instanceof File ? await uploadToStorage(signatureFile, "users", "signature", newUserId) : null;
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("profiles")
     .upsert({

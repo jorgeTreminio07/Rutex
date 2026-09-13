@@ -1,5 +1,5 @@
 import { ok, serverError } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
 import { createClient } from "@/lib/supabase/server"
 import {
   nicaraguaDayRange,
@@ -40,7 +40,7 @@ const CASHFLOW_MONTHS = 6
  * Nicaragua (UTC-6) y solo considera pedidos APROBADOS (status 6, no borrados).
  */
 export async function GET() {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("dashboard:ver")
   if (!guard.ok) return guard.response!
 
   const supabase = await createClient()

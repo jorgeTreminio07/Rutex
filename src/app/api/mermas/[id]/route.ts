@@ -5,7 +5,8 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import {
   applyStockDeltas,
@@ -53,7 +54,7 @@ const MERMA_SELECT =
   "id, merma_number, motivo_id, items, total_value, observation, created_at, updated_at, merma_motivos!inner(name)"
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("mermas:ver")
   if (!guard.ok) return guard.response!
 
   const { id } = await params
@@ -71,7 +72,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("mermas:editar")
   if (!guard.ok) return guard.response!
 
   const { id } = await params
@@ -96,7 +97,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
       ? body.observation.trim()
       : null
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: motivo } = await supabase
     .from("merma_motivos")
@@ -181,12 +182,12 @@ export async function PUT(request: Request, { params }: RouteContext) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("mermas:eliminar")
   if (!guard.ok) return guard.response!
 
   const { id } = await params
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: existing } = await supabase
     .from("mermas")

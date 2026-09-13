@@ -1,6 +1,6 @@
 import { badRequest, created, serverError } from "@/lib/api-response"
 import { getAssetUrl } from "@/lib/assets"
-import { requireAdmin } from "@/lib/server/guards"
+import { requireOneOf } from "@/lib/server/guards"
 import { uploadToStorage } from "@/lib/server/storage"
 
 const MAX_BYTES = 15 * 1024 * 1024
@@ -25,7 +25,7 @@ function slugify(name: string): string {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireAdmin()
+  const guard = await requireOneOf(["compras:crear", "compras:editar"])
   if (!guard.ok) return guard.response!
 
   const formData = await request.formData()

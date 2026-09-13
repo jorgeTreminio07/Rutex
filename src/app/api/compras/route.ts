@@ -5,7 +5,8 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import { getAssetUrl } from "@/lib/assets"
 import { optionalText, resolveSupplierName } from "@/app/api/compras/helpers"
@@ -42,7 +43,7 @@ const COMPRA_SELECT =
   "id, title, supplier_id, supplier_name, observation, amount, receipt_path, created_at, updated_at"
 
 export async function GET() {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("compras:ver")
   if (!guard.ok) return guard.response!
 
   const supabase = await createClient()
@@ -57,7 +58,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("compras:crear")
   if (!guard.ok) return guard.response!
 
   let body: Record<string, unknown>
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
     return badRequest("El monto debe ser un número mayor o igual a 0")
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const supplierName = await resolveSupplierName(supabase, supplierId)
   if (!supplierName) return badRequest("El proveedor seleccionado no existe o fue eliminado")

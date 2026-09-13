@@ -3,6 +3,7 @@ export interface RoleDto {
   name: string
   description: string | null
   statusId: number
+  permissions: string[]
 }
 
 export interface RoleForUser {

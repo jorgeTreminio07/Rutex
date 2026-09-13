@@ -4,8 +4,9 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response";
-import { requireAdmin } from "@/lib/server/guards";
+import { requirePermission } from "@/lib/server/guards";
 import { removeFromStorage, uploadToStorage } from "@/lib/server/storage";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const STORE_ROW_ID = "00000000-0000-0000-0000-000000000001";
@@ -30,6 +31,9 @@ function mapBankAccount(b: {
 }
 
 export async function GET() {
+  const guard = await requirePermission("configuracion:ver");
+  if (!guard.ok) return guard.response!;
+
   const supabase = await createClient();
 
   const { data: profile, error } = await supabase
@@ -85,7 +89,7 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const guard = await requireAdmin();
+  const guard = await requirePermission("configuracion:editar");
   if (!guard.ok) return guard.response!;
 
   const formData = await request.formData();
@@ -106,7 +110,7 @@ export async function PUT(request: Request) {
   const removeSignature = String(formData.get("removeSignature") ?? "") === "true";
   const paymentPlansEnabled = String(formData.get("paymentPlansEnabled") ?? "") === "true";
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: existing } = await supabase
     .from("store_profile")

@@ -6,7 +6,8 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import { removeFromStorage } from "@/lib/server/storage"
 import { getAssetUrl } from "@/lib/assets"
@@ -48,7 +49,7 @@ const COMPRA_SELECT =
   "id, title, supplier_id, supplier_name, observation, amount, receipt_path, created_at, updated_at"
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("compras:ver")
   if (!guard.ok) return guard.response!
 
   const { id } = await params
@@ -66,7 +67,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("compras:editar")
   if (!guard.ok) return guard.response!
 
   const { id } = await params
@@ -96,7 +97,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
     return badRequest("El monto debe ser un número mayor o igual a 0")
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const supplierName = await resolveSupplierName(supabase, supplierId)
   if (!supplierName) return badRequest("El proveedor seleccionado no existe o fue eliminado")
@@ -142,12 +143,12 @@ export async function PUT(request: Request, { params }: RouteContext) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("compras:eliminar")
   if (!guard.ok) return guard.response!
 
   const { id } = await params
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data: existing } = await supabase
     .from("compras")
     .select("id, receipt_path")

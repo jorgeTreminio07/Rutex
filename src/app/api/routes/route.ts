@@ -4,10 +4,9 @@ import {
   forbidden,
   ok,
   serverError,
-  unauthorized,
 } from "@/lib/api-response"
-import { getSession } from "@/lib/server/auth"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import {
   mapRouteList,
@@ -18,8 +17,8 @@ import type { RoutePoint } from "@/features/routes/lib/route-path"
 import type { RouteType } from "@/types/interfaces/route.interface"
 
 export async function GET() {
-  const session = await getSession()
-  if (!session) return unauthorized()
+  const guard = await requirePermission("rutas:ver")
+  if (!guard.ok) return guard.response!
 
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -33,7 +32,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("rutas:crear")
   if (!guard.ok) return guard.response!
 
   let body: Record<string, unknown>
@@ -69,7 +68,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: nextNumber, error: seqError } = await supabase.rpc("next_route_number")
   if (seqError || typeof nextNumber !== "string") {

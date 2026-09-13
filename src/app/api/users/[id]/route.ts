@@ -5,10 +5,9 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response";
-import { requireAdmin } from "@/lib/server/guards";
+import { requirePermission } from "@/lib/server/guards";
 import { removeFromStorage, uploadToStorage } from "@/lib/server/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 interface EmbeddedRole {
   id?: string | null;
@@ -33,7 +32,7 @@ interface Context {
 }
 
 export async function PUT(request: Request, { params }: Context) {
-  const guard = await requireAdmin();
+  const guard = await requirePermission("usuarios:editar");
   if (!guard.ok) return guard.response!;
 
   const { id } = await params;
@@ -55,7 +54,7 @@ export async function PUT(request: Request, { params }: Context) {
   if (!roleId) return badRequest("Selecciona un rol");
 
   const admin = createAdminClient();
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: existing } = await supabase
     .from("profiles")
@@ -126,11 +125,11 @@ export async function PUT(request: Request, { params }: Context) {
 }
 
 export async function DELETE(_request: Request, { params }: Context) {
-  const guard = await requireAdmin();
+  const guard = await requirePermission("usuarios:eliminar");
   if (!guard.ok) return guard.response!;
 
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: existing } = await supabase
     .from("profiles")

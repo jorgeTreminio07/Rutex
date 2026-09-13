@@ -5,7 +5,8 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import {
   applyStockDeltas,
@@ -40,7 +41,7 @@ function mapInventory(row: InventoryRow): InventoryDto {
 const INVENTORY_SELECT = "id, inventory_number, items, total_value, created_at, updated_at"
 
 export async function GET() {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("inventarios:ver")
   if (!guard.ok) return guard.response!
 
   const supabase = await createClient()
@@ -55,7 +56,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("inventarios:crear")
   if (!guard.ok) return guard.response!
 
   let body: Record<string, unknown>
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
   const items = parseInventoryItems(body.items)
   if (!items) return badRequest("El inventario debe incluir al menos un producto con cantidad mayor a 0")
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: nextNumber, error: seqError } = await supabase.rpc("next_inventory_number")
   if (seqError || typeof nextNumber !== "string") {

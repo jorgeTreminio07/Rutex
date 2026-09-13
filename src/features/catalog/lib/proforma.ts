@@ -76,8 +76,8 @@ export function generateProformaPdf(data: ProformaData): jsPDF {
   const tableLeft = margin
   let colX = tableLeft
   const colWidths: Array<[string, number]> = [
-    ["Producto", pageWidth - margin - (margin + 42 + 34)],
     ["Cant.", 42],
+    ["Producto", pageWidth - margin - (margin + 42 + 34)],
     ["Importe", 34],
   ]
   const colXs: number[] = []
@@ -146,7 +146,7 @@ export function generateProformaPdf(data: ProformaData): jsPDF {
     })
   }
 
-  const footer = `Gracias por su preferencia. Sírvase presentar esta proforma al momento del pago.`
+  const footer = `Gracias por su preferencia. si tiene alguna duda, contáctenos al ${data.storePhone || "teléfono de la tienda"}`
   setFont(doc, "italic", 8)
   doc.setTextColor(148, 163, 184)
   doc.text(footer, margin, pageHeight - 12)

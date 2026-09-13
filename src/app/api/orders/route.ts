@@ -4,9 +4,8 @@ import {
   forbidden,
   ok,
   serverError,
-  unauthorized,
 } from "@/lib/api-response"
-import { getSession } from "@/lib/server/auth"
+import { requirePermission } from "@/lib/server/guards"
 import { orderHasStock, type StockMap } from "@/features/orders/lib/stock"
 import { generateProformaPdf } from "@/features/catalog/lib/proforma"
 import type { BankAccountInfo } from "@/features/catalog/lib/whatsapp"
@@ -103,10 +102,8 @@ async function generateAndStoreProforma(
 }
 
 export async function GET(request: Request) {
-  const session = await getSession()
-  if (!session) {
-    return unauthorized()
-  }
+  const guard = await requirePermission("pedidos:ver")
+  if (!guard.ok) return guard.response!
 
   const url = new URL(request.url)
   const statusFilter = url.searchParams.get("status")

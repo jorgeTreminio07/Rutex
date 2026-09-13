@@ -6,20 +6,25 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response";
-import { requireAdmin } from "@/lib/server/guards";
-import { createClient } from "@/lib/supabase/server";
+import { normalizePermissions } from "@/lib/permissions";
+import { isAdminRole, normalizeRoleName } from "@/lib/server/auth";
+import type { RoleRow } from "@/lib/server/role-helpers";
+import { requirePermission } from "@/lib/server/guards";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 interface Context {
   params: Promise<{ id: string }>;
 }
 
+const ROLE_SELECT = "id, name, description, status_id, permissions";
+
 export async function PUT(request: Request, { params }: Context) {
-  const guard = await requireAdmin();
+  const guard = await requirePermission("roles:editar");
   if (!guard.ok) return guard.response!;
 
   const { id } = await params;
 
-  let body: { name?: string; description?: string; statusId?: number };
+  let body: { name?: string; description?: string; statusId?: number; permissions?: string[] };
   try {
     body = await request.json();
   } catch {
@@ -29,7 +34,7 @@ export async function PUT(request: Request, { params }: Context) {
   const name = body.name?.trim();
   if (!name) return badRequest("El nombre es obligatorio");
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: existing } = await supabase
     .from("roles")
@@ -39,6 +44,12 @@ export async function PUT(request: Request, { params }: Context) {
     .maybeSingle();
 
   if (!existing) return notFound("Rol no encontrado");
+  if (isAdminRole(normalizeRoleName(existing.name))) {
+    return forbidden("El rol de administrador no se puede editar");
+  }
+  if (isAdminRole(normalizeRoleName(name))) {
+    return forbidden("No se puede convertir un rol en administrador");
+  }
 
   const otherWithSameName = await supabase
     .from("roles")
@@ -55,11 +66,12 @@ export async function PUT(request: Request, { params }: Context) {
       name,
       description: body.description?.trim() || null,
       status_id: body.statusId ?? 1,
+      permissions: normalizePermissions(body.permissions),
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
     .is("deleted_at", null)
-    .select("id, name, description, status_id")
+    .select(ROLE_SELECT)
     .single();
 
   if (error) {
@@ -67,29 +79,34 @@ export async function PUT(request: Request, { params }: Context) {
     return serverError(error);
   }
 
+  const role = data as unknown as RoleRow;
   return ok({
-    id: data.id,
-    name: data.name,
-    description: data.description,
-    statusId: data.status_id,
+    id: role.id,
+    name: role.name,
+    description: role.description,
+    statusId: role.status_id,
+    permissions: normalizePermissions(role.permissions),
   });
 }
 
 export async function DELETE(_request: Request, { params }: Context) {
-  const guard = await requireAdmin();
+  const guard = await requirePermission("roles:eliminar");
   if (!guard.ok) return guard.response!;
 
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: existing } = await supabase
     .from("roles")
-    .select("id")
+    .select("id, name")
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle();
 
   if (!existing) return notFound("Rol no encontrado");
+  if (isAdminRole(normalizeRoleName(existing.name))) {
+    return forbidden("El rol de administrador no se puede eliminar");
+  }
 
   const { error } = await supabase
     .from("roles")

@@ -1,20 +1,20 @@
 import { noContent, notFound, serverError } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
-import { createClient } from "@/lib/supabase/server"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 interface Context {
   params: Promise<{ id: string }>
 }
 
 export async function DELETE(_request: Request, { params }: Context) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("configuracion:editar")
   if (!guard.ok) return guard.response!
 
   const { id } = await params
   const cityId = Number(id)
   if (!Number.isInteger(cityId)) return notFound("Ciudad no encontrada")
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: existing } = await supabase
     .from("cities")

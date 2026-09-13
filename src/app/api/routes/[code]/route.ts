@@ -4,10 +4,9 @@ import {
   notFound,
   ok,
   serverError,
-  unauthorized,
 } from "@/lib/api-response"
-import { getSession } from "@/lib/server/auth"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import {
   mapRouteDetail,
@@ -21,8 +20,8 @@ interface RouteContext {
 
 export async function GET(_request: Request, { params }: RouteContext) {
   const { code } = await params
-  const session = await getSession()
-  if (!session) return unauthorized()
+  const guard = await requirePermission("rutas:ver")
+  if (!guard.ok) return guard.response!
 
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -39,7 +38,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
 
 export async function PATCH(request: Request, { params }: RouteContext) {
   const { code } = await params
-  const guard = await requireAdmin()
+  const guard = await requirePermission("rutas:cancelar")
   if (!guard.ok) return guard.response!
 
   let body: Record<string, unknown>
@@ -54,7 +53,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     return badRequest("Solo se puede cancelar la ruta")
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data: route } = await supabase
     .from("routes")
     .select("id")
@@ -78,10 +77,10 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
   const { code } = await params
-  const guard = await requireAdmin()
+  const guard = await requirePermission("rutas:eliminar")
   if (!guard.ok) return guard.response!
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data: route } = await supabase
     .from("routes")
     .select("id")

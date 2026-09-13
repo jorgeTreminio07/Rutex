@@ -7,6 +7,7 @@ import { ChevronDownIcon } from "lucide-react"
 
 import { StoreLogo } from "@/components/layout/store-logo"
 import { NAV_CLIENTS, NAV_COMPRAS, NAV_CONFIG, NAV_GASTOS, NAV_HOME, NAV_REPORTS, NAV_ROUTES, NAV_SUPPLIERS, SIDEBAR_GROUPS, type NavItem } from "@/components/layout/navigation"
+import { usePermissions } from "@/features/auth/hooks/use-permissions"
 import { useStore } from "@/features/store/hooks/use-store"
 import { cn } from "@/lib/utils"
 
@@ -19,6 +20,9 @@ function SidebarLink({
   active: boolean
   collapsed: boolean
 }) {
+  const { canView } = usePermissions()
+  if (!canView(item.perm)) return null
+
   const Icon = item.icon
   return (
     <Link
@@ -47,6 +51,7 @@ export function Sidebar() {
   })
   const { data: store } = useStore()
   const brandName = store?.name ?? "Rutex"
+  const { canView } = usePermissions()
 
   const toggleGroup = (label: string) => {
     setOpenGroups((prev) => {
@@ -56,6 +61,11 @@ export function Sidebar() {
       return next
     })
   }
+
+  const visibleGroups = SIDEBAR_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => canView(item.perm)),
+  })).filter((group) => group.items.length > 0)
 
   return (
     <aside
@@ -85,7 +95,7 @@ export function Sidebar() {
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
         <SidebarLink item={NAV_HOME} active={pathname === "/"} collapsed={collapsed} />
 
-        {SIDEBAR_GROUPS.map((group) => {
+        {visibleGroups.map((group) => {
           const GroupIcon = group.icon
           return (
             <div key={group.label} className="flex w-full flex-col gap-1">

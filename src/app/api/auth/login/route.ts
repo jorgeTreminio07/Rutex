@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { badRequest, ok, unauthorized } from "@/lib/api-response";
+import {
+  getEmbeddedRoleName,
+  getEmbeddedRolePermissions,
+  rolePermissionsFor,
+} from "@/lib/server/auth";
 
 export async function POST(request: Request) {
   let body: { email?: string; password?: string };
@@ -24,9 +29,11 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, first_name, last_name, email, image_url")
+    .select("id, username, first_name, last_name, email, image_url, role_id, roles(name, permissions)")
     .eq("id", data.user.id)
     .maybeSingle();
+
+  const roleName = getEmbeddedRoleName(profile?.roles);
 
   return ok({
     id: data.user.id,
@@ -35,5 +42,7 @@ export async function POST(request: Request) {
     lastName: profile?.last_name ?? null,
     email: profile?.email ?? data.user.email ?? null,
     imageUrl: profile?.image_url ?? null,
+    roleId: profile?.role_id ?? null,
+    permissions: rolePermissionsFor(roleName, getEmbeddedRolePermissions(profile?.roles)),
   });
 }

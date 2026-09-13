@@ -1,6 +1,6 @@
 import { badRequest, forbidden, ok, serverError } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
-import { createClient } from "@/lib/supabase/server"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -8,7 +8,7 @@ interface RouteContext {
 
 export async function POST(request: Request, { params }: RouteContext) {
   const { id } = await params
-  const guard = await requireAdmin()
+  const guard = await requirePermission("pedidos:notificar")
   if (!guard.ok) return guard.response!
 
   let body: Record<string, unknown>
@@ -21,7 +21,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   const url = (body.url as string)?.trim()
   if (!url) return badRequest("La URL de la proforma es obligatoria")
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { error } = await supabase
     .from("orders")

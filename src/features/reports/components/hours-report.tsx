@@ -49,7 +49,7 @@ export function HoursReport() {
           Horario de compras
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          A qué horas del día se concentran las ventas (hora de Nicaragua).
+          A qué horas del día se concentran las ventas
         </p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

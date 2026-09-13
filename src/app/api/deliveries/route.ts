@@ -1,15 +1,14 @@
 import {
   ok,
   serverError,
-  unauthorized,
 } from "@/lib/api-response"
-import { getSession } from "@/lib/server/auth"
+import { requirePermission } from "@/lib/server/guards"
 import { createClient } from "@/lib/supabase/server"
 import { DELIVERY_SELECT, mapDelivery } from "@/app/api/deliveries/helpers"
 
 export async function GET() {
-  const session = await getSession()
-  if (!session) return unauthorized()
+  const guard = await requirePermission("almacen:ver")
+  if (!guard.ok) return guard.response!
 
   const supabase = await createClient()
   const { data, error } = await supabase

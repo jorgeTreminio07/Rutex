@@ -5,8 +5,8 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
-import { createClient } from "@/lib/supabase/server"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { mapRouteClient } from "@/app/api/routes/helpers"
 import type { RouteClientStatus, RouteStatus } from "@/types/interfaces/route.interface"
 
@@ -19,7 +19,7 @@ interface RouteContext {
 
 export async function PUT(request: Request, { params }: RouteContext) {
   const { code, clientId } = await params
-  const guard = await requireAdmin()
+  const guard = await requirePermission("rutas:actualizar")
   if (!guard.ok) return guard.response!
 
   let body: Record<string, unknown>
@@ -36,7 +36,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
   const observation = typeof body.observation === "string" ? body.observation.trim() : null
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: route } = await supabase
     .from("routes")

@@ -6,7 +6,8 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import {
   applyStockDeltas,
@@ -50,7 +51,7 @@ const MERMA_SELECT =
   "id, merma_number, motivo_id, items, total_value, observation, created_at, updated_at, merma_motivos!inner(name)"
 
 export async function GET() {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("mermas:ver")
   if (!guard.ok) return guard.response!
 
   const supabase = await createClient()
@@ -65,7 +66,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("mermas:crear")
   if (!guard.ok) return guard.response!
 
   let body: Record<string, unknown>
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
       ? body.observation.trim()
       : null
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: motivo } = await supabase
     .from("merma_motivos")

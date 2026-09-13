@@ -1,10 +1,10 @@
 import { ok, serverError } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
 import { createClient } from "@/lib/supabase/server"
 import type { MermaMotivoDto } from "@/types/interfaces/merma.interface"
 
 export async function GET() {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("mermas:ver")
   if (!guard.ok) return guard.response!
 
   const supabase = await createClient()

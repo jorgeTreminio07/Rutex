@@ -5,7 +5,8 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import {
   applyStockDeltas,
@@ -44,7 +45,7 @@ function mapInventory(row: InventoryRow): InventoryDto {
 const INVENTORY_SELECT = "id, inventory_number, items, total_value, created_at, updated_at"
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("inventarios:ver")
   if (!guard.ok) return guard.response!
 
   const { id } = await params
@@ -62,7 +63,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("inventarios:editar")
   if (!guard.ok) return guard.response!
 
   const { id } = await params
@@ -77,7 +78,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
   const items = parseInventoryItems(body.items, true)
   if (!items) return badRequest("El inventario debe incluir al menos un producto con cantidad mayor a 0")
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: existing } = await supabase
     .from("inventories")

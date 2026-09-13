@@ -8,6 +8,7 @@ import { ChevronDownIcon, XIcon } from "lucide-react"
 import { StoreLogo } from "@/components/layout/store-logo"
 import { NAV_CLIENTS, NAV_COMPRAS, NAV_CONFIG, NAV_GASTOS, NAV_HOME, NAV_REPORTS, NAV_ROUTES, NAV_SUPPLIERS, SIDEBAR_GROUPS, type NavItem } from "@/components/layout/navigation"
 import { useStore } from "@/features/store/hooks/use-store"
+import { usePermissions } from "@/features/auth/hooks/use-permissions"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -25,6 +26,9 @@ function MobileNavLink({
   active: boolean
   onNavigate: () => void
 }) {
+  const { canView } = usePermissions()
+  if (!canView(item.perm)) return null
+
   const Icon = item.icon
   return (
     <Link

@@ -5,7 +5,8 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import { STATUSES } from "@/lib/statuses"
 import type { SupplierDto } from "@/types/interfaces/supplier.interface"
@@ -57,7 +58,7 @@ function validateEmail(value: string | null): string | null {
 }
 
 export async function GET() {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("proveedores:ver")
   if (!guard.ok) return guard.response!
 
   const supabase = await createClient()
@@ -73,7 +74,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("proveedores:crear")
   if (!guard.ok) return guard.response!
 
   let body: Record<string, unknown>
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
   const emailError = validateEmail(email)
   if (emailError) return badRequest(emailError)
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data, error } = await supabase
     .from("suppliers")
     .insert({

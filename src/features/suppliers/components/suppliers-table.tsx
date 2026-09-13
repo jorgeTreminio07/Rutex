@@ -2,7 +2,6 @@
 
 import { CheckCircle2Icon, PencilIcon, Trash2Icon } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Table,

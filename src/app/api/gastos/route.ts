@@ -5,7 +5,8 @@ import {
   ok,
   serverError,
 } from "@/lib/api-response"
-import { requireAdmin } from "@/lib/server/guards"
+import { requirePermission } from "@/lib/server/guards"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import { getAssetUrl } from "@/lib/assets"
 import type { GastoDto } from "@/types/interfaces/gasto.interface"
@@ -41,7 +42,7 @@ function optionalText(value: unknown): string | null {
 }
 
 export async function GET() {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("gastos:ver")
   if (!guard.ok) return guard.response!
 
   const supabase = await createClient()
@@ -56,7 +57,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireAdmin()
+  const guard = await requirePermission("gastos:crear")
   if (!guard.ok) return guard.response!
 
   let body: Record<string, unknown>
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
     return badRequest("El monto debe ser un número mayor o igual a 0")
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data, error } = await supabase
     .from("gastos")
     .insert({

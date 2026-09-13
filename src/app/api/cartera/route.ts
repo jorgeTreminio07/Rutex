@@ -1,5 +1,5 @@
-import { ok, serverError, unauthorized } from "@/lib/api-response"
-import { getSession } from "@/lib/server/auth"
+import { ok, serverError } from "@/lib/api-response"
+import { requirePermission } from "@/lib/server/guards"
 import { createClient } from "@/lib/supabase/server"
 
 interface PagoRow {
@@ -36,8 +36,8 @@ interface RegistroRow {
 }
 
 export async function GET() {
-  const session = await getSession()
-  if (!session) return unauthorized()
+  const guard = await requirePermission("cartera:ver")
+  if (!guard.ok) return guard.response!
 
   const supabase = await createClient()
 
