@@ -29,7 +29,7 @@ export function CatalogView() {
   const router = useRouter()
   const [category, setCategory] = useState<string | null>(null)
   const [search, setSearch] = useState("")
-  const [showAvailable, setShowAvailable] = useState(true)
+  const [showAvailable, setShowAvailable] = useState(false)
   const [selected, setSelected] = useState<ProductDto | null>(null)
 
   const products = useMemo(() => data?.products ?? [], [data])
