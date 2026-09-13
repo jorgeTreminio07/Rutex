@@ -4,6 +4,7 @@ import {
   created,
   serverError,
 } from "@/lib/api-response";
+import { decryptBankAccountNumber, encryptBankAccountNumber } from "@/lib/encrypt";
 import { requirePermission } from "@/lib/server/guards";
 import { uploadToStorage } from "@/lib/server/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
       store_profile_id: STORE_ROW_ID,
       bank_name: bankName,
       currency,
-      account_number: accountNumber,
+      account_number: encryptBankAccountNumber(accountNumber),
       account_holder: accountHolder,
       qr_url: qrUrl,
     })
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
     bankName: data.bank_name,
     currency,
     accountHolder: data.account_holder ?? "",
-    lastFourDigits: data.account_number.slice(-4),
+    lastFourDigits: decryptBankAccountNumber(data.account_number).slice(-4),
     qrUrl: data.qr_url,
   });
 }

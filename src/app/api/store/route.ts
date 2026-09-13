@@ -8,6 +8,7 @@ import { requirePermission } from "@/lib/server/guards";
 import { removeFromStorage, uploadToStorage } from "@/lib/server/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { decryptBankAccountNumber } from "@/lib/encrypt";
 
 const STORE_ROW_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -24,8 +25,8 @@ function mapBankAccount(b: {
     bankName: b.bank_name,
     currency: b.currency ?? "C$",
     accountHolder: b.account_holder ?? "",
-    accountNumber: b.account_number,
-    lastFourDigits: b.account_number.slice(-4) || "••••",
+    accountNumber: decryptBankAccountNumber(b.account_number),
+    lastFourDigits: decryptBankAccountNumber(b.account_number).slice(-4) || "••••",
     qrUrl: b.qr_url,
   };
 }

@@ -1,4 +1,5 @@
 import { ok, serverError } from "@/lib/api-response"
+import { decryptBankAccountNumber } from "@/lib/encrypt"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 const STORE_ROW_ID = "00000000-0000-0000-0000-000000000001"
@@ -85,7 +86,7 @@ export async function GET() {
     },
     bankAccounts: (bankAccounts ?? []).map((b) => ({
       bankName: b.bank_name,
-      accountNumber: b.account_number,
+      accountNumber: decryptBankAccountNumber(b.account_number),
       accountHolder: b.account_holder,
       currency: b.currency ?? "C$",
     })),

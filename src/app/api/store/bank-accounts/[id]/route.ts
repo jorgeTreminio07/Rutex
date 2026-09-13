@@ -8,6 +8,7 @@ import {
 import { requirePermission } from "@/lib/server/guards";
 import { removeFromStorage, uploadToStorage } from "@/lib/server/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { decryptBankAccountNumber, encryptBankAccountNumber } from "@/lib/encrypt";
 
 interface Context {
   params: Promise<{ id: string }>;
@@ -57,7 +58,7 @@ export async function PUT(request: Request, { params }: Context) {
     .update({
       bank_name: bankName,
       currency,
-      account_number: accountNumber || existing.account_number,
+      account_number: accountNumber ? encryptBankAccountNumber(accountNumber) : existing.account_number,
       account_holder: accountHolder,
       qr_url: qrUrl,
     })
@@ -72,7 +73,7 @@ export async function PUT(request: Request, { params }: Context) {
     bankName: data.bank_name,
     currency,
     accountHolder: data.account_holder ?? "",
-    lastFourDigits: data.account_number.slice(-4),
+    lastFourDigits: decryptBankAccountNumber(data.account_number).slice(-4),
     qrUrl: data.qr_url,
   });
 }

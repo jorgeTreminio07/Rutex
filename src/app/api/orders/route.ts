@@ -10,6 +10,7 @@ import { orderHasStock, type StockMap } from "@/features/orders/lib/stock"
 import { generateProformaPdf } from "@/features/catalog/lib/proforma"
 import type { BankAccountInfo } from "@/features/catalog/lib/whatsapp"
 import { getAssetUrl, sanitizeStorageKeySegment } from "@/lib/assets"
+import { decryptBankAccountNumber } from "@/lib/encrypt"
 import { fetchAllRows, isPaging, paginated, parsePagination } from "@/app/api/pagination"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
@@ -59,7 +60,7 @@ async function generateAndStoreProforma(
 
     const bankAccounts: BankAccountInfo[] = (bankRows ?? []).map((a) => ({
       bankName: a.bank_name,
-      accountNumber: a.account_number,
+      accountNumber: decryptBankAccountNumber(a.account_number),
       accountHolder: a.account_holder,
       currency: a.currency ?? "C$",
     }))
