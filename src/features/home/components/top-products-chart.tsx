@@ -11,6 +11,7 @@ import {
 } from "recharts"
 
 import { AXIS_TICK, CHART_COLORS, compactNumber } from "@/features/home/components/chart-theme"
+import { useIsTouchDevice } from "@/features/home/hooks/use-is-touch-device"
 import { fmtMoney } from "@/features/reports/lib/format"
 import type { DashboardTopProductoRow } from "@/types/interfaces/report.interface"
 
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export function TopProductsChart({ data }: Props) {
+  const isTouch = useIsTouchDevice()
   const rows = data.map((row) => ({ ...row, name: row.producto }))
   const height = Math.max(180, rows.length * 34 + 40)
 
@@ -42,6 +44,7 @@ export function TopProductsChart({ data }: Props) {
           axisLine={false}
         />
         <Tooltip
+          trigger={isTouch ? "click" : "hover"}
           formatter={(value, name) =>
             String(name) === "ventas" ? fmtMoney(Number(value ?? 0)) : Number(value ?? 0)
           }

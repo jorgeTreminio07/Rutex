@@ -11,6 +11,7 @@ import {
 } from "recharts"
 
 import { AXIS_TICK, CHART_COLORS, compactNumber } from "@/features/home/components/chart-theme"
+import { useIsTouchDevice } from "@/features/home/hooks/use-is-touch-device"
 import { fmtMoney } from "@/features/reports/lib/format"
 import type { DashboardMermaMotivoRow } from "@/types/interfaces/report.interface"
 
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export function MermasMotiveChart({ data }: Props) {
+  const isTouch = useIsTouchDevice()
   if (data.length === 0) {
     return (
       <div className="flex h-full min-h-40 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
@@ -50,6 +52,7 @@ export function MermasMotiveChart({ data }: Props) {
           axisLine={false}
         />
         <Tooltip
+          trigger={isTouch ? "click" : "hover"}
           formatter={(value) => fmtMoney(Number(value ?? 0))}
           cursor={{ fill: CHART_COLORS.muted, opacity: 0.4 }}
           contentStyle={{

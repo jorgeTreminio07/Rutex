@@ -11,6 +11,7 @@ import {
 } from "recharts"
 
 import { AXIS_TICK, CHART_COLORS } from "@/features/home/components/chart-theme"
+import { useIsTouchDevice } from "@/features/home/hooks/use-is-touch-device"
 import type { DashboardHorarioRow } from "@/types/interfaces/report.interface"
 
 interface Props {
@@ -22,6 +23,7 @@ function hourLabel(hour: number): string {
 }
 
 export function HoursChart({ data }: Props) {
+  const isTouch = useIsTouchDevice()
   const rows = data.map((row) => ({ ...row, label: hourLabel(row.hora) }))
   const activeHours = rows.filter((row) => row.pedidos > 0)
   const shown = activeHours.length > 1 ? activeHours : rows
@@ -33,6 +35,7 @@ export function HoursChart({ data }: Props) {
         <XAxis dataKey="label" tick={AXIS_TICK} tickLine={false} axisLine={false} minTickGap={12} />
         <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
         <Tooltip
+          trigger={isTouch ? "click" : "hover"}
           formatter={(value, name) => [Number(value ?? 0), String(name)]}
           labelFormatter={(label) => String(label)}
           contentStyle={{

@@ -12,6 +12,7 @@ import {
 } from "recharts"
 
 import { AXIS_TICK, CHART_COLORS, compactNumber } from "@/features/home/components/chart-theme"
+import { useIsTouchDevice } from "@/features/home/hooks/use-is-touch-device"
 import { fmtMoney } from "@/features/reports/lib/format"
 import type { DashboardCashflowRow } from "@/types/interfaces/report.interface"
 
@@ -22,6 +23,7 @@ interface Props {
 const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
 
 export function CashflowChart({ data }: Props) {
+  const isTouch = useIsTouchDevice()
   const rows = data.map((row) => ({
     ...row,
     label: MONTH_LABELS[Number(row.mes.slice(5, 7)) - 1] ?? row.mes,
@@ -40,6 +42,7 @@ export function CashflowChart({ data }: Props) {
           tickFormatter={compactNumber}
         />
         <Tooltip
+          trigger={isTouch ? "click" : "hover"}
           formatter={(value, name) => [fmtMoney(Number(value ?? 0)), String(name)]}
           contentStyle={{
             borderRadius: 12,

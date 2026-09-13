@@ -12,6 +12,7 @@ import {
 } from "recharts"
 
 import { AXIS_TICK, CHART_COLORS, compactNumber } from "@/features/home/components/chart-theme"
+import { useIsTouchDevice } from "@/features/home/hooks/use-is-touch-device"
 import { fmtMoney } from "@/features/reports/lib/format"
 import type { DashboardVentasDiaRow } from "@/types/interfaces/report.interface"
 
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function DailySalesChart({ data }: Props) {
+  const isTouch = useIsTouchDevice()
   const rows = data.map((row) => ({
     ...row,
     label: `${row.fecha.slice(8)}/${row.fecha.slice(5, 7)}`,
@@ -45,6 +47,7 @@ export function DailySalesChart({ data }: Props) {
           tickFormatter={compactNumber}
         />
         <Tooltip
+          trigger={isTouch ? "click" : "hover"}
           formatter={(value) => fmtMoney(Number(value ?? 0))}
           labelFormatter={(label) => `Día ${String(label)}`}
           contentStyle={{
