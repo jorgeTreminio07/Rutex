@@ -6,7 +6,7 @@ import { useState } from "react"
 import { ChevronDownIcon } from "lucide-react"
 
 import { StoreLogo } from "@/components/layout/store-logo"
-import { NAV_CLIENTS, NAV_COMPRAS, NAV_CONFIG, NAV_GASTOS, NAV_HOME, NAV_ROUTES, NAV_SUPPLIERS, SIDEBAR_GROUPS, type NavItem } from "@/components/layout/navigation"
+import { NAV_CLIENTS, NAV_COMPRAS, NAV_CONFIG, NAV_GASTOS, NAV_HOME, NAV_REPORTS, NAV_ROUTES, NAV_SUPPLIERS, SIDEBAR_GROUPS, type NavItem } from "@/components/layout/navigation"
 import { useStore } from "@/features/store/hooks/use-store"
 import { cn } from "@/lib/utils"
 
@@ -153,6 +153,12 @@ export function Sidebar() {
         <SidebarLink
           item={NAV_COMPRAS}
           active={pathname === "/compras"}
+          collapsed={collapsed}
+        />
+
+        <SidebarLink
+          item={NAV_REPORTS}
+          active={pathname === "/reportes"}
           collapsed={collapsed}
         />
 

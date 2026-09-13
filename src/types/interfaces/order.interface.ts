@@ -3,6 +3,7 @@ export interface OrderItem {
   productName: string
   price: number
   quantity: number
+  purchasePrice?: number
 }
 
 export type OrderStatus = "En proceso" | "Aprobado" | "Rechazado"

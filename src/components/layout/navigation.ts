@@ -1,4 +1,5 @@
 import {
+  BarChart3Icon,
   BoxesIcon,
   ClipboardListIcon,
   ContactRoundIcon,
@@ -43,6 +44,7 @@ export const NAV_CLIENTS: NavItem     = { label: "Clientes",     href: "/cliente
 export const NAV_ROUTES: NavItem      = { label: "Rutas",        href: "/rutas",        icon: MapIcon }
 export const NAV_GASTOS: NavItem      = { label: "Gastos",       href: "/gastos",       icon: ReceiptTextIcon }
 export const NAV_COMPRAS: NavItem     = { label: "Compras",      href: "/compras",      icon: PackageCheckIcon }
+export const NAV_REPORTS: NavItem     = { label: "Reportes",      href: "/reportes",     icon: BarChart3Icon }
 export const NAV_USERS: NavItem = { label: "Usuarios", href: "/usuarios", icon: UsersIcon }
 export const NAV_ROLES: NavItem = { label: "Roles", href: "/usuarios/roles", icon: ShieldCheckIcon }
 export const NAV_CONFIG: NavItem = { label: "Configuración", href: "/configuracion", icon: SettingsIcon }

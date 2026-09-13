@@ -201,6 +201,20 @@ export async function POST(request: Request) {
 
   const supabase = createAdminClient()
 
+  // Snapshot del precio de compra vigente de cada producto (reporte de ganancias).
+  const snapshotProductIds = [...new Set(items.map((item) => item.productId).filter(Boolean))] as string[]
+  const { data: snapshotProducts } = await supabase
+    .from("products")
+    .select("id, purchase_price")
+    .in("id", snapshotProductIds)
+  const purchasePriceById = new Map(
+    (snapshotProducts ?? []).map((p) => [p.id, Number(p.purchase_price ?? 0) || 0]),
+  )
+  const itemsWithSnapshot = items.map((item) => ({
+    ...item,
+    purchasePrice: purchasePriceById.get(item.productId) ?? 0,
+  }))
+
   const { data: nextNumber, error: seqError } = await supabase.rpc("next_order_number")
   if (seqError || typeof nextNumber !== "string") {
     if (seqError?.code === "42501") return forbidden()
@@ -214,7 +228,7 @@ export async function POST(request: Request) {
       order_number: orderNumber,
       customer_name: customerName,
       customer_phone: (body.customerPhone as string)?.trim() || null,
-      items,
+      items: itemsWithSnapshot,
       total,
       status_id: 5,
       payment_type: (body.paymentType as string) || "contado",

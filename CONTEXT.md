@@ -148,6 +148,14 @@
 24. `026-mermas.sql` (catálogo `merma_motivos` sembrado + tabla `mermas` con contador/RPC `next_merma_number` + RLS; **incluye política DELETE**)
 25. `027-gastos.sql` (tabla `gastos` con RLS: lectura autenticada / escritura y borrado admin)
 26. `028-compras.sql` (tabla `compras` con RLS: lectura autenticada / escritura y borrado admin)
+27. `029-orders-purchase-price.sql` (backfill del snapshot `purchasePrice` en los `items` jsonb de pedidos existentes; **idempotente** — los pedidos nuevos lo capturan server-side en `POST /api/orders`)
+
+## Reportes
+- Sección **Reportes** (ruta `/reportes`, nav `NAV_REPORTS` en sidebar/menú móvil **debajo de Compras**). La vista muestra pills de ideas de reporte; el **único disponible (primero)** es **Ganancias por día** y el resto aparece como "pronto".
+- **Ganancias por día** (`ProfitReport` en `src/features/reports/components/`): `GET /api/reports/profit?from&to` (admin) devuelve una fila por producto de cada pedido **aprobado (status 6, no borrado)** en el rango (día solo = `from===to`, hora Nicaragua UTC-6). Columnas: `fecha`, `orderNumber`, `productName`, `cantidad`, `precioCompra` (snapshot al crear el pedido), `precioVenta` (precio cobrado) y `ganancia = (precioVenta − precioCompra) × cantidad` + `summary` (pedidos, unidades, ventas, costo, ganancia). DTOs en `src/types/interfaces/report.interface.ts`; hooks `reportsKeys.profit`/`useProfitReport` (con `keepPreviousData`).
+- **Snapshot de compra**: cada item de pedido guarda `purchasePrice` (precio de compra vigente al crear). `POST /api/orders` lo captura server-side (busca `purchase_price` de los productos e inserta los items enriquecidos); los pedidos legacy lo obtienen del patch 029.
+- **Exportar Excel**: botón en el reporte genera un `.xlsx` real (no CSV) client-side con `exceljs` (`src/features/reports/lib/excel.ts`, import dinámico para no inflar el bundle): hoja "Ganancias" con las 7 columnas, fila TOTAL, autofiltro y formato de moneda. DevDependency es dependencia normal `exceljs`.
+- La vista del reporte permite rango Desde/Hasta (DatePicker) + accesos rápidos **Hoy / 7 días / Este mes**, tarjetas de resumen (Pedidos, Ventas, Costo, Ganancia destacada), tabla desktop y lista móvil con paginación.
 
 ## Despliegue
 - **Producción**: Vercel con **integración nativa de GitHub** (repo `jorgeTreminio07/Rutex`, rama `master`): cada push a master se despliega solo. **NO reintroducir** el workflow de GitHub Actions (`.github/workflows/deploy.yml` se eliminó porque el doble deploy rompió producción con `MIDDLEWARE_INVOCATION_FAILED`). Los secrets `VERCEL_*` de GitHub ya no se usan.
