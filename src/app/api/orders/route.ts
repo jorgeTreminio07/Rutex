@@ -116,7 +116,7 @@ export async function GET(request: Request) {
   const supabase = await createClient()
   let query = supabase
     .from("orders")
-    .select("id, order_number, customer_name, customer_phone, items, total, status_id, payment_type, notes, proforma_url, created_at, order_statuses!inner(name)")
+    .select("id, order_number, customer_name, customer_phone, customer_address, items, total, status_id, payment_type, notes, proforma_url, created_at, order_statuses!inner(name)")
     .is("deleted_at", null)
 
   if (statusFilter && statusFilter !== "todos") {
@@ -169,6 +169,7 @@ export async function GET(request: Request) {
         orderNumber: o.order_number,
         customerName: o.customer_name,
         customerPhone: o.customer_phone,
+        customerAddress: o.customer_address ?? null,
         items,
         total: Number(o.total),
         statusId: o.status_id,
@@ -192,6 +193,7 @@ export async function POST(request: Request) {
   }
 
   const customerName = (body.customerName as string)?.trim()
+  const customerAddress = (body.customerAddress as string)?.trim() || null
   const items = body.items as Array<{ productId: string; productName: string; price: number; quantity: number }>
 
   if (!customerName) return badRequest("El nombre del cliente es obligatorio")
@@ -228,13 +230,14 @@ export async function POST(request: Request) {
       order_number: orderNumber,
       customer_name: customerName,
       customer_phone: (body.customerPhone as string)?.trim() || null,
+      customer_address: customerAddress,
       items: itemsWithSnapshot,
       total,
       status_id: 5,
       payment_type: (body.paymentType as string) || "contado",
       notes: (body.notes as string)?.trim() || null,
     })
-    .select("id, order_number, customer_name, customer_phone, items, total, status_id, payment_type, notes, created_at")
+    .select("id, order_number, customer_name, customer_phone, customer_address, items, total, status_id, payment_type, notes, created_at")
     .single()
 
   if (error) {
@@ -270,6 +273,7 @@ export async function POST(request: Request) {
     orderNumber: data.order_number,
     customerName: data.customer_name,
     customerPhone: data.customer_phone,
+    customerAddress: data.customer_address ?? null,
     items: Array.isArray(data.items) ? data.items : [],
     total: Number(data.total),
     statusId: data.status_id,

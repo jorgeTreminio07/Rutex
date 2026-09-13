@@ -119,6 +119,7 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
       const order = await createOrder.mutateAsync({
         customerName: client.fullName,
         customerPhone: client.phone,
+        customerAddress: client.address,
         items: orderItems,
         total,
         paymentType,

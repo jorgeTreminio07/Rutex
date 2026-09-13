@@ -14,6 +14,7 @@ export interface OrderDto {
   orderNumber: string | null
   customerName: string
   customerPhone: string | null
+  customerAddress: string | null
   items: OrderItem[]
   total: number
   statusId: number
@@ -28,6 +29,7 @@ export interface OrderDto {
 export interface CreateOrderPayload {
   customerName: string
   customerPhone?: string
+  customerAddress?: string | null
   items: OrderItem[]
   total: number
   paymentType?: PaymentType

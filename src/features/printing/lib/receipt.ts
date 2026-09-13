@@ -141,6 +141,9 @@ export function buildReceiptBlocks(
     pushWrapped(blocks, `Pedido: ${order.orderNumber}`, chars)
   }
   pushWrapped(blocks, `Cliente: ${order.customerName}`, chars)
+  if (order.customerAddress?.trim()) {
+    pushWrapped(blocks, `Dirección: ${order.customerAddress.trim()}`, chars)
+  }
   pushWrapped(blocks, `Vendedor: ${store.ownerName ?? "—"}`, chars)
   if (store.phone) {
     pushWrapped(blocks, `Tel: ${store.phone}`, chars)
