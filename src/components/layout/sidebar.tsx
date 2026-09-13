@@ -82,7 +82,7 @@ export function Sidebar() {
         </span>
       </button>
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-hidden p-3">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
         <SidebarLink item={NAV_HOME} active={pathname === "/"} collapsed={collapsed} />
 
         {SIDEBAR_GROUPS.map((group) => {
