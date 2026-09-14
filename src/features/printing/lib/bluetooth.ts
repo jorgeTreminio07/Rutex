@@ -7,9 +7,51 @@ export function isWebBluetoothSupported(): boolean {
 }
 
 export interface ReceiptPrinter {
+  id: string
   name: string
   write: (data: Uint8Array) => Promise<void>
   disconnect: () => void
+}
+
+export interface SavedPrinter {
+  id: string
+  name: string
+}
+
+// La impresora elegida se guarda para reconectarla en silencio en la próxima
+// impresión. Chrome persiste el permiso por origen: requestDevice() con
+// filters [{ id }] devuelve la impresora sin abrir el selector cuando el
+// permiso ya está concedido; solo si ya no la encuentra (apagada, fuera de
+// alcance o permiso revocado) hay que pedirla otra vez por el selector.
+const SAVED_PRINTER_KEY = "rutex-receipt-printer"
+
+export function saveReceiptPrinter(id: string, name: string): void {
+  try {
+    localStorage.setItem(SAVED_PRINTER_KEY, JSON.stringify({ id, name }))
+  } catch {
+    // sin storage disponible: ignorar
+  }
+}
+
+export function getSavedReceiptPrinter(): SavedPrinter | null {
+  try {
+    const raw = localStorage.getItem(SAVED_PRINTER_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<SavedPrinter>
+    return parsed && typeof parsed.id === "string" && parsed.id
+      ? { id: parsed.id, name: parsed.name ?? "Impresora Bluetooth" }
+      : null
+  } catch {
+    return null
+  }
+}
+
+export function clearSavedReceiptPrinter(): void {
+  try {
+    localStorage.removeItem(SAVED_PRINTER_KEY)
+  } catch {
+    // ignorar
+  }
 }
 
 function describeRequestError(error: unknown): string {
@@ -65,6 +107,37 @@ export async function requestReceiptPrinter(): Promise<ReceiptPrinter> {
     throw new Error(describeRequestError(error))
   }
 
+  return connectDevice(device)
+}
+
+// Reintenta conectar a la impresora guardada (getId del último emparejado).
+// Como Chrome ya tiene el permiso concedido al origin para ese id, requestDevice
+// con filters [{ id }] resuelve directo sin abrir el selector. Solo falla si la
+// impresora está apagada, fuera de alcance o se revocó el permiso — en ese caso
+// quien la llama decide abrir el selector otra vez.
+export async function reconnectReceiptPrinter(id: string): Promise<ReceiptPrinter> {
+  if (!isWebBluetoothSupported()) {
+    throw new Error(
+      "Este navegador no soporta Web Bluetooth. Usa Chrome o Edge (escritorio o móvil).",
+    )
+  }
+
+  let device: BluetoothDevice
+  try {
+    // El filtro por `id` es una extensión de Chrome para reconectar a
+    // dispositivos ya autorizados (no está en el tipo BluetoothLEScanFilter).
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ id }] as unknown as BluetoothLEScanFilter[],
+      optionalServices: RECEIPT_SERVICES,
+    })
+  } catch (error) {
+    throw new Error(describeRequestError(error))
+  }
+
+  return connectDevice(device)
+}
+
+async function connectDevice(device: BluetoothDevice): Promise<ReceiptPrinter> {
   if (!device.gatt) {
     throw new Error("El dispositivo no expone Bluetooth BLE.")
   }
@@ -82,6 +155,7 @@ export async function requestReceiptPrinter(): Promise<ReceiptPrinter> {
   }
 
   return {
+    id: device.id,
     name: device.name || "Impresora Bluetooth",
     write: (data) => writeChunked(characteristic, data),
     disconnect: () => {

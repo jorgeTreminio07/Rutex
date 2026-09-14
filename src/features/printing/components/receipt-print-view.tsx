@@ -6,9 +6,14 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
+  clearSavedReceiptPrinter,
+  getSavedReceiptPrinter,
   isWebBluetoothSupported,
+  reconnectReceiptPrinter,
   requestReceiptPrinter,
+  saveReceiptPrinter,
   type ReceiptPrinter,
+  type SavedPrinter,
 } from "@/features/printing/lib/bluetooth"
 import { buildReceiptBlocks, encodeReceiptEscPos, type ReceiptPaperSize } from "@/features/printing/lib/receipt"
 import type { OrderDto } from "@/types/interfaces/order.interface"
@@ -27,6 +32,7 @@ export function ReceiptPrintView({ store, order, size }: ReceiptPrintViewProps) 
     [store, order, size],
   )
   const [printer, setPrinter] = useState<ReceiptPrinter | null>(null)
+  const [remembered, setRemembered] = useState<SavedPrinter | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
   const [printing, setPrinting] = useState(false)
@@ -48,10 +54,15 @@ export function ReceiptPrintView({ store, order, size }: ReceiptPrintViewProps) 
 
   useEffect(() => {
     let cancelled = false
-    const getAvailability = navigator.bluetooth?.getAvailability
+    // `navigator.bluetooth` suele estar tipado vía @types/web-bluetooth, pero se
+    // declara aquí a mano para que el archivo compile aunque la global no se
+    // esté resolviendo en el editor.
+    type WithBluetooth = { getAvailability?: () => Promise<boolean> }
+    const bluetooth = (navigator as Navigator & { bluetooth?: WithBluetooth }).bluetooth
+    const getAvailability = bluetooth?.getAvailability
     if (typeof getAvailability === "function") {
       getAvailability
-        .call(navigator.bluetooth)
+        .call(bluetooth)
         .then((available) => {
           if (!cancelled) setBluetoothOff(!available)
         })
@@ -62,12 +73,44 @@ export function ReceiptPrintView({ store, order, size }: ReceiptPrintViewProps) 
     }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+    const saved = getSavedReceiptPrinter()
+    if (saved) {
+      Promise.resolve(saved).then((s) => {
+        if (!cancelled) setRemembered(s)
+      })
+    }
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Conecta a la impresora guardada sin abrir el selector (Chrome resuelve
+  // directo por id si el permiso ya está concedido); si ya no la encuentra,
+  // abre el selector BLE para volver a emparejarla.
+  const pickPrinter = async (): Promise<ReceiptPrinter> => {
+    if (remembered) {
+      try {
+        return await reconnectReceiptPrinter(remembered.id)
+      } catch {
+        // no la encuentra (apagada / fuera de alcance / permiso revocado): pedirla de nuevo
+      }
+    }
+    return requestReceiptPrinter()
+  }
+
+  const rememberPrinter = (next: ReceiptPrinter) => {
+    setPrinter(next)
+    setRemembered({ id: next.id, name: next.name })
+    saveReceiptPrinter(next.id, next.name)
+  }
+
   const handleConnect = async () => {
     setConnecting(true)
     setError(null)
     try {
-      const next = await requestReceiptPrinter()
-      setPrinter(next)
+      rememberPrinter(await pickPrinter())
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo conectar la impresora.")
     } finally {
@@ -75,15 +118,40 @@ export function ReceiptPrintView({ store, order, size }: ReceiptPrintViewProps) 
     }
   }
 
+  const handleChangePrinter = async () => {
+    setConnecting(true)
+    setError(null)
+    try {
+      clearSavedReceiptPrinter()
+      rememberPrinter(await requestReceiptPrinter())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo cambiar la impresora.")
+    } finally {
+      setConnecting(false)
+    }
+  }
+
   const handlePrint = async () => {
-    if (!printer) return
+    if (!printer && !remembered) return
     setPrinting(true)
     setError(null)
     try {
-      await printer.write(encodeReceiptEscPos(store ?? {}, order, size))
+      let target = printer
+      if (!target) {
+        target = await pickPrinter()
+        rememberPrinter(target)
+      }
+      try {
+        await target.write(encodeReceiptEscPos(store ?? {}, order, size))
+      } catch {
+        // la conexión pudo caerse: reconectar a la guardada y reintentar una vez
+        target = await pickPrinter()
+        rememberPrinter(target)
+        await target.write(encodeReceiptEscPos(store ?? {}, order, size))
+      }
       toast.success("Recibo enviado a la impresora")
     } catch {
-      setError("No se pudo imprimir. Verifica que la impresora siga conectada.")
+      setError("No se pudo imprimir. Verifica que la impresora siga encendida y cerca.")
     } finally {
       setPrinting(false)
     }
@@ -130,10 +198,22 @@ export function ReceiptPrintView({ store, order, size }: ReceiptPrintViewProps) 
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm font-semibold">Impresora</span>
           {printer ? (
-            <span className="inline-flex max-w-[60%] items-center gap-1.5 truncate rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-              <span className="size-1.5 shrink-0 rounded-full bg-current" />
-              {printer.name}
-            </span>
+            <div className="flex min-w-0 items-center justify-end gap-1.5">
+              <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                <span className="size-1.5 shrink-0 rounded-full bg-current" />
+                <span className="truncate">{printer.name}</span>
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="shrink-0 text-xs"
+                onClick={handleChangePrinter}
+                disabled={connecting}
+              >
+                Cambiar
+              </Button>
+            </div>
           ) : (
             <Button
               type="button"
@@ -163,14 +243,22 @@ export function ReceiptPrintView({ store, order, size }: ReceiptPrintViewProps) 
           </p>
         )}
 
+        {!printer && remembered && (
+          <p className="text-xs text-muted-foreground">
+            Impresora guardada: <span className="font-medium">{remembered.name}</span>. Al pulsar{" "}
+            <span className="font-medium">Imprimir recibo</span> se reconectará sola; solo pedirá
+            volver a sincronizarla si ya no la encuentra.
+          </p>
+        )}
+
         {error && <p className="text-xs text-destructive">{error}</p>}
 
-        {printer && (
+        {(printer || remembered) && (
           <Button
             type="button"
             className="gap-2"
             onClick={handlePrint}
-            disabled={printing}
+            disabled={printing || connecting}
           >
             {printing ? (
               <>
