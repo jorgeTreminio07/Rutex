@@ -35,7 +35,7 @@ import {
   type BankAccountInfo,
 } from "@/features/catalog/lib/whatsapp"
 import { useClients } from "@/features/clients/hooks/use-clients"
-import { useCreateOrder } from "@/features/orders/hooks/use-orders"
+import { useCreateOrder, useUpdateOrder } from "@/features/orders/hooks/use-orders"
 import { useProducts } from "@/features/products/hooks/use-products"
 import { useStore } from "@/features/store/hooks/use-store"
 import { usePaged } from "@/lib/use-paged"
@@ -50,23 +50,36 @@ const PAGE_SIZE = 10
 interface OrderFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  order?: OrderDto | null
 }
 
-export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
+export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogProps) {
+  const isEditing = !!order
   const createOrder = useCreateOrder()
+  const updateOrder = useUpdateOrder()
   const { data: clients = [] } = useClients()
   const { data: products = [] } = useProducts()
   const { data: store } = useStore()
 
   const [client, setClient] = useState<ClientDto | null>(null)
-  const [clientQuery, setClientQuery] = useState("")
+  const [clientQuery, setClientQuery] = useState(() => order?.customerName ?? "")
   const [clientOpen, setClientOpen] = useState(false)
-  const [paymentType, setPaymentType] = useState<PaymentType>("contado")
+  const [paymentType, setPaymentType] = useState<PaymentType>(() => order?.paymentType ?? "contado")
   const [search, setSearch] = useState("")
   const [scannerOpen, setScannerOpen] = useState(false)
-  const [quantities, setQuantities] = useState<Record<string, number>>({})
+  const [quantities, setQuantities] = useState<Record<string, number>>(() =>
+    (order?.items ?? []).reduce(
+      (acc, item) => ({ ...acc, [item.productId]: item.quantity }),
+      {} as Record<string, number>,
+    ),
+  )
   const [qtyInputs, setQtyInputs] = useState<Record<string, string>>({})
-  const [priceInputs, setPriceInputs] = useState<Record<string, string>>({})
+  const [priceInputs, setPriceInputs] = useState<Record<string, string>>(() =>
+    (order?.items ?? []).reduce(
+      (acc, item) => ({ ...acc, [item.productId]: item.price.toFixed(2) }),
+      {} as Record<string, string>,
+    ),
+  )
   const [createdOrder, setCreatedOrder] = useState<OrderDto | null>(null)
 
   const bankAccounts: BankAccountInfo[] = (store?.bankAccounts ?? []).map((a) => ({
@@ -189,8 +202,10 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
   }
 
   const handleSubmit = async () => {
-    if (!client || selectedProducts.length === 0) return
+    if (selectedProducts.length === 0) return
+    if (!isEditing && !client) return
 
+    const editingOrder = order ?? null
     const orderItems: OrderItem[] = selectedProducts.map((p) => ({
       productId: p.id,
       productName: p.name,
@@ -199,27 +214,50 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
     }))
 
     try {
-      const order = await createOrder.mutateAsync({
-        customerName: client.fullName,
-        customerPhone: client.phone,
-        customerAddress: client.address,
-        items: orderItems,
-        total,
-        paymentType,
-      })
+      // El cliente es opcional al editar: si no se eligió otro, se conservan
+      // los snapshots originales del pedido (nombre/teléfono/dirección).
+      let savedOrder: OrderDto | null
+      if (editingOrder) {
+        savedOrder = await updateOrder.mutateAsync({
+          id: editingOrder.id,
+          payload: {
+            customerName: client?.fullName ?? editingOrder.customerName,
+            customerPhone: client?.phone ?? (editingOrder.customerPhone ?? undefined),
+            customerAddress: client?.address ?? (editingOrder.customerAddress ?? null),
+            items: orderItems,
+            total,
+            paymentType,
+          },
+        })
+      } else {
+        savedOrder = await createOrder.mutateAsync({
+          customerName: client!.fullName,
+          customerPhone: client!.phone,
+          customerAddress: client!.address,
+          items: orderItems,
+          total,
+          paymentType,
+        })
+      }
 
-      let proformaUrl = order?.proformaUrl ?? null
+      let proformaUrl = savedOrder?.proformaUrl ?? null
 
       // Best-effort: si el servidor no pudo generar/guardar la proforma,
       // se intenta generarla aquí. Si también falla, no se bloquea el flujo.
       if (!proformaUrl) {
         try {
+          const customerName = editingOrder
+            ? (client?.fullName ?? editingOrder.customerName)
+            : client!.fullName
+          const customerPhone = editingOrder
+            ? (client?.phone ?? (editingOrder.customerPhone ?? ""))
+            : client!.phone
           const pdf = generateProformaPdf({
             storeName: store?.name ?? "Rutex",
             storePhone: store?.phone ?? null,
-            customerName: client.fullName,
-            customerPhone: client.phone,
-            orderNumber: order?.orderNumber ?? null,
+            customerName,
+            customerPhone,
+            orderNumber: savedOrder?.orderNumber ?? null,
             items: orderItems,
             total,
             paymentType,
@@ -227,17 +265,17 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
           })
 
           const blob = new Blob([pdf.output("blob")], { type: "application/pdf" })
-          const uploaded = await uploadProformaRequest(blob, client.fullName)
+          const uploaded = await uploadProformaRequest(blob, customerName)
           proformaUrl = uploaded.url
         } catch (error) {
           console.error("No se pudo generar la proforma cliente:", error)
         }
       }
 
-      const orderWithProforma = order ? { ...order, proformaUrl } : order
+      const orderWithProforma = savedOrder ? { ...savedOrder, proformaUrl } : savedOrder
       setCreatedOrder(orderWithProforma)
     } catch (error) {
-      console.error("No se pudo crear el pedido:", error)
+      console.error("No se pudo guardar el pedido:", error)
     }
   }
 
@@ -251,9 +289,11 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden p-0">
           <DialogHeader className="p-6 pb-4">
-            <DialogTitle>Nuevo pedido</DialogTitle>
+            <DialogTitle>{isEditing ? "Editar pedido" : "Nuevo pedido"}</DialogTitle>
             <DialogDescription>
-              Selecciona el cliente registrado y los productos del pedido.
+              {isEditing
+                ? "Modifica los productos, cantidades, precios o la modalidad de pago. Se regenera la proforma."
+                : "Selecciona el cliente registrado y los productos del pedido."}
             </DialogDescription>
           </DialogHeader>
 
@@ -262,14 +302,14 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
             <div className="flex flex-col gap-6">
               {/* Sección de Cliente */}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="order-client">Cliente *</Label>
+                <Label htmlFor="order-client">{isEditing ? "Cliente" : "Cliente *"}</Label>
                 <div className="relative">
                   <Input
                     id="order-client"
                     className="h-10 rounded-xl pr-9"
                     placeholder="Buscar cliente por nombre, teléfono o cédula…"
                     value={clientQuery}
-                    aria-invalid={!client}
+                    aria-invalid={isEditing ? undefined : !client}
                     onChange={(e) => {
                       setClientQuery(e.target.value)
                       setClient(null)
@@ -308,6 +348,10 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
                   <p className="flex items-center gap-1 text-xs text-muted-foreground">
                     <PhoneIcon className="size-3" />
                     {client.phone}
+                  </p>
+                ) : isEditing ? (
+                  <p className="text-xs text-muted-foreground">
+                    Si no se elige un cliente, se conservan los datos actuales del pedido.
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">
@@ -525,20 +569,24 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
                   onOpenChange(false)
                   reset()
                 }}
-                disabled={createOrder.isPending}
+                disabled={createOrder.isPending || updateOrder.isPending}
               >
                 Cancelar
               </Button>
               <Button
                 type="button"
                 onClick={handleSubmit}
-                disabled={createOrder.isPending || !client || itemCount === 0}
+                disabled={
+                  createOrder.isPending || updateOrder.isPending || (!isEditing && !client) || itemCount === 0
+                }
               >
-                {createOrder.isPending ? (
+                {createOrder.isPending || updateOrder.isPending ? (
                   <>
                     <Loader2Icon className="animate-spin" />
                     Guardando…
                   </>
+                ) : isEditing ? (
+                  "Guardar cambios"
                 ) : (
                   "Agregar pedido"
                 )}

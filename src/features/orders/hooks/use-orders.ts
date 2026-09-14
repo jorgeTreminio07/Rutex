@@ -8,8 +8,10 @@ import {
   deleteOrderRequest,
   getOrdersRequest,
   saveOrderProformaRequest,
+  updateOrderRequest,
   updateOrderStatusRequest,
   type GetOrdersParams,
+  type UpdateOrderPayload,
 } from "@/features/orders/api/orders.api"
 import { getApiErrorMessage } from "@/lib/api-client"
 import { LIST_REFRESH_MS } from "@/lib/query-params"
@@ -45,6 +47,19 @@ export function useUpdateOrderStatus() {
   return useMutation({
     mutationFn: ({ id, statusId }: { id: string; statusId: number }) =>
       updateOrderStatusRequest(id, statusId),
+    onSuccess: () => {
+      toast.success("Pedido actualizado correctamente")
+      queryClient.invalidateQueries({ queryKey: ordersKeys.all })
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error, "No se pudo actualizar el pedido")),
+  })
+}
+
+export function useUpdateOrder() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateOrderPayload }) =>
+      updateOrderRequest(id, payload),
     onSuccess: () => {
       toast.success("Pedido actualizado correctamente")
       queryClient.invalidateQueries({ queryKey: ordersKeys.all })

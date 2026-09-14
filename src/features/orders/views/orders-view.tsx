@@ -95,6 +95,7 @@ export function OrdersView() {
   const { data: store } = useStore()
   const [deleting, setDeleting] = useState<OrderDto | null>(null)
   const [viewing, setViewing] = useState<OrderDto | null>(null)
+  const [editing, setEditing] = useState<OrderDto | null>(null)
   const [notifying, setNotifying] = useState<OrderDto | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [sendingMessage, setSendingMessage] = useState(false)
@@ -183,6 +184,11 @@ export function OrdersView() {
     } finally {
       setSendingMessage(false)
     }
+  }
+
+  const handleEdit = (order: OrderDto) => {
+    setViewing(null)
+    setEditing(order)
   }
 
   const handleApprove = async (order: OrderDto) => {
@@ -304,6 +310,7 @@ export function OrdersView() {
         onReject={handleReject}
         onDelete={setDeleting}
         onNotify={handleNotify}
+        onEdit={handleEdit}
         isPending={updateStatus.isPending}
         isSendingMessage={sendingMessage}
       />
@@ -331,7 +338,17 @@ export function OrdersView() {
         }}
       />
 
-      <OrderFormDialog open={formOpen} onOpenChange={setFormOpen} />
+      <OrderFormDialog
+        key={editing?.id ?? "nuevo-pedido"}
+        open={formOpen || editing !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setFormOpen(false)
+            setEditing(null)
+          }
+        }}
+        order={editing}
+      />
     </div>
   )
 }

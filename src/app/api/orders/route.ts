@@ -7,18 +7,17 @@ import {
 } from "@/lib/api-response"
 import { requirePermission } from "@/lib/server/guards"
 import { orderHasStock, type StockMap } from "@/features/orders/lib/stock"
-import { generateProformaPdf } from "@/features/catalog/lib/proforma"
-import type { BankAccountInfo } from "@/features/catalog/lib/whatsapp"
-import { getAssetUrl, sanitizeStorageKeySegment } from "@/lib/assets"
-import { decryptBankAccountNumber } from "@/lib/encrypt"
+import {
+  computeOrderTotal,
+  generateAndStoreProforma,
+  snapshotPurchasePrice,
+  STORE_ROW_ID,
+  validateOrderItems,
+} from "@/app/api/orders/lib"
 import { fetchAllRows, isPaging, paginated, parsePagination } from "@/app/api/pagination"
-import { isValidQty, round2, roundQty } from "@/lib/format"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import type { OrderDto, OrderItem, OrderStatus, PaymentType } from "@/types/interfaces/order.interface"
-
-const STORE_ROW_ID = "00000000-0000-0000-0000-000000000001"
-const PROFORMA_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET ?? "rutex-storage"
 
 // La tienda opera en Nicaragua (UTC-6, sin horario de verano).
 // Un día local va de las 06:00 UTC a las 06:00 UTC del día siguiente.
@@ -27,81 +26,6 @@ function nicaraguaDayRange(dateStr: string): { start: string; end: string } {
   const start = new Date(Date.UTC(y, m - 1, d, 6, 0, 0))
   const end = new Date(start.getTime() + 86_400_000)
   return { start: start.toISOString(), end: end.toISOString() }
-}
-
-/**
- * Genera y sube la proforma del pedido recién creado y guarda su URL en la BD.
- * Best-effort: cualquier fallo devuelve null sin bloquear el alta del pedido.
- */
-async function generateAndStoreProforma(
-  supabase: ReturnType<typeof createAdminClient>,
-  order: {
-    id: string
-    order_number: string | null
-    customer_name: string
-    customer_phone: string | null
-    items: OrderItem[]
-    total: number
-    payment_type: string | null
-  },
-): Promise<string | null> {
-  try {
-    const { data: profile } = await supabase
-      .from("store_profile")
-      .select("name, phone, address")
-      .eq("id", STORE_ROW_ID)
-      .maybeSingle()
-
-    const { data: bankRows = [] } = await supabase
-      .from("bank_accounts")
-      .select("bank_name, account_number, account_holder, currency")
-      .eq("store_profile_id", STORE_ROW_ID)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: true })
-
-    const bankAccounts: BankAccountInfo[] = (bankRows ?? []).map((a) => ({
-      bankName: a.bank_name,
-      accountNumber: decryptBankAccountNumber(a.account_number),
-      accountHolder: a.account_holder,
-      currency: a.currency ?? "C$",
-    }))
-
-    const pdf = generateProformaPdf({
-      storeName: profile?.name ?? "Rutex",
-      storeAddress: profile?.address ?? null,
-      storePhone: profile?.phone ?? null,
-      customerName: order.customer_name,
-      customerPhone: order.customer_phone ?? "",
-      orderNumber: order.order_number,
-      items: order.items,
-      total: order.total,
-      paymentType: (order.payment_type as PaymentType) || "contado",
-      bankAccounts,
-    })
-
-    const slug = sanitizeStorageKeySegment(order.customer_name, "cliente")
-    const now = new Date()
-    const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${Math.random().toString(36).slice(2, 8)}`
-    const path = `proformas/proforma-${slug}-${stamp}.pdf`
-
-    const { data, error } = await supabase.storage.from(PROFORMA_BUCKET).upload(
-      path,
-      pdf.output("arraybuffer") as ArrayBuffer,
-      {
-        contentType: "application/pdf",
-        cacheControl: "3600",
-        upsert: false,
-      },
-    )
-
-    if (error) return null
-
-    const url = getAssetUrl(data?.path ?? path)
-    await supabase.from("orders").update({ proforma_url: url }).eq("id", order.id)
-    return url
-  } catch {
-    return null
-  }
 }
 
 const ORDER_SELECT =
@@ -231,27 +155,14 @@ export async function POST(request: Request) {
   const rawItems = body.items
 
   if (!customerName) return badRequest("El nombre del cliente es obligatorio")
-  if (!Array.isArray(rawItems) || rawItems.length === 0) return badRequest("El pedido debe tener al menos un producto")
 
-  // Normaliza y valida cada item. La cantidad admite fracciones (hasta 3
-  // decimales: 0.5, 1.25…) y el precio de venta es el que envía el cliente
-  // (precio oficial, con descuento o precio pactado) — solo se sanea.
-  const items: Array<{ productId: string; productName: string; price: number; quantity: number }> = []
-  for (const raw of rawItems as Array<Record<string, unknown>>) {
-    if (!raw || typeof raw !== "object") return badRequest("Hay un ítem de pedido inválido")
-    const productId = typeof raw.productId === "string" ? raw.productId.trim() : ""
-    const productName = typeof raw.productName === "string" ? raw.productName.trim() : ""
-    const quantity = Number(raw.quantity)
-    const price = Number(raw.price)
-    if (!productId || !productName) return badRequest("Hay un producto sin identificar en el pedido")
-    if (!isValidQty(quantity)) {
-      return badRequest(`Cantidad inválida para "${productName}": usa un número mayor a 0 con hasta 3 decimales`)
-    }
-    if (!Number.isFinite(price) || price < 0) return badRequest(`Precio inválido para "${productName}"`)
-    items.push({ productId, productName, price: round2(price), quantity: roundQty(quantity) })
-  }
-
-  const total = round2(items.reduce((sum, item) => sum + item.price * item.quantity, 0))
+  // Normaliza y valida cada item (fracciones hasta 3 decimales y precio de
+  // venta = oficial, con descuento o precio pactado). El total se recalcula
+  // server-side, jamás se confía del cuerpo de la petición.
+  const validated = validateOrderItems(rawItems)
+  if (!validated.ok) return badRequest(validated.error)
+  const items = validated.items
+  const total = computeOrderTotal(items)
 
   const supabase = createAdminClient()
 
@@ -267,18 +178,7 @@ export async function POST(request: Request) {
       : ((body.paymentType as string) || "contado")
 
   // Snapshot del precio de compra vigente de cada producto (reporte de ganancias).
-  const snapshotProductIds = [...new Set(items.map((item) => item.productId).filter(Boolean))] as string[]
-  const { data: snapshotProducts } = await supabase
-    .from("products")
-    .select("id, purchase_price")
-    .in("id", snapshotProductIds)
-  const purchasePriceById = new Map(
-    (snapshotProducts ?? []).map((p) => [p.id, Number(p.purchase_price ?? 0) || 0]),
-  )
-  const itemsWithSnapshot = items.map((item) => ({
-    ...item,
-    purchasePrice: purchasePriceById.get(item.productId) ?? 0,
-  }))
+  const itemsWithSnapshot = await snapshotPurchasePrice(supabase, items)
 
   const { data: nextNumber, error: seqError } = await supabase.rpc("next_order_number")
   if (seqError || typeof nextNumber !== "string") {

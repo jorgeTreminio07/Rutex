@@ -3,7 +3,7 @@ function getStorageBaseUrl(): string {
   return base.replace(/\/$/, "");
 }
 
-function getBucketName(): string {
+export function getBucketName(): string {
   return process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET?.trim() || "rutex";
 }
 

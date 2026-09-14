@@ -1,6 +1,10 @@
 import { apiClient } from "@/lib/api-client"
 import { appendListParams, type ListQueryParams } from "@/lib/query-params"
-import type { OrderDto, CreateOrderPayload } from "@/types/interfaces/order.interface"
+import type {
+  CreateOrderPayload,
+  OrderDto,
+  PaymentType,
+} from "@/types/interfaces/order.interface"
 import type { PaginatedResult } from "@/types/interfaces/pagination.interface"
 
 export type OrderStatusFilter = "todos" | "en_proceso" | "aprobado" | "rechazado"
@@ -9,6 +13,16 @@ export interface GetOrdersParams extends ListQueryParams {
   status?: OrderStatusFilter
   date?: string
   search?: string
+}
+
+export interface UpdateOrderPayload {
+  customerName: string
+  customerPhone?: string
+  customerAddress?: string | null
+  items: CreateOrderPayload["items"]
+  total: number
+  paymentType?: PaymentType
+  notes?: string
 }
 
 function buildQueryString(params: GetOrdersParams): string {
@@ -38,6 +52,13 @@ export async function createOrderRequest(payload: CreateOrderPayload): Promise<O
 
 export async function updateOrderStatusRequest(id: string, statusId: number): Promise<OrderDto> {
   return apiClient.put<OrderDto>(`/api/orders/${id}`, { statusId })
+}
+
+export async function updateOrderRequest(
+  id: string,
+  payload: UpdateOrderPayload,
+): Promise<OrderDto> {
+  return apiClient.patch<OrderDto>(`/api/orders/${id}`, payload)
 }
 
 export async function deleteOrderRequest(id: string): Promise<void> {

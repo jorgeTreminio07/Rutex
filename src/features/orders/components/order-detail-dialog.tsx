@@ -1,6 +1,6 @@
 "use client"
 
-import { CalendarIcon, ClipboardListIcon, CreditCardIcon, PhoneIcon, SendIcon, ShoppingBagIcon, Trash2Icon, UserIcon } from "lucide-react"
+import { CalendarIcon, ClipboardListIcon, CreditCardIcon, PencilIcon, PhoneIcon, SendIcon, ShoppingBagIcon, Trash2Icon, UserIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -45,6 +45,7 @@ interface OrderDetailDialogProps {
   onReject: (order: OrderDto) => void
   onDelete: (order: OrderDto) => void
   onNotify: (order: OrderDto) => void
+  onEdit: (order: OrderDto) => void
   isPending: boolean
   isSendingMessage: boolean
 }
@@ -56,6 +57,7 @@ export function OrderDetailDialog({
   onReject,
   onDelete,
   onNotify,
+  onEdit,
   isPending,
   isSendingMessage,
 }: OrderDetailDialogProps) {
@@ -154,6 +156,16 @@ export function OrderDetailDialog({
             <DialogFooter>
               {order.statusId === 5 && (
                 <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="gap-2"
+                    disabled={isPending}
+                    onClick={() => onEdit(order)}
+                  >
+                    <PencilIcon className="size-4" />
+                    Editar
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
