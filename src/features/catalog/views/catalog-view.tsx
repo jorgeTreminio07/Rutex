@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronDownIcon, SearchIcon, ShoppingCartIcon, StoreIcon } from "lucide-react"
+import { ChevronDownIcon, SearchIcon, Share2Icon, ShoppingCartIcon, StoreIcon } from "lucide-react"
 import Image from "next/image"
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -19,6 +19,7 @@ import { useCatalog } from "@/features/catalog/hooks/use-catalog"
 import { CatalogProductCard } from "@/features/catalog/components/catalog-product-card"
 import { CatalogProductDetailDialog } from "@/features/catalog/components/catalog-product-detail-dialog"
 import { useCartStore } from "@/features/catalog/store/use-cart-store"
+import { useAuthStore } from "@/features/auth/store/use-auth-store"
 import { getAssetUrl } from "@/lib/assets"
 import { cn } from "@/lib/utils"
 import type { ProductDto } from "@/types/interfaces/product.interface"
@@ -26,6 +27,7 @@ import type { ProductDto } from "@/types/interfaces/product.interface"
 export function CatalogView() {
   const { data, isLoading } = useCatalog()
   const { items, addItem, updateQuantity } = useCartStore()
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const router = useRouter()
   const [category, setCategory] = useState<string | null>(null)
   const [search, setSearch] = useState("")
@@ -56,6 +58,12 @@ export function CatalogView() {
 
   const goToCart = () => router.push("/catalogo/carrito")
 
+  const handleShareCatalog = () => {
+    const url = `${window.location.origin}/catalogo`
+    const text = `¡Hola! Te comparto el catálogo de ${store.name}. Podés ver nuestros productos y hacer tu pedido desde este link:\n${url}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer")
+  }
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6">
       {/* Header */}
@@ -74,15 +82,29 @@ export function CatalogView() {
           </div>
         </div>
 
-        <Button variant="outline" size="sm" className="relative gap-2 rounded-full" onClick={goToCart}>
-          <ShoppingCartIcon className="size-4" />
-          Carrito
-          {cartCount > 0 && (
-            <Badge className="ml-1 size-5 items-center justify-center rounded-full p-0 text-[10px]">
-              {cartCount}
-            </Badge>
+        <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+          {isAuthenticated && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="relative gap-2 rounded-full"
+              onClick={handleShareCatalog}
+            >
+              <Share2Icon className="size-4" />
+              Compartir catálogo
+            </Button>
           )}
-        </Button>
+          <Button variant="outline" size="sm" className="relative gap-2 rounded-full" onClick={goToCart}>
+            <ShoppingCartIcon className="size-4" />
+            Carrito
+            {cartCount > 0 && (
+              <Badge className="ml-1 size-5 items-center justify-center rounded-full p-0 text-[10px]">
+                {cartCount}
+              </Badge>
+            )}
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-5">

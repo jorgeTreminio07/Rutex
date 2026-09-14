@@ -237,16 +237,16 @@ export function OrdersView() {
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-2 flex-1">
-          <div className="relative flex-1 max-w-sm">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por cliente o número..."
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-9 h-10 rounded-xl"
-            />
-          </div>
+        <div className="relative w-full max-w-sm sm:flex-1">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por cliente o número..."
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-9 h-10 rounded-xl"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <Select value={statusFilter} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-40 h-10 rounded-xl">
               <FilterIcon className="h-4 w-4 mr-2" />

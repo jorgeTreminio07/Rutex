@@ -102,7 +102,7 @@ export function RoutesView() {
 
       {/* Filtros */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative max-w-sm flex-1">
+        <div className="relative w-full max-w-sm sm:flex-1">
           <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar por código de ruta…"
@@ -111,26 +111,28 @@ export function RoutesView() {
             className="h-10 rounded-xl pl-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={handleStatusChange}>
-          <SelectTrigger className="h-10 w-44 rounded-xl">
-            <FilterIcon className="mr-2 size-4" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ROUTE_STATUS_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                <SelectItemText>{opt.label}</SelectItemText>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="flex items-center gap-1">
-          <DatePicker value={dateFilter} onChange={handleDateChange} placeholder="Todas las fechas" />
-          {dateFilter && (
-            <Button variant="ghost" size="sm" onClick={() => handleDateChange("")}>
-              Limpiar
-            </Button>
-          )}
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={statusFilter} onValueChange={handleStatusChange}>
+            <SelectTrigger className="h-10 w-44 rounded-xl">
+              <FilterIcon className="mr-2 size-4" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ROUTE_STATUS_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  <SelectItemText>{opt.label}</SelectItemText>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-1">
+            <DatePicker value={dateFilter} onChange={handleDateChange} placeholder="Todas las fechas" />
+            {dateFilter && (
+              <Button variant="ghost" size="sm" onClick={() => handleDateChange("")}>
+                Limpiar
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

@@ -77,7 +77,7 @@ export function CatalogProductCard({
           <p className="line-clamp-2 text-xs text-muted-foreground">{product.description ?? ""}</p>
         </div>
 
-        <div className="mt-auto flex items-center justify-between gap-2">
+        <div className="mt-auto flex flex-col gap-2">
           <div>
             {hasDiscount && (
               <span className="block text-[10px] text-muted-foreground line-through">
@@ -90,7 +90,7 @@ export function CatalogProductCard({
           </div>
 
           {quantity > 0 ? (
-            <div className="flex items-center gap-1 rounded-full border p-0.5">
+            <div className="flex w-full items-center justify-center gap-1 rounded-full border p-0.5">
               <Button
                 variant="ghost"
                 size="icon-xs"
@@ -102,7 +102,7 @@ export function CatalogProductCard({
               >
                 <MinusIcon />
               </Button>
-              <span className="w-5 text-center text-xs font-bold">{quantity}</span>
+              <span className="w-6 text-center text-xs font-bold">{quantity}</span>
               <Button
                 variant="ghost"
                 size="icon-xs"
@@ -125,7 +125,7 @@ export function CatalogProductCard({
                 e.stopPropagation()
                 onAdd()
               }}
-              className="gap-1 rounded-full text-xs"
+              className="w-full gap-1 rounded-full text-xs"
             >
               <ShoppingCartIcon className="size-3.5" />
               Agregar
