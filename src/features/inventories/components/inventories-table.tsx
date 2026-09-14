@@ -1,6 +1,6 @@
 "use client"
 
-import { PencilIcon } from "lucide-react"
+import { FileDownIcon, Loader2Icon, PencilIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,9 +21,16 @@ const PAGE_SIZE = 10
 interface InventoriesTableProps {
   inventories: InventoryDto[]
   onEdit: (inventory: InventoryDto) => void
+  onExport: (inventory: InventoryDto) => void
+  exportingId: string | null
 }
 
-export function InventoriesTable({ inventories, onEdit }: InventoriesTableProps) {
+export function InventoriesTable({
+  inventories,
+  onEdit,
+  onExport,
+  exportingId,
+}: InventoriesTableProps) {
   const { rows, page, totalItems, pageSize, setPage } = usePaged(inventories, PAGE_SIZE)
 
   return (
@@ -57,7 +64,7 @@ export function InventoriesTable({ inventories, onEdit }: InventoriesTableProps)
               <TableCell className="text-right font-semibold">{inventory.totalUnits}</TableCell>
               <TableCell className="text-right pr-6 font-semibold">C$ {inventory.totalValue.toFixed(2)}</TableCell>
               <TableCell>
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-1">
                   <Button
                     variant="ghost"
                     size="icon-sm"
@@ -68,6 +75,22 @@ export function InventoriesTable({ inventories, onEdit }: InventoriesTableProps)
                     aria-label={`Editar inventario ${inventory.inventoryNumber}`}
                   >
                     <PencilIcon />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onExport(inventory)
+                    }}
+                    disabled={exportingId === inventory.id}
+                    aria-label={`Exportar inventario ${inventory.inventoryNumber}`}
+                  >
+                    {exportingId === inventory.id ? (
+                      <Loader2Icon className="animate-spin" />
+                    ) : (
+                      <FileDownIcon />
+                    )}
                   </Button>
                 </div>
               </TableCell>

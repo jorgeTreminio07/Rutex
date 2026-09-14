@@ -2,6 +2,7 @@
 
 import { PlusIcon, SearchIcon, XIcon } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
 
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
 import { Button } from "@/components/ui/button"
@@ -16,7 +17,9 @@ import {
   useInventories,
   useUpdateInventory,
 } from "@/features/inventories/hooks/use-inventories"
+import { exportInventoryToExcel } from "@/features/inventories/lib/excel"
 import { useProducts } from "@/features/products/hooks/use-products"
+import { getApiErrorMessage } from "@/lib/api-client"
 import { useDebouncedValue } from "@/lib/use-debounced-value"
 import { LIST_PAGE_SIZE } from "@/lib/query-params"
 import type { InventoryDto } from "@/types/interfaces/inventory.interface"
@@ -32,6 +35,7 @@ export function InventoryView() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<InventoryDto | null>(null)
   const [formKey, setFormKey] = useState(0)
+  const [exportingId, setExportingId] = useState<string | null>(null)
 
   const debouncedSearch = useDebouncedValue(search.trim(), 300)
 
@@ -80,6 +84,17 @@ export function InventoryView() {
       await createInventory.mutateAsync({ items })
     }
     setFormOpen(false)
+  }
+
+  const handleExport = async (inventory: InventoryDto) => {
+    setExportingId(inventory.id)
+    try {
+      await exportInventoryToExcel(inventory, products)
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "No se pudo exportar el inventario"))
+    } finally {
+      setExportingId(null)
+    }
   }
 
   return (
@@ -133,10 +148,20 @@ export function InventoryView() {
       ) : (
         <>
           <div className="hidden md:block">
-            <InventoriesTable inventories={inventories} onEdit={openEdit} />
+            <InventoriesTable
+              inventories={inventories}
+              onEdit={openEdit}
+              onExport={handleExport}
+              exportingId={exportingId}
+            />
           </div>
           <div className="md:hidden">
-            <InventoriesMobileList inventories={inventories} onEdit={openEdit} />
+            <InventoriesMobileList
+              inventories={inventories}
+              onEdit={openEdit}
+              onExport={handleExport}
+              exportingId={exportingId}
+            />
           </div>
           <DataTablePagination
             page={currentPage}

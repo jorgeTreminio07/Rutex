@@ -1,6 +1,6 @@
 "use client"
 
-import { BoxesIcon, PencilIcon } from "lucide-react"
+import { BoxesIcon, FileDownIcon, Loader2Icon, PencilIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,9 +14,16 @@ const PAGE_SIZE = 10
 interface InventoriesMobileListProps {
   inventories: InventoryDto[]
   onEdit: (inventory: InventoryDto) => void
+  onExport: (inventory: InventoryDto) => void
+  exportingId: string | null
 }
 
-export function InventoriesMobileList({ inventories, onEdit }: InventoriesMobileListProps) {
+export function InventoriesMobileList({
+  inventories,
+  onEdit,
+  onExport,
+  exportingId,
+}: InventoriesMobileListProps) {
   const { rows, page, totalItems, pageSize, setPage } = usePaged(inventories, PAGE_SIZE)
 
   return (
@@ -46,17 +53,29 @@ export function InventoriesMobileList({ inventories, onEdit }: InventoriesMobile
                   <span className="text-xs text-muted-foreground">{inventory.totalUnits} uds</span>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onEdit(inventory)
-                }}
-                aria-label={`Editar inventario ${inventory.inventoryNumber}`}
-              >
-                <PencilIcon />
-              </Button>
+              <div className="flex shrink-0 flex-col items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => onEdit(inventory)}
+                  aria-label={`Editar inventario ${inventory.inventoryNumber}`}
+                >
+                  <PencilIcon />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => onExport(inventory)}
+                  disabled={exportingId === inventory.id}
+                  aria-label={`Exportar inventario ${inventory.inventoryNumber}`}
+                >
+                  {exportingId === inventory.id ? (
+                    <Loader2Icon className="animate-spin" />
+                  ) : (
+                    <FileDownIcon />
+                  )}
+                </Button>
+              </div>
             </Card>
           </li>
         ))}
