@@ -15,6 +15,7 @@ import {
   WarehouseIcon,
 } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CashflowChart } from "@/features/home/components/cashflow-chart"
@@ -29,6 +30,7 @@ import { useDashboard } from "@/features/home/hooks/use-dashboard"
 import { useIsTouchDevice } from "@/features/home/hooks/use-is-touch-device"
 import { useAuthStore } from "@/features/auth/store/use-auth-store"
 import { fmtMoney } from "@/features/reports/lib/format"
+import { ApiError } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 
 function KpiCard({
@@ -115,16 +117,35 @@ function EmptyChart({ message }: { message: string }) {
 
 export function HomeView() {
   const user = useAuthStore((s) => s.user)
-  const { data, isLoading, isError } = useDashboard()
+  const { data, isLoading, isError, error, refetch } = useDashboard()
   const isTouch = useIsTouchDevice()
 
-  if (isError) {
+  if (isError && !data) {
+    const status = error instanceof ApiError ? error.status : 0
     return (
       <div className="flex flex-col gap-5">
         <Header user={user?.username ?? ""} />
         <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">
-            No se pudo cargar el panel de la tienda. Verifica que tu usuario tenga permisos de administrador.
+          <CardContent className="flex flex-col items-center gap-3 p-6 text-center text-sm text-muted-foreground">
+            {status === 403 ? (
+              <p>No tienes permisos para ver el panel de la tienda.</p>
+            ) : status === 401 ? (
+              <>
+                <p>Tu sesión expiró. Inicia sesión de nuevo para continuar.</p>
+                <Button variant="outline" size="sm" onClick={() => refetch()}>
+                  Reintentar
+                </Button>
+              </>
+            ) : (
+              <>
+                <p>
+                  No se pudo cargar el panel de la tienda. Revisa tu conexión e intenta de nuevo.
+                </p>
+                <Button variant="outline" size="sm" onClick={() => refetch()}>
+                  Reintentar
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

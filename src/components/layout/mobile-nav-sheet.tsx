@@ -51,6 +51,7 @@ export function MobileNavSheet({ open, onOpenChange }: MobileNavSheetProps) {
   const pathname = usePathname()
   const { data: store } = useStore()
   const brandName = store?.name ?? "Rutex"
+  const { canView } = usePermissions()
 
   const [manuallyOpen, setManuallyOpen] = useState<Record<string, boolean>>({})
 
@@ -96,7 +97,7 @@ export function MobileNavSheet({ open, onOpenChange }: MobileNavSheetProps) {
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
           <MobileNavLink item={NAV_HOME} active={pathname === "/"} onNavigate={close} />
 
-          {SIDEBAR_GROUPS.map((group) => {
+          {SIDEBAR_GROUPS.filter((group) => group.items.some((item) => canView(item.perm))).map((group) => {
             const GroupIcon = group.icon
             const visible = isGroupVisible(group.label)
             return (

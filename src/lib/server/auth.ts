@@ -48,12 +48,25 @@ export async function getCurrentUser(): Promise<CurrentProfile | null> {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("id, username, first_name, last_name, email, image_url, role_id, status_id, roles(name, permissions)")
     .eq("id", user.id)
     .maybeSingle();
 
+  // Un error técnico en la lectura del perfil (red, token inválido, RLS) NO debe
+  // convertirse en un usuario "fantasma" con permisos vacíos: eso deja a alguien
+  // logueado pero sin menú y con el panel caído. Se propaga como error para que
+  // el cliente reintente y conserve el estado, en vez de desloguear.
+  if (profileError) {
+    throw profileError;
+  }
+
+  // Perfil eliminado: sin acceso.
+  if (profile && profile.status_id === 4) return null;
+
+  // Perfil resuelto con rol de permisos reales (pueden ser vacíos): se conserva
+  // al usuario logueado con su alcance, nunca se desloguea por no tener permisos.
   const roleName = getEmbeddedRoleName(profile?.roles);
   const permissions = rolePermissionsFor(
     roleName,

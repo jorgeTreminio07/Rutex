@@ -12,14 +12,14 @@ import { createClient } from "@/lib/supabase/server";
 
 type GuardResult = { ok: boolean; response?: NextResponse };
 
-async function getRoleInfo(sessionUserId: string) {
+async function getRoleInfo(sessionUserId: string): Promise<{ roles: unknown; error: Error | null }> {
   const supabase = await createClient();
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("role_id, roles(name, permissions)")
     .eq("id", sessionUserId)
     .maybeSingle();
-  return profile?.roles;
+  return { roles: profile?.roles, error };
 }
 
 export async function requireAdmin(): Promise<GuardResult> {
@@ -28,7 +28,12 @@ export async function requireAdmin(): Promise<GuardResult> {
     return { ok: false, response: unauthorized() };
   }
 
-  const roleName = getEmbeddedRoleName(await getRoleInfo(session.user.id));
+  const { roles, error } = await getRoleInfo(session.user.id);
+  if (error) {
+    return { ok: false, response: unauthorized() };
+  }
+
+  const roleName = getEmbeddedRoleName(roles);
   if (!isAdminRole(roleName)) {
     return { ok: false, response: forbidden() };
   }
@@ -42,7 +47,11 @@ export async function requirePermission(permission: string): Promise<GuardResult
     return { ok: false, response: unauthorized() };
   }
 
-  const roles = await getRoleInfo(session.user.id);
+  const { roles, error } = await getRoleInfo(session.user.id);
+  if (error) {
+    return { ok: false, response: unauthorized() };
+  }
+
   const roleName = getEmbeddedRoleName(roles);
   if (isAdminRole(roleName)) return { ok: true };
 
@@ -60,7 +69,11 @@ export async function requireOneOf(allowed: string[]): Promise<GuardResult> {
     return { ok: false, response: unauthorized() };
   }
 
-  const roles = await getRoleInfo(session.user.id);
+  const { roles, error } = await getRoleInfo(session.user.id);
+  if (error) {
+    return { ok: false, response: unauthorized() };
+  }
+
   const roleName = getEmbeddedRoleName(roles);
   if (isAdminRole(roleName)) return { ok: true };
 
