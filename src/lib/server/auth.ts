@@ -33,12 +33,14 @@ export function rolePermissionsFor(roleName: string | null, permissions: string[
   return permissions;
 }
 
-export async function getSession() {
+export async function getAuthenticatedUser() {
   const supabase = await createClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return session;
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) return null;
+  return user;
 }
 
 export async function getCurrentUser(): Promise<CurrentProfile | null> {
