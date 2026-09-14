@@ -1,3 +1,8 @@
+// Los tipos de Web Bluetooth viven en el ámbito global de @types/web-bluetooth
+// (no exportan nada). La referencia explícita fuerza a TypeScript (CLI y
+// editor) a incluirlos aunque el auto-incluido de @types no los esté tomando.
+/// <reference types="web-bluetooth" />
+
 // Conexión con impresoras térmicas por Web Bluetooth (BLE).
 // Nota: Web Bluetooth solo alcanza impresoras BLE (Bluetooth 4.0/5.0).
 // Las de Bluetooth clásico (SPP) no son visibles desde ningún navegador.
@@ -52,6 +57,34 @@ export function clearSavedReceiptPrinter(): void {
   } catch {
     // ignorar
   }
+}
+
+// Conexión viva compartida por toda la app (variable de módulo, no estado de
+// React). Mientras el documento siga abierto, se conserva la impresora
+// conectada y se reutiliza entre vistas/pedidos SIN volver a llamar
+// requestDevice — así el navegador nunca vuelve a mostrar el selector. Solo
+// se vuelve a pedir la sincronización si la conexión se pierde (impresora
+// apagada, fuera de alcance o recarga completa del sitio).
+let activePrinter: ReceiptPrinter | null = null
+
+export function getActiveReceiptPrinter(): ReceiptPrinter | null {
+  return activePrinter
+}
+
+// Sustituye la conexión activa; la anterior (si es otra) se desconecta.
+export function setActiveReceiptPrinter(printer: ReceiptPrinter | null): void {
+  if (printer !== activePrinter) {
+    try {
+      activePrinter?.disconnect()
+    } catch {
+      // ignorar
+    }
+  }
+  activePrinter = printer
+}
+
+export function disconnectActiveReceiptPrinter(): void {
+  setActiveReceiptPrinter(null)
 }
 
 function describeRequestError(error: unknown): string {
