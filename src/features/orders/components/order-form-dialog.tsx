@@ -10,6 +10,7 @@ import {
   ScanBarcodeIcon,
   SearchIcon,
   UserIcon,
+  XIcon,
 } from "lucide-react"
 import { useMemo, useState } from "react"
 import Image from "next/image"
@@ -46,6 +47,129 @@ import type { ProductDto } from "@/types/interfaces/product.interface"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZE = 10
+
+interface OrderProductRowProps {
+  product: ProductDto
+  quantity: number
+  qtyValue: string
+  priceValue: string
+  pactado: boolean
+  onStep: (delta: number) => void
+  onQtyChange: (raw: string) => void
+  onPriceChange: (raw: string) => void
+  onResetPrice: () => void
+  onRemove?: () => void
+}
+
+function OrderProductRow({
+  product,
+  quantity,
+  qtyValue,
+  priceValue,
+  pactado,
+  onStep,
+  onQtyChange,
+  onPriceChange,
+  onResetPrice,
+  onRemove,
+}: OrderProductRowProps) {
+  return (
+    <li className="flex items-center justify-between gap-3 rounded-xl border p-2.5">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+          {product.images[0] ? (
+            <Image
+              src={product.images[0]}
+              alt={product.name}
+              width={36}
+              height={36}
+              className="h-9 w-9 rounded-lg object-cover"
+            />
+          ) : (
+            <PackageIcon className="h-4 w-4 text-muted-foreground" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-sm font-medium leading-snug">{product.name}</p>
+          <Badge variant="outline" className="mt-1 text-[10px] font-normal">
+            {product.category}
+          </Badge>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+            {product.discountPercent > 0 && (
+              <span className="line-through">C$ {product.price.toFixed(2)}</span>
+            )}
+            <span className="inline-flex items-center gap-1">
+              C$
+              <input
+                type="text"
+                inputMode="decimal"
+                value={priceValue}
+                onChange={(e) => onPriceChange(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                aria-label={`Precio pactado de ${product.name}`}
+                className="w-16 rounded-md border-0 bg-transparent px-1 text-right text-xs font-semibold text-foreground tabular-nums outline-none focus:ring-2 focus:ring-ring"
+              />
+            </span>
+            <span>· Stock {formatQty(product.stock)}</span>
+          </div>
+          {pactado && (
+            <button
+              type="button"
+              onClick={onResetPrice}
+              className="mt-0.5 text-[10px] font-medium text-primary underline underline-offset-2"
+            >
+              Restablecer precio oficial
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1 rounded-xl border p-0.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            disabled={quantity <= 0}
+            onClick={() => onStep(-0.5)}
+            aria-label={`Restar media unidad de ${product.name}`}
+          >
+            <MinusIcon />
+          </Button>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={qtyValue}
+            onChange={(e) => onQtyChange(e.target.value)}
+            onFocus={(e) => e.target.select()}
+            aria-label={`Cantidad de ${product.name}`}
+            className="w-16 rounded-md border-0 bg-transparent text-center text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-ring"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            disabled={quantity >= product.stock}
+            onClick={() => onStep(0.5)}
+            aria-label={`Sumar media unidad de ${product.name}`}
+          >
+            <PlusIcon />
+          </Button>
+        </div>
+        {onRemove && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={onRemove}
+            aria-label={`Quitar ${product.name} del pedido`}
+          >
+            <XIcon className="size-4" />
+          </Button>
+        )}
+      </div>
+    </li>
+  )
+}
 
 interface OrderFormDialogProps {
   open: boolean
@@ -105,12 +229,18 @@ export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogPr
     )
   }, [products, search])
 
+  // Al editar, el listado de abajo solo sirve para agregar productos nuevos:
+  // los ya registrados (cantidad > 0) se gestionan en el bloque de arriba.
+  const catalogProducts = isEditing
+    ? filteredProducts.filter((p) => (quantities[p.id] ?? 0) === 0)
+    : filteredProducts
+
   const {
     rows: visibleProducts,
     page,
     totalItems,
     setPage,
-  } = usePaged(filteredProducts, PAGE_SIZE)
+  } = usePaged(catalogProducts, PAGE_SIZE)
 
   // Precio de venta por producto: si se pactó un precio en el formulario se
   // usa ese; si no, el vigente (con descuento aplicado).
@@ -175,6 +305,24 @@ export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogPr
       return next
     })
     setQuantity(product.id, (quantities[product.id] ?? 0) + delta)
+  }
+
+  const removeProduct = (product: ProductDto) => {
+    setQtyInputs((prev) => {
+      const next = { ...prev }
+      delete next[product.id]
+      return next
+    })
+    setPriceInputs((prev) => {
+      const next = { ...prev }
+      delete next[product.id]
+      return next
+    })
+    setQuantities((prev) => {
+      const next = { ...prev }
+      delete next[product.id]
+      return next
+    })
   }
 
   const handlePriceChange = (productId: string, raw: string) => {
@@ -432,11 +580,43 @@ export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogPr
                 </div>
               </div>
 
+              {/* Bloque de productos ya registrados (solo edición) */}
+              {isEditing && selectedProducts.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <Label>Productos del pedido</Label>
+                  <ul className="flex flex-col gap-1.5">
+                    {selectedProducts.map((product) => {
+                      const quantity = quantities[product.id] ?? 0
+                      const price = effectivePrice(product)
+                      return (
+                        <OrderProductRow
+                          key={product.id}
+                          product={product}
+                          quantity={quantity}
+                          qtyValue={qtyInputs[product.id] ?? String(quantity)}
+                          priceValue={priceInputs[product.id] ?? price.toFixed(2)}
+                          pactado={isPactado(product)}
+                          onStep={(delta) => stepQuantity(product, delta)}
+                          onQtyChange={(raw) => handleQuantityChange(product, raw)}
+                          onPriceChange={(raw) => handlePriceChange(product.id, raw)}
+                          onResetPrice={() => resetPrice(product.id)}
+                          onRemove={() => removeProduct(product)}
+                        />
+                      )
+                    })}
+                  </ul>
+                </div>
+              )}
+
               {/* Sección Lista de Productos */}
               <div>
-                {filteredProducts.length === 0 ? (
+                {catalogProducts.length === 0 ? (
                   <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-                    No hay productos para mostrar.
+                    {isEditing && selectedProducts.length > 0 && search.trim() !== ""
+                      ? "No hay productos que coincidan con la búsqueda."
+                      : isEditing && selectedProducts.length > 0
+                        ? "Todos los productos ya están en el pedido."
+                        : "No hay productos para mostrar."}
                   </p>
                 ) : (
                   <ul className="flex flex-col gap-1.5">
@@ -444,95 +624,18 @@ export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogPr
                       const quantity = quantities[product.id] ?? 0
                       const price = effectivePrice(product)
                       return (
-                        <li
+                        <OrderProductRow
                           key={product.id}
-                          className="flex items-center justify-between gap-3 rounded-xl border p-2.5"
-                        >
-                          <div className="flex min-w-0 items-center gap-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-                              {product.images[0] ? (
-                                <Image
-                                  src={product.images[0]}
-                                  alt={product.name}
-                                  width={36}
-                                  height={36}
-                                  className="h-9 w-9 rounded-lg object-cover"
-                                />
-                              ) : (
-                                <PackageIcon className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="break-words text-sm font-medium leading-snug">
-                                {product.name}
-                              </p>
-                              <Badge
-                                variant="outline"
-                                className="mt-1 text-[10px] font-normal"
-                              >
-                                {product.category}
-                              </Badge>
-                              <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
-                                {product.discountPercent > 0 && (
-                                  <span className="line-through">C$ {product.price.toFixed(2)}</span>
-                                )}
-                                <span className="inline-flex items-center gap-1">
-                                  C$
-                                  <input
-                                    type="text"
-                                    inputMode="decimal"
-                                    value={priceInputs[product.id] ?? price.toFixed(2)}
-                                    onChange={(e) => handlePriceChange(product.id, e.target.value)}
-                                    onFocus={(e) => e.target.select()}
-                                    aria-label={`Precio pactado de ${product.name}`}
-                                    className="w-16 rounded-md border-0 bg-transparent px-1 text-right text-xs font-semibold text-foreground tabular-nums outline-none focus:ring-2 focus:ring-ring"
-                                  />
-                                </span>
-                                <span>· Stock {formatQty(product.stock)}</span>
-                              </div>
-                              {isPactado(product) && (
-                                <button
-                                  type="button"
-                                  onClick={() => resetPrice(product.id)}
-                                  className="mt-0.5 text-[10px] font-medium text-primary underline underline-offset-2"
-                                >
-                                  Restablecer precio oficial
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex shrink-0 items-center gap-1 rounded-xl border p-0.5">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-sm"
-                              disabled={quantity <= 0}
-                              onClick={() => stepQuantity(product, -0.5)}
-                              aria-label={`Restar media unidad de ${product.name}`}
-                            >
-                              <MinusIcon />
-                            </Button>
-                            <input
-                              type="text"
-                              inputMode="decimal"
-                              value={qtyInputs[product.id] ?? (quantity > 0 ? String(quantity) : "")}
-                              onChange={(e) => handleQuantityChange(product, e.target.value)}
-                              onFocus={(e) => e.target.select()}
-                              aria-label={`Cantidad de ${product.name}`}
-                              className="w-16 rounded-md border-0 bg-transparent text-center text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-ring"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-sm"
-                              disabled={quantity >= product.stock}
-                              onClick={() => stepQuantity(product, 0.5)}
-                              aria-label={`Sumar media unidad de ${product.name}`}
-                            >
-                              <PlusIcon />
-                            </Button>
-                          </div>
-                        </li>
+                          product={product}
+                          quantity={quantity}
+                          qtyValue={qtyInputs[product.id] ?? (quantity > 0 ? String(quantity) : "")}
+                          priceValue={priceInputs[product.id] ?? price.toFixed(2)}
+                          pactado={isPactado(product)}
+                          onStep={(delta) => stepQuantity(product, delta)}
+                          onQtyChange={(raw) => handleQuantityChange(product, raw)}
+                          onPriceChange={(raw) => handlePriceChange(product.id, raw)}
+                          onResetPrice={() => resetPrice(product.id)}
+                        />
                       )
                     })}
                   </ul>
