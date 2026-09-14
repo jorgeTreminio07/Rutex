@@ -26,6 +26,7 @@ import { MermasMotiveChart } from "@/features/home/components/mermas-motive-char
 import { StockBajoList } from "@/features/home/components/stock-bajo-list"
 import { TopProductsChart } from "@/features/home/components/top-products-chart"
 import { useDashboard } from "@/features/home/hooks/use-dashboard"
+import { useIsTouchDevice } from "@/features/home/hooks/use-is-touch-device"
 import { useAuthStore } from "@/features/auth/store/use-auth-store"
 import { fmtMoney } from "@/features/reports/lib/format"
 import { cn } from "@/lib/utils"
@@ -115,6 +116,7 @@ function EmptyChart({ message }: { message: string }) {
 export function HomeView() {
   const user = useAuthStore((s) => s.user)
   const { data, isLoading, isError } = useDashboard()
+  const isTouch = useIsTouchDevice()
 
   if (isError) {
     return (
@@ -193,7 +195,11 @@ export function HomeView() {
       <div className="grid items-start gap-4 lg:grid-cols-3">
         <ChartCard
           title="Ventas y ganancia por día"
-          description="Últimos 30 días, pedidos aprobados. Barras = ventas, línea = ganancia."
+          description={
+            isTouch
+              ? "Últimos 10 días, pedidos aprobados. Barras = ventas, línea = ganancia."
+              : "Últimos 30 días, pedidos aprobados. Barras = ventas, línea = ganancia."
+          }
           icon={CircleDollarSignIcon}
           className="lg:col-span-2"
         >

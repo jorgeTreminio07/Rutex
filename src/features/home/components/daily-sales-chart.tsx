@@ -22,10 +22,13 @@ interface Props {
 
 export function DailySalesChart({ data }: Props) {
   const isTouch = useIsTouchDevice()
-  const rows = data.map((row) => ({
-    ...row,
-    label: `${row.fecha.slice(8)}/${row.fecha.slice(5, 7)}`,
-  }))
+  // En móvil (táctil) se muestran solo los últimos 10 días; en desktop, los 30.
+  const rows = data
+    .slice(isTouch ? -10 : 0)
+    .map((row) => ({
+      ...row,
+      label: `${row.fecha.slice(8)}/${row.fecha.slice(5, 7)}`,
+    }))
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -33,11 +36,11 @@ export function DailySalesChart({ data }: Props) {
         <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.muted} vertical={false} />
         <XAxis
           dataKey="label"
-          tick={AXIS_TICK}
+          tick={isTouch ? { ...AXIS_TICK, fontSize: 9 } : AXIS_TICK}
           tickLine={false}
           axisLine={false}
-          interval={Math.max(0, Math.round(rows.length / 12) - 1)}
-          minTickGap={24}
+          interval={isTouch ? 1 : Math.max(0, Math.round(rows.length / 12) - 1)}
+          minTickGap={isTouch ? 8 : 24}
         />
         <YAxis
           tick={AXIS_TICK}
