@@ -8,9 +8,12 @@ import {
 } from "@/lib/api-response"
 import { requireOneOf, requirePermission } from "@/lib/server/guards"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { recomputePagoEstado } from "@/app/api/cartera/helpers"
+import { rebuildOrderAbonos, recomputePagoEstado } from "@/app/api/cartera/helpers"
+import { applyStockDeltas } from "@/app/api/mermas/helpers"
+import { nicaDate } from "@/app/api/reports/helpers"
 import { buildAbonoPlan } from "@/features/cartera/lib/pagos"
 import { orderHasStock, type StockMap } from "@/features/orders/lib/stock"
+import { roundQty } from "@/lib/format"
 import {
   computeOrderTotal,
   generateAndStoreProforma,
@@ -170,9 +173,12 @@ export async function PUT(request: Request, { params }: RouteContext) {
 }
 
 /**
- * Edita un pedido que sigue EN PROCESO (status 5): actualiza items, total,
- * cliente, modalidad de pago y notas, y regenera la proforma. No toca stock
- * (solo se descuenta al aprobar), ni cartera, ni almacén.
+ * Edita un pedido EN PROCESO (5) o APROBADO (6): actualiza items, total,
+ * cliente, modalidad de pago y notas, y regenera la proforma.
+ * - En proceso: no toca stock (solo se descuenta al aprobar), ni cartera, ni almacén.
+ * - Aprobado: ajusta el stock por la diferencia (devuelve lo quitado, descuenta
+ *   lo aumentado), regenera el plan de abonos si cambia el total/modalidad
+ *   (preservando lo ya cobrado) y asegura su entrega en almacén.
  */
 export async function PATCH(request: Request, { params }: RouteContext) {
   const { id } = await params
@@ -199,15 +205,17 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
   const { data: existing } = await supabase
     .from("orders")
-    .select("id, status_id, proforma_url")
+    .select("id, status_id, items, total, payment_type, created_at, proforma_url")
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle()
 
   if (!existing) return notFound("Pedido no encontrado")
-  if (existing.status_id !== 5) {
-    return badRequest("Solo se pueden editar pedidos En proceso")
+  if (existing.status_id !== 5 && existing.status_id !== 6) {
+    return badRequest("Solo se pueden editar pedidos En proceso o Aprobados")
   }
+
+  const isApproved = existing.status_id === 6
 
   // Si la tienda deshabilitó los pagos en cuotas, se fuerza contado.
   const { data: storeProfile } = await supabase
@@ -219,6 +227,74 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     storeProfile?.payment_plans_enabled === false
       ? "contado"
       : ((body.paymentType as string) || "contado")
+
+  // --- Pedidos aprobados: planificar el ajuste de stock y cartera ----------
+  // Pre-flight antes de escribir nada: si falla la validación, se devuelve 400
+  // sin haber tocado el pedido.
+  let stockDeltas: Record<string, number> = {}
+  let planChanged = false
+
+  if (isApproved) {
+    const oldItems = (existing.items ?? []) as OrderItemRow[]
+    const oldQtyById = new Map<string, number>()
+    for (const item of oldItems) {
+      if (item.productId) oldQtyById.set(item.productId, Number(item.quantity ?? 0))
+    }
+
+    // delta por producto = cantidad vieja − cantidad nueva (positivo devuelve
+    // stock, negativo descuenta más). Los productos quitados devuelven todo.
+    stockDeltas = {}
+    for (const item of items) {
+      const oldQty = oldQtyById.get(item.productId) ?? 0
+      stockDeltas[item.productId] = roundQty(oldQty - item.quantity)
+      oldQtyById.delete(item.productId)
+    }
+    for (const [productId, oldQty] of oldQtyById) {
+      if (oldQty > 0) stockDeltas[productId] = roundQty((stockDeltas[productId] ?? 0) + oldQty)
+    }
+
+    // Validar que alcanza el stock para los deltas negativos (subir cantidad o
+    // agregar productos) contra el stock actual (que ya tiene descontado el pedido).
+    const needingStock = Object.entries(stockDeltas).filter(([, delta]) => delta < 0)
+    if (needingStock.length > 0) {
+      const ids = needingStock.map(([productId]) => productId)
+      const { data: products = [] } = await supabase
+        .from("products")
+        .select("id, name, stock")
+        .in("id", ids)
+      const productById = new Map((products ?? []).map((p) => [p.id, p]))
+      for (const [productId, delta] of needingStock) {
+        const product = productById.get(productId)
+        const available = product ? Number(product.stock ?? 0) : 0
+        const needed = -delta
+        if (!product || available < needed) {
+          const name = product?.name ?? "producto"
+          return badRequest(
+            `Stock insuficiente para editar el pedido: "${name}" (disponible ${available}, necesitas ${needed} más)`,
+          )
+        }
+      }
+    }
+
+    // Si cambia el total o la modalidad de pago, hay que regenerar el plan de
+    // abonos. Validar de antemano que lo ya cobrado no supere el nuevo total.
+    planChanged =
+      existing.payment_type !== paymentType || Number(existing.total ?? 0) !== total
+    if (planChanged) {
+      const { data: abonos } = await supabase
+        .from("abonos")
+        .select("abonado")
+        .eq("order_id", id)
+      const totalAbonado = roundQty(
+        (abonos ?? []).reduce((sum, a) => sum + Number(a.abonado), 0),
+      )
+      if (totalAbonado > total) {
+        return badRequest(
+          `El pedido ya tiene C$ ${totalAbonado.toFixed(2)} abonados y el nuevo total (C$ ${total.toFixed(2)}) no puede ser menor a lo cobrado.`,
+        )
+      }
+    }
+  }
 
   const itemsWithSnapshot = await snapshotPurchasePrice(supabase, items)
 
@@ -243,6 +319,34 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     return serverError(error)
   }
 
+  // Pedidos aprobados: aplicar los ajustes pre-validados — stock por la
+  // diferencia de cantidades, plan de abonos si cambió total/modalidad y
+  // la entrega en almacén (una por pedido aprobado; los items de Almacén y
+  // los reportes se leen del snapshot del pedido, así que se actualizan solos).
+  if (isApproved) {
+    await applyStockDeltas(supabase, stockDeltas)
+
+    if (planChanged) {
+      const rebuilt = await rebuildOrderAbonos(
+        supabase,
+        id,
+        paymentType,
+        total,
+        nicaDate(existing.created_at),
+      )
+      if (!rebuilt.ok) return badRequest(rebuilt.message)
+    }
+
+    const { data: existingDelivery } = await supabase
+      .from("deliveries")
+      .select("id")
+      .eq("order_id", id)
+      .maybeSingle()
+    if (!existingDelivery) {
+      await supabase.from("deliveries").insert({ order_id: id, status_id: 1 })
+    }
+  }
+
   // Regenerar la proforma con los datos editados. Primero se genera y persiste
   // la nueva URL (best-effort); solo si tuvo éxito se borra la proforma vieja
   // del Storage para no dejar huérfanos ni romper una URL aún vigente.
@@ -262,8 +366,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     await removeStoredProforma(supabase, oldProformaUrl)
   }
 
-  // canApprove con los items editados contra el stock actual (el pedido aún
-  // no descontó stock por estar En proceso).
+  // canApprove con los items editados contra el stock actual. Solo es
+  // relevante para pedidos En proceso (los aprobados ya no se vuelven a aprobar).
   const productIds = [...new Set(items.map((item) => item.productId).filter(Boolean))] as string[]
   let canApprove = false
   if (productIds.length > 0) {

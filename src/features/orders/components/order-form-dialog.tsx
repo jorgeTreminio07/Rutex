@@ -54,6 +54,7 @@ interface OrderProductRowProps {
   qtyValue: string
   priceValue: string
   pactado: boolean
+  maxQty?: number
   onStep: (delta: number) => void
   onQtyChange: (raw: string) => void
   onPriceChange: (raw: string) => void
@@ -67,6 +68,7 @@ function OrderProductRow({
   qtyValue,
   priceValue,
   pactado,
+  maxQty,
   onStep,
   onQtyChange,
   onPriceChange,
@@ -111,6 +113,9 @@ function OrderProductRow({
               />
             </span>
             <span>· Stock {formatQty(product.stock)}</span>
+            {maxQty !== undefined && maxQty !== product.stock && (
+              <span>· ajustable hasta {formatQty(maxQty)}</span>
+            )}
           </div>
           {pactado && (
             <button
@@ -148,7 +153,7 @@ function OrderProductRow({
             type="button"
             variant="ghost"
             size="icon-sm"
-            disabled={quantity >= product.stock}
+            disabled={quantity >= (maxQty ?? product.stock)}
             onClick={() => onStep(0.5)}
             aria-label={`Sumar media unidad de ${product.name}`}
           >
@@ -179,6 +184,7 @@ interface OrderFormDialogProps {
 
 export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogProps) {
   const isEditing = !!order
+  const isEditingApproved = isEditing && order?.statusId === 6
   const createOrder = useCreateOrder()
   const updateOrder = useUpdateOrder()
   const { data: clients = [] } = useClients()
@@ -205,6 +211,23 @@ export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogPr
     ),
   )
   const [createdOrder, setCreatedOrder] = useState<OrderDto | null>(null)
+
+  // Cantidades originales del pedido: al editar un pedido APROBADO, el stock
+  // ya tiene descontada esa cantidad, así que se puede subir hasta stock + lo
+  // que ya está en el pedido (regla que también valida el servidor).
+  const oldQtyById = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const item of order?.items ?? []) {
+      map.set(item.productId, item.quantity)
+    }
+    return map
+  }, [order])
+
+  const maxQtyFor = (product: ProductDto): number => {
+    const stock = product.stock
+    if (isEditingApproved) return roundQty(stock + (oldQtyById.get(product.id) ?? 0))
+    return stock
+  }
 
   const bankAccounts: BankAccountInfo[] = (store?.bankAccounts ?? []).map((a) => ({
     bankName: a.bankName,
@@ -285,10 +308,11 @@ export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogPr
   const itemCount = selectedProducts.reduce((sum, p) => sum + (quantities[p.id] ?? 0), 0)
 
   const setQuantity = (productId: string, quantity: number) => {
-    const stock = products.find((p) => p.id === productId)?.stock ?? 0
+    const product = products.find((p) => p.id === productId)
+    const max = product ? maxQtyFor(product) : 0
     setQuantities((prev) => ({
       ...prev,
-      [productId]: roundQty(Math.max(0, Math.min(quantity, stock))),
+      [productId]: roundQty(Math.max(0, Math.min(quantity, max))),
     }))
   }
 
@@ -440,7 +464,9 @@ export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogPr
             <DialogTitle>{isEditing ? "Editar pedido" : "Nuevo pedido"}</DialogTitle>
             <DialogDescription>
               {isEditing
-                ? "Modifica los productos, cantidades, precios o la modalidad de pago. Se regenera la proforma."
+                ? order?.statusId === 6
+                  ? "Pedido aprobado: los cambios ajustan inventario, cartera y proforma."
+                  : "Modifica los productos, cantidades, precios o la modalidad de pago. Se regenera la proforma."
                 : "Selecciona el cliente registrado y los productos del pedido."}
             </DialogDescription>
           </DialogHeader>
@@ -448,6 +474,13 @@ export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogPr
           {/* Contenedor principal con scroll único */}
           <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
             <div className="flex flex-col gap-6">
+              {isEditingApproved && (
+                <p className="rounded-lg bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
+                  Pedido aprobado: al guardar se ajusta el stock de los productos (devuelve lo
+                  quitado, descuenta lo aumentado), la cartera si cambia el total o la modalidad de
+                  pago (conservando lo ya cobrado) y se regenera la proforma.
+                </p>
+              )}
               {/* Sección de Cliente */}
               <div className="flex flex-col gap-2">
                 <Label htmlFor="order-client">{isEditing ? "Cliente" : "Cliente *"}</Label>
@@ -596,6 +629,7 @@ export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogPr
                           qtyValue={qtyInputs[product.id] ?? String(quantity)}
                           priceValue={priceInputs[product.id] ?? price.toFixed(2)}
                           pactado={isPactado(product)}
+                          maxQty={isEditingApproved ? maxQtyFor(product) : undefined}
                           onStep={(delta) => stepQuantity(product, delta)}
                           onQtyChange={(raw) => handleQuantityChange(product, raw)}
                           onPriceChange={(raw) => handlePriceChange(product.id, raw)}
@@ -631,6 +665,7 @@ export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogPr
                           qtyValue={qtyInputs[product.id] ?? (quantity > 0 ? String(quantity) : "")}
                           priceValue={priceInputs[product.id] ?? price.toFixed(2)}
                           pactado={isPactado(product)}
+                          maxQty={isEditingApproved ? maxQtyFor(product) : undefined}
                           onStep={(delta) => stepQuantity(product, delta)}
                           onQtyChange={(raw) => handleQuantityChange(product, raw)}
                           onPriceChange={(raw) => handlePriceChange(product.id, raw)}

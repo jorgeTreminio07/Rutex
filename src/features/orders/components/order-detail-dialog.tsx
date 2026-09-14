@@ -154,18 +154,25 @@ export function OrderDetailDialog({
             )}
 
             <DialogFooter>
+              {(order.statusId === 5 || order.statusId === 6) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  disabled={isPending}
+                  title={
+                    order.statusId === 6
+                      ? "Editar el pedido aprobado ajusta inventario, cartera y proforma"
+                      : undefined
+                  }
+                  onClick={() => onEdit(order)}
+                >
+                  <PencilIcon className="size-4" />
+                  Editar
+                </Button>
+              )}
               {order.statusId === 5 && (
                 <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="gap-2"
-                    disabled={isPending}
-                    onClick={() => onEdit(order)}
-                  >
-                    <PencilIcon className="size-4" />
-                    Editar
-                  </Button>
                   <Button
                     type="button"
                     variant="outline"

@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { getEffectivePrice } from "@/features/catalog/lib/whatsapp"
-import { formatQty } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { ProductDto } from "@/types/interfaces/product.interface"
 
@@ -89,16 +88,12 @@ export function CatalogProductDetailDialog({
                 C$ {price.toFixed(2)}
               </span>
             </div>
-            {outOfStock ? (
+            {outOfStock && (
               <Badge variant="destructive" className="mt-2">Agotado</Badge>
-            ) : (
-              <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold">
-                {formatQty(product.stock)} disponibles
-              </span>
             )}
             {!outOfStock && inCart > 0 && (
               <p className="mt-1 text-xs text-muted-foreground">
-                Ya tienes {inCart} en el carrito. Puedes agregar {Math.max(0, Math.floor(product.stock) - inCart)} más.
+                Ya tienes {inCart} en el carrito.
               </p>
             )}
           </div>
