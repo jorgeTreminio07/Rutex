@@ -6,15 +6,25 @@ import {
   Clock3Icon,
   HandCoinsIcon,
   PackageSearchIcon,
+  PackageXIcon,
+  PieChartIcon,
+  ReceiptIcon,
+  ShoppingCartIcon,
+  TrendingDownIcon,
   UsersRoundIcon,
   type LucideIcon,
 } from "lucide-react"
 
 import { CarteraReport } from "@/features/reports/components/cartera-report"
 import { ClientsReport } from "@/features/reports/components/clients-report"
+import { ComprasReport } from "@/features/reports/components/compras-report"
+import { GastosReport } from "@/features/reports/components/gastos-report"
 import { HoursReport } from "@/features/reports/components/hours-report"
+import { MermasReport } from "@/features/reports/components/mermas-report"
+import { PerdidasReport } from "@/features/reports/components/perdidas-report"
 import { ProductsReport } from "@/features/reports/components/products-report"
 import { ProfitReport } from "@/features/reports/components/profit-report"
+import { ResumenReport } from "@/features/reports/components/resumen-report"
 import { cn } from "@/lib/utils"
 
 interface ReportDef {
@@ -30,6 +40,11 @@ const REPORTS: ReportDef[] = [
   { id: "clients", label: "Pedidos por cliente", icon: UsersRoundIcon, component: ClientsReport },
   { id: "cartera", label: "Cartera por período", icon: HandCoinsIcon, component: CarteraReport },
   { id: "hours", label: "Horario de compras", icon: Clock3Icon, component: HoursReport },
+  { id: "gastos", label: "Gastos", icon: ReceiptIcon, component: GastosReport },
+  { id: "compras", label: "Compras", icon: ShoppingCartIcon, component: ComprasReport },
+  { id: "mermas", label: "Mermas", icon: PackageXIcon, component: MermasReport },
+  { id: "perdidas", label: "Pérdidas", icon: TrendingDownIcon, component: PerdidasReport },
+  { id: "resumen", label: "Resumen financiero", icon: PieChartIcon, component: ResumenReport },
 ]
 
 export function ReportsView() {

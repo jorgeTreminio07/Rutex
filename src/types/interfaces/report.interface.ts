@@ -168,6 +168,121 @@ export interface DashboardMermaMotivoRow {
   total: number
 }
 
+export interface GastoReportRow {
+  fecha: string
+  titulo: string
+  observacion: string | null
+  monto: number
+}
+
+export interface GastoReportSummary {
+  gastos: number
+  total: number
+}
+
+export interface GastoReportDto {
+  from: string
+  to: string
+  rows: GastoReportRow[]
+  summary: GastoReportSummary
+}
+
+export interface CompraReportRow {
+  fecha: string
+  titulo: string
+  proveedor: string | null
+  monto: number
+}
+
+export interface CompraReportSummary {
+  compras: number
+  total: number
+  proveedores: number
+}
+
+export interface CompraReportDto {
+  from: string
+  to: string
+  rows: CompraReportRow[]
+  summary: CompraReportSummary
+}
+
+export interface MermaReportRow {
+  fecha: string
+  mermaNumber: string | null
+  motivo: string
+  unidades: number
+  costo: number
+  valorVenta: number
+}
+
+export interface MermaReportSummary {
+  mermas: number
+  unidades: number
+  costo: number
+  valorVenta: number
+}
+
+export interface MermaReportDto {
+  from: string
+  to: string
+  rows: MermaReportRow[]
+  summary: MermaReportSummary
+}
+
+export interface PerdidaReportRow {
+  fecha: string
+  mermaNumber: string | null
+  motivo: string
+  producto: string
+  cantidad: number
+  costoPerdido: number
+  valorVentaPerdido: number
+}
+
+export interface PerdidaReportSummary {
+  mermas: number
+  unidades: number
+  costoPerdido: number
+  valorVentaPerdido: number
+}
+
+export interface PerdidaReportDto {
+  from: string
+  to: string
+  rows: PerdidaReportRow[]
+  summary: PerdidaReportSummary
+}
+
+export interface ResumenDiaRow {
+  fecha: string
+  ventas: number
+  costo: number
+  gananciaBruta: number
+  gastos: number
+  mermas: number
+  compras: number
+}
+
+export interface ResumenReportSummary {
+  pedidos: number
+  ventas: number
+  costo: number
+  gananciaBruta: number
+  gastos: number
+  perdidaMermas: number
+  compras: number
+  gananciaNeta: number
+  flujoCaja: number
+}
+
+export interface ResumenReportDto {
+  from: string
+  to: string
+  days: ResumenDiaRow[]
+  summary: ResumenReportSummary
+}
+
 export interface DashboardDto {
   generatedAt: string
   kpis: DashboardKpis

@@ -56,3 +56,15 @@ export interface OrderItemSnapshot {
 export function parseOrderItems(items: unknown): OrderItemSnapshot[] {
   return Array.isArray(items) ? (items as OrderItemSnapshot[]) : []
 }
+
+export interface MermaItemSnapshot {
+  productId?: string
+  productName?: string
+  quantity?: number
+  purchasePrice?: number
+  sellPrice?: number
+}
+
+export function parseMermaItems(items: unknown): MermaItemSnapshot[] {
+  return Array.isArray(items) ? (items as MermaItemSnapshot[]) : []
+}
