@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf"
 
+import { formatQty } from "@/lib/format"
 import type { BankAccountInfo } from "@/features/catalog/lib/whatsapp"
 import type { OrderItem, PaymentType } from "@/types/interfaces/order.interface"
 
@@ -108,7 +109,7 @@ export function generateProformaPdf(data: ProformaData): jsPDF {
     const amountX = colXs[2]
     const itemTotal = item.price * item.quantity
     doc.text(item.productName.substring(0, 46), descriptionX, y)
-    doc.text(String(item.quantity), quantityX, y, { align: "right" })
+    doc.text(formatQty(item.quantity), quantityX, y, { align: "right" })
     doc.text(`C$ ${itemTotal.toFixed(2)}`, amountX, y, { align: "right" })
     y += 6
   })

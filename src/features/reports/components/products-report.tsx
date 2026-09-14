@@ -182,7 +182,7 @@ async function exportProductSales(dto: ProductSalesReportDto): Promise<void> {
     filename: `ventas-por-producto-${rangeName(dto.from, dto.to)}.xlsx`,
     columns: [
       { header: "Producto", key: "productName", width: 42 },
-      { header: "Unidades", key: "cantidad", width: 12, numFmt: "0" },
+      { header: "Unidades", key: "cantidad", width: 12, numFmt: "0.###" },
       { header: "Ventas", key: "ventas", width: 14, numFmt: MONEY },
       { header: "Costo", key: "costo", width: 14, numFmt: MONEY },
       { header: "Ganancia", key: "ganancia", width: 14, numFmt: MONEY },

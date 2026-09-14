@@ -181,7 +181,7 @@ async function exportClientSales(dto: ClientSalesReportDto): Promise<void> {
     columns: [
       { header: "Cliente", key: "cliente", width: 32 },
       { header: "Pedidos", key: "pedidos", width: 12, numFmt: "0" },
-      { header: "Unidades", key: "unidades", width: 12, numFmt: "0" },
+      { header: "Unidades", key: "unidades", width: 12, numFmt: "0.###" },
       { header: "Ventas", key: "ventas", width: 14, numFmt: MONEY },
       { header: "Ganancia", key: "ganancia", width: 14, numFmt: MONEY },
     ],

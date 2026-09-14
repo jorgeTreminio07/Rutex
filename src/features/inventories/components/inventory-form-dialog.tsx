@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { usePaged } from "@/lib/use-paged"
+import { roundQty } from "@/lib/format"
 import type { InventoryItemDto } from "@/types/interfaces/inventory.interface"
 import type { ProductDto } from "@/types/interfaces/product.interface"
 
@@ -44,6 +45,7 @@ export function InventoryFormDialog({
 }: InventoryFormDialogProps) {
   const [search, setSearch] = useState("")
   const [quantities, setQuantities] = useState<Record<string, number>>(() => ({ ...initialQuantities }))
+  const [qtyInputs, setQtyInputs] = useState<Record<string, string>>({})
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -58,6 +60,27 @@ export function InventoryFormDialog({
 
   const setQuantity = (productId: string, quantity: number) => {
     setQuantities((prev) => ({ ...prev, [productId]: Math.max(0, quantity) }))
+  }
+
+  const handleQuantityInput = (productId: string, raw: string) => {
+    const cleaned = raw.replace(/[^0-9.]/g, "")
+    const firstDot = cleaned.indexOf(".")
+    const normalized =
+      firstDot === -1
+        ? cleaned
+        : `${cleaned.slice(0, firstDot)}.${cleaned.slice(firstDot + 1).replace(/\./g, "")}`
+    setQtyInputs((prev) => ({ ...prev, [productId]: normalized }))
+    const value = normalized === "" || normalized === "." ? 0 : Number(normalized)
+    setQuantity(productId, Number.isFinite(value) ? roundQty(Math.max(0, value)) : 0)
+  }
+
+  const stepQuantity = (productId: string, delta: number) => {
+    setQtyInputs((prev) => {
+      const next = { ...prev }
+      delete next[productId]
+      return next
+    })
+    setQuantity(productId, (quantities[productId] ?? 0) + delta)
   }
 
   const handleSubmit = async () => {
@@ -136,29 +159,25 @@ export function InventoryFormDialog({
                         variant="ghost"
                         size="icon-sm"
                         disabled={quantity <= 0}
-                        onClick={() => setQuantity(product.id, quantity - 1)}
+                        onClick={() => stepQuantity(product.id, -1)}
                         aria-label={`Restar ${product.name}`}
                       >
                         <MinusIcon />
                       </Button>
                       <input
                         type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={quantity}
-                        onChange={(e) => {
-                          const raw = e.target.value.replace(/[^0-9]/g, "")
-                          setQuantity(product.id, raw === "" ? 0 : parseInt(raw, 10))
-                        }}
+                        inputMode="decimal"
+                        value={qtyInputs[product.id] ?? (quantity > 0 ? String(quantity) : "")}
+                        onChange={(e) => handleQuantityInput(product.id, e.target.value)}
                         onFocus={(e) => e.target.select()}
                         aria-label={`Cantidad de ${product.name}`}
-                        className="w-12 rounded-md border-0 bg-transparent text-center text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-ring"
+                        className="w-16 rounded-md border-0 bg-transparent text-center text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-ring"
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => setQuantity(product.id, quantity + 1)}
+                        onClick={() => stepQuantity(product.id, 1)}
                         aria-label={`Sumar ${product.name}`}
                       >
                         <PlusIcon />

@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
+import { roundQty } from "@/lib/format"
+
 export interface MermaItemInput {
   productId: string
   productName?: string
@@ -19,10 +21,10 @@ export function parseMermaItems(items: unknown, allowEmpty = false): MermaItemIn
     const productId = typeof item.productId === "string" ? item.productId.trim() : ""
     const quantity = Number(item.quantity)
     if (!productId) return null
-    if (!Number.isInteger(quantity) || quantity < 0) return null
+    if (!Number.isFinite(quantity) || quantity < 0 || Math.abs(quantity - roundQty(quantity)) > 1e-9) return null
     parsed.push({
       productId,
-      quantity,
+      quantity: roundQty(quantity),
       productName: typeof item.productName === "string" ? item.productName : undefined,
     })
   }

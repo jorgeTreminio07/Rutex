@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { OrderDto } from "@/types/interfaces/order.interface"
+import { formatQty } from "@/lib/format"
 
 function getStatusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
@@ -106,7 +107,7 @@ export function OrderDetailDialog({
                   {order.items.map((item, idx) => (
                     <div key={`${item.productId}-${idx}`} className="flex items-start gap-3 py-2 text-sm">
                       <span className="mt-0.5 shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs font-bold">
-                        {item.quantity}x
+                        {formatQty(item.quantity)}x
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium">{item.productName}</p>

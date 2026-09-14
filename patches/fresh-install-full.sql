@@ -274,7 +274,7 @@ create table if not exists public.products (
   price           numeric(12,2) not null default 0,
   discount_percent numeric(5,2) not null default 0,
   category        text not null,
-  stock           int not null default 0,
+  stock           numeric(12,3) not null default 0,
   images          jsonb not null default '[]'::jsonb,
   status_id       int not null default 1 references public.statuses(id),
   created_at      timestamptz not null default now(),

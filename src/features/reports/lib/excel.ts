@@ -104,7 +104,7 @@ export async function exportProfitToExcel(dto: ProfitReportDto): Promise<void> {
     { header: "Fecha", key: "fecha", width: 14 },
     { header: "Pedido", key: "orderNumber", width: 18 },
     { header: "Producto", key: "productName", width: 42 },
-    { header: "Cantidad", key: "cantidad", width: 10, numFmt: "0" },
+    { header: "Cantidad", key: "cantidad", width: 10, numFmt: "0.###" },
     { header: "P. Compra", key: "precioCompra", width: 12, numFmt: MONEY_FORMAT },
     { header: "P. Venta", key: "precioVenta", width: 12, numFmt: MONEY_FORMAT },
     { header: "Ganancia", key: "ganancia", width: 13, numFmt: MONEY_FORMAT },

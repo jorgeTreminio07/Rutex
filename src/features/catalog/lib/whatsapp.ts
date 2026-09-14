@@ -1,6 +1,7 @@
 import type { CartLine } from "@/features/catalog/store/use-cart-store"
 import type { OrderItem, PaymentType } from "@/types/interfaces/order.interface"
 import type { ProductDto } from "@/types/interfaces/product.interface"
+import { formatQty } from "@/lib/format"
 
 export interface BankAccountInfo {
   bankName: string
@@ -107,7 +108,7 @@ export function generateOrderWhatsAppUrl(payload: OrderMessagePayload): string {
   items.forEach((item) => {
     const unitPrice = item.price
     const itemTotal = unitPrice * item.quantity
-    text += `• ${item.quantity}x ${item.productName} - C$ ${unitPrice.toFixed(2)} c/u (C$ ${itemTotal.toFixed(2)})\n`
+    text += `• ${formatQty(item.quantity)}x ${item.productName} - C$ ${unitPrice.toFixed(2)} c/u (C$ ${itemTotal.toFixed(2)})\n`
   })
 
   text += `\n*Total a pagar:* C$ ${total.toFixed(2)}\n`
@@ -144,7 +145,7 @@ export function generateApprovalWhatsAppUrl(payload: ApprovalMessagePayload): st
   text += `*Resumen de su compra:*\n`
 
   order.items.forEach((item) => {
-    text += `• ${item.quantity}x ${item.productName} (C$ ${(item.price * item.quantity).toFixed(2)})\n`
+    text += `• ${formatQty(item.quantity)}x ${item.productName} (C$ ${(item.price * item.quantity).toFixed(2)})\n`
   })
 
   text += `\n*Total Final:* C$ ${order.total.toFixed(2)}\n`

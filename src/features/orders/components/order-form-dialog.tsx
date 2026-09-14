@@ -39,8 +39,10 @@ import { useCreateOrder } from "@/features/orders/hooks/use-orders"
 import { useProducts } from "@/features/products/hooks/use-products"
 import { useStore } from "@/features/store/hooks/use-store"
 import { usePaged } from "@/lib/use-paged"
+import { formatQty, round2, roundQty } from "@/lib/format"
 import type { ClientDto } from "@/types/interfaces/client.interface"
 import type { OrderDto, OrderItem, PaymentType } from "@/types/interfaces/order.interface"
+import type { ProductDto } from "@/types/interfaces/product.interface"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZE = 10
@@ -63,6 +65,8 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
   const [search, setSearch] = useState("")
   const [scannerOpen, setScannerOpen] = useState(false)
   const [quantities, setQuantities] = useState<Record<string, number>>({})
+  const [qtyInputs, setQtyInputs] = useState<Record<string, string>>({})
+  const [priceInputs, setPriceInputs] = useState<Record<string, string>>({})
   const [createdOrder, setCreatedOrder] = useState<OrderDto | null>(null)
 
   const bankAccounts: BankAccountInfo[] = (store?.bankAccounts ?? []).map((a) => ({
@@ -95,15 +99,81 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
     setPage,
   } = usePaged(filteredProducts, PAGE_SIZE)
 
+  // Precio de venta por producto: si se pactó un precio en el formulario se
+  // usa ese; si no, el vigente (con descuento aplicado).
+  const effectivePrice = (product: ProductDto): number => {
+    const raw = priceInputs[product.id]
+    if (raw === undefined || raw === "" || raw === ".") return getEffectivePrice(product)
+    const value = Number(raw)
+    return Number.isFinite(value) && value >= 0 ? value : getEffectivePrice(product)
+  }
+
+  const isPactado = (product: ProductDto): boolean => {
+    const raw = priceInputs[product.id]
+    return (
+      raw !== undefined &&
+      raw !== "" &&
+      raw !== "." &&
+      Math.abs(effectivePrice(product) - getEffectivePrice(product)) > 0.001
+    )
+  }
+
+  // Limpia un texto a dígitos con un solo punto decimal.
+  const sanitizeDecimal = (raw: string): string => {
+    const cleaned = raw.replace(/[^0-9.]/g, "")
+    const firstDot = cleaned.indexOf(".")
+    return firstDot === -1
+      ? cleaned
+      : `${cleaned.slice(0, firstDot)}.${cleaned.slice(firstDot + 1).replace(/\./g, "")}`
+  }
+
+  const parseDecimalInput = (raw: string): number => {
+    const normalized = sanitizeDecimal(raw)
+    if (normalized === "" || normalized === ".") return 0
+    const value = Number(normalized)
+    return Number.isFinite(value) ? Math.max(0, value) : 0
+  }
+
   const selectedProducts = products.filter((p) => (quantities[p.id] ?? 0) > 0)
   const total = selectedProducts.reduce(
-    (sum, p) => sum + getEffectivePrice(p) * (quantities[p.id] ?? 0),
+    (sum, p) => sum + effectivePrice(p) * (quantities[p.id] ?? 0),
     0,
   )
   const itemCount = selectedProducts.reduce((sum, p) => sum + (quantities[p.id] ?? 0), 0)
 
   const setQuantity = (productId: string, quantity: number) => {
-    setQuantities((prev) => ({ ...prev, [productId]: Math.max(0, quantity) }))
+    const stock = products.find((p) => p.id === productId)?.stock ?? 0
+    setQuantities((prev) => ({
+      ...prev,
+      [productId]: roundQty(Math.max(0, Math.min(quantity, stock))),
+    }))
+  }
+
+  const handleQuantityChange = (product: ProductDto, raw: string) => {
+    const normalized = sanitizeDecimal(raw)
+    setQtyInputs((prev) => ({ ...prev, [product.id]: normalized }))
+    setQuantity(product.id, parseDecimalInput(normalized))
+  }
+
+  const stepQuantity = (product: ProductDto, delta: number) => {
+    setQtyInputs((prev) => {
+      const next = { ...prev }
+      delete next[product.id]
+      return next
+    })
+    setQuantity(product.id, (quantities[product.id] ?? 0) + delta)
+  }
+
+  const handlePriceChange = (productId: string, raw: string) => {
+    setPriceInputs((prev) => ({ ...prev, [productId]: sanitizeDecimal(raw) }))
+  }
+
+  const resetPrice = (productId: string) => {
+    setPriceInputs((prev) => {
+      const next = { ...prev }
+      delete next[productId]
+      return next
+    })
   }
 
   const reset = () => {
@@ -114,6 +184,8 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
     setSearch("")
     setScannerOpen(false)
     setQuantities({})
+    setQtyInputs({})
+    setPriceInputs({})
   }
 
   const handleSubmit = async () => {
@@ -122,8 +194,8 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
     const orderItems: OrderItem[] = selectedProducts.map((p) => ({
       productId: p.id,
       productName: p.name,
-      price: getEffectivePrice(p),
-      quantity: quantities[p.id] ?? 0,
+      price: round2(effectivePrice(p)),
+      quantity: roundQty(quantities[p.id] ?? 0),
     }))
 
     try {
@@ -326,7 +398,7 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
                   <ul className="flex flex-col gap-1.5">
                     {visibleProducts.map((product) => {
                       const quantity = quantities[product.id] ?? 0
-                      const price = getEffectivePrice(product)
+                      const price = effectivePrice(product)
                       return (
                         <li
                           key={product.id}
@@ -356,12 +428,33 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
                               >
                                 {product.category}
                               </Badge>
-                              <p className="mt-0.5 text-xs text-muted-foreground">
+                              <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
                                 {product.discountPercent > 0 && (
-                                  <span className="mr-1 line-through">C$ {product.price.toFixed(2)}</span>
+                                  <span className="line-through">C$ {product.price.toFixed(2)}</span>
                                 )}
-                                C$ {price.toFixed(2)} · Stock {product.stock}
-                              </p>
+                                <span className="inline-flex items-center gap-1">
+                                  C$
+                                  <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={priceInputs[product.id] ?? price.toFixed(2)}
+                                    onChange={(e) => handlePriceChange(product.id, e.target.value)}
+                                    onFocus={(e) => e.target.select()}
+                                    aria-label={`Precio pactado de ${product.name}`}
+                                    className="w-16 rounded-md border-0 bg-transparent px-1 text-right text-xs font-semibold text-foreground tabular-nums outline-none focus:ring-2 focus:ring-ring"
+                                  />
+                                </span>
+                                <span>· Stock {formatQty(product.stock)}</span>
+                              </div>
+                              {isPactado(product) && (
+                                <button
+                                  type="button"
+                                  onClick={() => resetPrice(product.id)}
+                                  className="mt-0.5 text-[10px] font-medium text-primary underline underline-offset-2"
+                                >
+                                  Restablecer precio oficial
+                                </button>
+                              )}
                             </div>
                           </div>
                           <div className="flex shrink-0 items-center gap-1 rounded-xl border p-0.5">
@@ -370,33 +463,27 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
                               variant="ghost"
                               size="icon-sm"
                               disabled={quantity <= 0}
-                              onClick={() => setQuantity(product.id, quantity - 1)}
-                              aria-label={`Restar ${product.name}`}
+                              onClick={() => stepQuantity(product, -0.5)}
+                              aria-label={`Restar media unidad de ${product.name}`}
                             >
                               <MinusIcon />
                             </Button>
                             <input
                               type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              value={quantity}
-                              onChange={(e) => {
-                                const raw = e.target.value.replace(/[^0-9]/g, "")
-                                const value =
-                                  raw === "" ? 0 : Math.min(parseInt(raw, 10), product.stock)
-                                setQuantity(product.id, value)
-                              }}
+                              inputMode="decimal"
+                              value={qtyInputs[product.id] ?? (quantity > 0 ? String(quantity) : "")}
+                              onChange={(e) => handleQuantityChange(product, e.target.value)}
                               onFocus={(e) => e.target.select()}
                               aria-label={`Cantidad de ${product.name}`}
-                              className="w-10 rounded-md border-0 bg-transparent text-center text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-ring"
+                              className="w-16 rounded-md border-0 bg-transparent text-center text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-ring"
                             />
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon-sm"
                               disabled={quantity >= product.stock}
-                              onClick={() => setQuantity(product.id, quantity + 1)}
-                              aria-label={`Sumar ${product.name}`}
+                              onClick={() => stepQuantity(product, 0.5)}
+                              aria-label={`Sumar media unidad de ${product.name}`}
                             >
                               <PlusIcon />
                             </Button>
@@ -423,7 +510,7 @@ export function OrderFormDialog({ open, onOpenChange }: OrderFormDialogProps) {
             <div className="text-sm text-muted-foreground">
               {itemCount > 0 ? (
                 <>
-                  <span className="font-semibold text-foreground">{itemCount}</span> artículos · Total{" "}
+                  <span className="font-semibold text-foreground">{formatQty(itemCount)}</span> unidades · Total{" "}
                   <span className="font-semibold text-foreground">C$ {total.toFixed(2)}</span>
                 </>
               ) : (

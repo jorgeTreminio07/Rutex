@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { getEffectivePrice } from "@/features/catalog/lib/whatsapp"
+import { formatQty } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { ProductDto } from "@/types/interfaces/product.interface"
 
@@ -92,12 +93,12 @@ export function CatalogProductDetailDialog({
               <Badge variant="destructive" className="mt-2">Agotado</Badge>
             ) : (
               <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold">
-                {product.stock} disponibles
+                {formatQty(product.stock)} disponibles
               </span>
             )}
             {!outOfStock && inCart > 0 && (
               <p className="mt-1 text-xs text-muted-foreground">
-                Ya tienes {inCart} en el carrito. Puedes agregar {Math.max(0, product.stock - inCart)} más.
+                Ya tienes {inCart} en el carrito. Puedes agregar {Math.max(0, Math.floor(product.stock) - inCart)} más.
               </p>
             )}
           </div>
@@ -120,8 +121,8 @@ export function CatalogProductDetailDialog({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
-                disabled={outOfStock || quantity >= product.stock}
+                onClick={() => setQuantity((q) => Math.min(Math.floor(product.stock), q + 1))}
+                disabled={outOfStock || quantity >= Math.floor(product.stock)}
                 aria-label="Aumentar cantidad"
               >
                 <PlusIcon />
@@ -129,7 +130,7 @@ export function CatalogProductDetailDialog({
             </div>
             <Button
               className="flex-1 gap-2"
-              disabled={outOfStock || quantity > product.stock - inCart}
+              disabled={outOfStock || quantity > Math.floor(product.stock) - inCart}
               onClick={() => {
                 onAdd(product, quantity)
                 onClose()

@@ -2,6 +2,7 @@
 
 import { PackageXIcon } from "lucide-react"
 
+import { formatQty } from "@/lib/format"
 import type { DashboardStockBajoRow } from "@/types/interfaces/report.interface"
 
 interface Props {
@@ -35,7 +36,7 @@ export function StockBajoList({ data }: Props) {
                   : "font-semibold text-primary"
               }
             >
-              {row.stock}
+              {formatQty(row.stock)}
             </span>
           </div>
           <div className="h-2 w-full rounded-full bg-muted">

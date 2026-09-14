@@ -27,6 +27,8 @@
 - Al **eliminar** un pedido (soft delete: `deleted_at` + status 4), el trigger `trg_orders_cleanup_cartera` (patch 012) elimina sus filas de `pagos`, `abonos` y `abono_registros` (el `ON DELETE CASCADE` de las FK solo aplica a borrado físico).
 - Las filas/tarjetas de la vista de pedidos son clicables; aprobar/rechazar/eliminar están dentro del **modal de detalle** (`order-detail-dialog.tsx`).
 - El filtro de fecha usa `DatePicker` personalizado (no nativo).
+- **Cantidades fraccionarias y precio pactado** (patch 035): en el pedido interno (`order-form-dialog.tsx`) las cantidades admiten decimales (hasta 3, ej. 0.5/1.25; steppers ±0.5 más input decimal editable, límite = stock) y cada producto tiene un **input de precio editable** (precio pactado puntual por pedido). El `price` que se envía/guarda en `orders.items` es ese precio pactado (si se deja intacto, el vigente con descuento), por lo que **proformas, recibos, WhatsApp, reportes, cartera y dashboard lo respetan automáticamente** (todos leen el snapshot `item.price`, nadie re-lee `products.price`). El carrito público sigue en enteros (clamps con `Math.floor(stock)`). `products.stock` pasó de `int` a `numeric(12,3)`; para las instalaciones nuevas ya viene así en `fresh-install-full.sql`.
+- Los pedidos legacy conservan su snapshot de precios/cantidades; los nuevos ya capturan lo pactado.
 - UI de pedidos: tabla (desktop) y lista (móvil) en `src/features/orders/`.
 
 ## Selectores / UI
@@ -63,7 +65,7 @@
 - **Al editar**: se muestra el inventario con las cantidades guardadas; al bajar/subir y guardar, el stock se ajusta por la **diferencia** (nueva − anterior); nunca baja de 0.
 - APIs: `GET/POST /api/inventories`, `GET/PUT /api/inventories/[id]` (sin DELETE). Lógica de deltas en `src/app/api/inventories/helpers.ts`. Hooks `useInventories/useCreateInventory/useUpdateInventory` (`inventoriesKeys.all`); crear/editar invalida inventarios **y** productos (stock cambia).
 - UI en `src/features/inventories/` (vista con búsqueda por número + DatePicker, filtro de fecha **vacío por defecto**, tabla + lista móvil, fila clicable → editar) y modal `inventory-form-dialog.tsx` (stepper +/- por producto **con cantidad editable a teclado**: el número es un input numérico que filtra no-dígitos y se selecciona al enfocarlo, además de los botones). Ruta `/inventarios`, nav `NAV_INVENTORIES`.
-- **Stock de producto**: solo entra vía inventario (crear/editar). El campo Stock **se quitó** del formulario de producto (schema, payloads y dialog); la API sigue aceptándolo por tolerancia pero el cliente ya no lo envía. Baja al aprobar pedidos (status 6) y sube al eliminar pedidos aprobados.
+- **Stock de producto**: solo entra vía inventario (crear/editar). El campo Stock **se quitó** del formulario de producto (schema, payloads y dialog); la API sigue aceptándolo por tolerancia pero el cliente ya no lo envía. Baja al aprobar pedidos (status 6) y sube al eliminar pedidos aprobados. Es fraccionario (`numeric(12,3)`): inventario y mermas admiten 0.5/1.25 (inputs decimales, hasta 3 decimales).
 
 ## Mermas (bajas de stock)
 - Tablas (patch 026): `public.merma_motivos` (catálogo de motivos genéricos sembrado, id+name, RLS lectura autenticada/escritura admin) y `public.mermas`: `merma_number` `MER[YYYYMMDD][6 dígitos]` vía RPC `next_merma_number()` (tabla `merma_counters`), `motivo_id` FK `merma_motivos`, `items` jsonb `[{ productId, productName, quantity, purchasePrice, sellPrice }]`, `total_value` (suma precio de venta × cantidad, snapshot server-side), `observation`, `created_at`, `updated_at`.
@@ -159,6 +161,7 @@
 30. `032-role-permissions.sql` (tablas `role_permissions` con RPC `role_bulk_set_permissions` + `permission_modules`/`permission_actions`/`permissions` catalogadas; RLS lectura autenticada / escritura admin; **idempotente** vía `drop policy if exists`)
 31. `033-indexes-performance.sql` (índices para los listados paginados y dashboard/reportes: productos/orders por fecha, clientes/entregas/mermas/inventarios/gastos/compras por fecha, routes/pagos)
 32. `034-bank-accounts-encrypt-rls.sql` (RLS `bank_select` restringido a **solo admin**; los números de cuenta se cifran server-side con `BANK_ACCOUNT_ENC_KEY` — sin él, cualquier autenticado leía los números completos vía PostgREST)
+33. `035-products-stock-decimal.sql` (**stock fraccionario**: `products.stock` de `int` a `numeric(12,3)` para vender 0.5/1.25 de cajas o paquetes; idempotente — sin él la BD redondea el stock al aprobar pedidos con fracciones)
 
 ## Reportes
 - Sección **Reportes** (ruta `/reportes`, nav `NAV_REPORTS` en sidebar/menú móvil **debajo de Compras**). Pills horizontales para cambiar de reporte; **todos disponibles** (Ganancias por día, Ventas por producto, Pedidos por cliente, Cartera por período, Horario de compras). Infraestructura compartida en `src/features/reports/`: `useReportDateRange` (`lib/date-range.ts`, arranca en "Hoy" Nicaragua con accesos Hoy/7 días/Este mes), `ReportToolbar` (`components/report-toolbar.tsx`: Desde/Hasta + rápidos + Exportar Excel + contador), `SummaryCard` y `fmtMoney/fmtDate/fmtHora/rangeName` en `lib/format.ts`.

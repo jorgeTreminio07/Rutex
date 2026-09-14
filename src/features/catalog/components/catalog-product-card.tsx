@@ -5,6 +5,7 @@ import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import { getEffectivePrice } from "@/features/catalog/lib/whatsapp"
+import { formatQty } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { ProductDto } from "@/types/interfaces/product.interface"
 
@@ -70,7 +71,7 @@ export function CatalogProductCard({
           </span>
         ) : (
           <span className="absolute top-2 right-2 rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-foreground backdrop-blur">
-            {product.stock}
+            {formatQty(product.stock)}
           </span>
         )}
       </div>
@@ -114,7 +115,7 @@ export function CatalogProductCard({
                   e.stopPropagation()
                   onIncrement()
                 }}
-                disabled={outOfStock || quantity >= product.stock}
+                disabled={outOfStock || quantity >= Math.floor(product.stock)}
                 aria-label={`Agregar ${product.name}`}
               >
                 <PlusIcon />
@@ -124,7 +125,7 @@ export function CatalogProductCard({
             <Button
               size="sm"
               variant="outline"
-              disabled={outOfStock || quantity >= product.stock}
+              disabled={outOfStock || quantity >= Math.floor(product.stock)}
               onClick={(e) => {
                 e.stopPropagation()
                 onAdd()

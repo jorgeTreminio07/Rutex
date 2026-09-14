@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
 import { usePaged } from "@/lib/use-paged"
+import { formatQty } from "@/lib/format"
 import type { ProductDto } from "@/types/interfaces/product.interface"
 
 const PAGE_SIZE = 10
@@ -91,7 +92,7 @@ export function ProductsTable({ products, onEdit, onDelete }: ProductsTableProps
                 </TableCell>
                 <TableCell className="text-right">
                   <Badge variant={product.stock <= 0 ? "destructive" : product.stock <= 5 ? "secondary" : "default"}>
-                    {product.stock}
+                    {formatQty(product.stock)}
                   </Badge>
                 </TableCell>
                 <TableCell>

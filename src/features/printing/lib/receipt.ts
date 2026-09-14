@@ -1,5 +1,6 @@
 import type { OrderDto } from "@/types/interfaces/order.interface"
 import type { StoreProfileDto } from "@/types/interfaces/store.interface"
+import { formatQty } from "@/lib/format"
 import { encodeEscPos, type ReceiptBlock } from "@/features/printing/lib/escape-pos"
 import { NICARAGUA_TIME_ZONE } from "@/features/deliveries/lib/format"
 
@@ -23,7 +24,7 @@ export const RECEIPT_PAPER_SIZES: Record<ReceiptPaperWidth, ReceiptPaperSize> = 
 const DEFAULT_PAPER = RECEIPT_PAPER_SIZES[58]
 
 function columnsFor(chars: number): { qtyWidth: number; valueWidth: number } {
-  return chars <= 32 ? { qtyWidth: 3, valueWidth: 10 } : { qtyWidth: 5, valueWidth: 11 }
+  return chars <= 32 ? { qtyWidth: 5, valueWidth: 10 } : { qtyWidth: 5, valueWidth: 11 }
 }
 
 function separator(chars: number): string {
@@ -155,7 +156,7 @@ export function buildReceiptBlocks(
   for (const item of order.items) {
     blocks.push({
       text: formatItemLine(
-        String(item.quantity),
+        formatQty(item.quantity),
         item.productName,
         `C$ ${(item.price * item.quantity).toFixed(2)}`,
         chars,

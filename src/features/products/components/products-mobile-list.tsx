@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
 import { usePaged } from "@/lib/use-paged"
+import { formatQty } from "@/lib/format"
 import type { ProductDto } from "@/types/interfaces/product.interface"
 
 const PAGE_SIZE = 10
@@ -50,7 +51,7 @@ export function ProductsMobileList({ products, onEdit, onDelete }: ProductsMobil
                   <p className="truncate font-medium">{product.name}</p>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-[10px]">{product.category}</Badge>
-                    <span className="text-xs text-muted-foreground">Stock: {product.stock}</span>
+                    <span className="text-xs text-muted-foreground">Stock: {formatQty(product.stock)}</span>
                   </div>
                   <div className="flex items-center gap-1">
                       {hasDiscount && (

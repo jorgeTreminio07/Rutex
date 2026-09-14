@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { usePaged } from "@/lib/use-paged"
+import { formatQty, roundQty } from "@/lib/format"
 import type {
   MermaItemDto,
   MermaMotivoDto,
@@ -71,6 +72,7 @@ export function MermaFormDialog({
   const [quantities, setQuantities] = useState<Record<string, number>>(() =>
     Object.fromEntries(initialItems.map((item) => [item.productId, item.quantity])),
   )
+  const [qtyInputs, setQtyInputs] = useState<Record<string, string>>({})
   const [motivoId, setMotivoId] = useState<number | null>(initialMotivoId)
   const [motivoQuery, setMotivoQuery] = useState(initialMotivoName ?? "")
   const [motivoOpen, setMotivoOpen] = useState(false)
@@ -109,6 +111,27 @@ export function MermaFormDialog({
       ...prev,
       [productId]: Math.max(0, Math.min(max, quantity)),
     }))
+  }
+
+  const handleQuantityInput = (productId: string, raw: string) => {
+    const cleaned = raw.replace(/[^0-9.]/g, "")
+    const firstDot = cleaned.indexOf(".")
+    const normalized =
+      firstDot === -1
+        ? cleaned
+        : `${cleaned.slice(0, firstDot)}.${cleaned.slice(firstDot + 1).replace(/\./g, "")}`
+    setQtyInputs((prev) => ({ ...prev, [productId]: normalized }))
+    const value = normalized === "" || normalized === "." ? 0 : Number(normalized)
+    setQuantity(productId, Number.isFinite(value) ? roundQty(Math.max(0, value)) : 0)
+  }
+
+  const stepQuantity = (productId: string, delta: number) => {
+    setQtyInputs((prev) => {
+      const next = { ...prev }
+      delete next[productId]
+      return next
+    })
+    setQuantity(productId, (quantities[productId] ?? 0) + delta)
   }
 
   const handleSubmit = async () => {
@@ -255,12 +278,12 @@ export function MermaFormDialog({
                             <span>
                               Stock:{" "}
                               <span className="font-semibold text-foreground">
-                                {product.stock}
+                                {formatQty(product.stock)}
                               </span>
                             </span>
                             <span>
                               Máx. baja:{" "}
-                              <span className="font-semibold text-foreground">{max}</span>
+                              <span className="font-semibold text-foreground">{formatQty(max)}</span>
                             </span>
                           </div>
                         </div>
@@ -271,30 +294,26 @@ export function MermaFormDialog({
                           variant="ghost"
                           size="icon-sm"
                           disabled={quantity <= 0}
-                          onClick={() => setQuantity(product.id, quantity - 1)}
+                          onClick={() => stepQuantity(product.id, -1)}
                           aria-label={`Restar ${product.name}`}
                         >
                           <MinusIcon />
                         </Button>
                         <input
                           type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={quantity}
-                          onChange={(e) => {
-                            const raw = e.target.value.replace(/[^0-9]/g, "")
-                            setQuantity(product.id, raw === "" ? 0 : parseInt(raw, 10))
-                          }}
+                          inputMode="decimal"
+                          value={qtyInputs[product.id] ?? (quantity > 0 ? String(quantity) : "")}
+                          onChange={(e) => handleQuantityInput(product.id, e.target.value)}
                           onFocus={(e) => e.target.select()}
                           aria-label={`Cantidad de ${product.name}`}
-                          className="w-12 rounded-md border-0 bg-transparent text-center text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-ring"
+                          className="w-16 rounded-md border-0 bg-transparent text-center text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-ring"
                         />
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon-sm"
                           disabled={reachedMax}
-                          onClick={() => setQuantity(product.id, quantity + 1)}
+                          onClick={() => stepQuantity(product.id, 1)}
                           aria-label={`Sumar ${product.name}`}
                           title={
                             reachedMax

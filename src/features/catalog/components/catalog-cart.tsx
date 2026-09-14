@@ -209,7 +209,7 @@ export function CatalogCart({
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    disabled={quantity >= product.stock}
+                    disabled={quantity >= Math.floor(product.stock)}
                     onClick={() => onUpdateQuantity(product.id, quantity + 1)}
                   >
                     <PlusIcon />

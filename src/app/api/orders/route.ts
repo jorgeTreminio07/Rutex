@@ -12,6 +12,7 @@ import type { BankAccountInfo } from "@/features/catalog/lib/whatsapp"
 import { getAssetUrl, sanitizeStorageKeySegment } from "@/lib/assets"
 import { decryptBankAccountNumber } from "@/lib/encrypt"
 import { fetchAllRows, isPaging, paginated, parsePagination } from "@/app/api/pagination"
+import { isValidQty, round2, roundQty } from "@/lib/format"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import type { OrderDto, OrderItem, OrderStatus, PaymentType } from "@/types/interfaces/order.interface"
@@ -227,12 +228,30 @@ export async function POST(request: Request) {
 
   const customerName = (body.customerName as string)?.trim()
   const customerAddress = (body.customerAddress as string)?.trim() || null
-  const items = body.items as Array<{ productId: string; productName: string; price: number; quantity: number }>
+  const rawItems = body.items
 
   if (!customerName) return badRequest("El nombre del cliente es obligatorio")
-  if (!items || items.length === 0) return badRequest("El pedido debe tener al menos un producto")
+  if (!Array.isArray(rawItems) || rawItems.length === 0) return badRequest("El pedido debe tener al menos un producto")
 
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  // Normaliza y valida cada item. La cantidad admite fracciones (hasta 3
+  // decimales: 0.5, 1.25…) y el precio de venta es el que envía el cliente
+  // (precio oficial, con descuento o precio pactado) — solo se sanea.
+  const items: Array<{ productId: string; productName: string; price: number; quantity: number }> = []
+  for (const raw of rawItems as Array<Record<string, unknown>>) {
+    if (!raw || typeof raw !== "object") return badRequest("Hay un ítem de pedido inválido")
+    const productId = typeof raw.productId === "string" ? raw.productId.trim() : ""
+    const productName = typeof raw.productName === "string" ? raw.productName.trim() : ""
+    const quantity = Number(raw.quantity)
+    const price = Number(raw.price)
+    if (!productId || !productName) return badRequest("Hay un producto sin identificar en el pedido")
+    if (!isValidQty(quantity)) {
+      return badRequest(`Cantidad inválida para "${productName}": usa un número mayor a 0 con hasta 3 decimales`)
+    }
+    if (!Number.isFinite(price) || price < 0) return badRequest(`Precio inválido para "${productName}"`)
+    items.push({ productId, productName, price: round2(price), quantity: roundQty(quantity) })
+  }
+
+  const total = round2(items.reduce((sum, item) => sum + item.price * item.quantity, 0))
 
   const supabase = createAdminClient()
 
