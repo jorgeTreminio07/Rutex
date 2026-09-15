@@ -168,7 +168,7 @@ export function Sidebar() {
 
         <SidebarLink
           item={NAV_REPORTS}
-          active={pathname === "/reportes"}
+          active={pathname === "/reportes" || pathname.startsWith("/reportes/")}
           collapsed={collapsed}
         />
 

@@ -165,7 +165,7 @@ export function MobileNavSheet({ open, onOpenChange }: MobileNavSheetProps) {
 
           <MobileNavLink
             item={NAV_REPORTS}
-            active={pathname === "/reportes"}
+            active={pathname === "/reportes" || pathname.startsWith("/reportes/")}
             onNavigate={close}
           />
 
