@@ -9,6 +9,8 @@ import {
 import { toast } from "sonner"
 
 import {
+  editarAbonoRequest,
+  eliminarAbonoRequest,
   getCarteraRequest,
   registrarAbonoRequest,
   type GetCarteraParams,
@@ -36,12 +38,51 @@ export function useRegistrarAbono() {
   return useMutation({
     mutationFn: ({ orderId, monto }: { orderId: string; monto: number }) =>
       registrarAbonoRequest(orderId, monto),
-    onSuccess: (_data, variables) => {
+    onSuccess: () => {
       toast.success("Abono registrado correctamente")
       queryClient.invalidateQueries({ queryKey: carteraKeys.all })
       queryClient.invalidateQueries({ queryKey: ordersKeys.all })
-      void variables
     },
     onError: (error) => toast.error(getApiErrorMessage(error, "No se pudo registrar el abono")),
+  })
+}
+
+export function useEditarAbono() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      orderId,
+      registroId,
+      monto,
+    }: {
+      orderId: string
+      registroId: string
+      monto: number
+    }) => editarAbonoRequest(orderId, registroId, monto),
+    onSuccess: () => {
+      toast.success("Abono actualizado correctamente")
+      queryClient.invalidateQueries({ queryKey: carteraKeys.all })
+      queryClient.invalidateQueries({ queryKey: ordersKeys.all })
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error, "No se pudo actualizar el abono")),
+  })
+}
+
+export function useEliminarAbono() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      orderId,
+      registroId,
+    }: {
+      orderId: string
+      registroId: string
+    }) => eliminarAbonoRequest(orderId, registroId),
+    onSuccess: () => {
+      toast.success("Abono eliminado correctamente")
+      queryClient.invalidateQueries({ queryKey: carteraKeys.all })
+      queryClient.invalidateQueries({ queryKey: ordersKeys.all })
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error, "No se pudo eliminar el abono")),
   })
 }

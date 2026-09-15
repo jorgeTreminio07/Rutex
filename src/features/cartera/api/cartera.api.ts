@@ -34,4 +34,24 @@ export async function registrarAbonoRequest(
   )
 }
 
+export async function editarAbonoRequest(
+  orderId: string,
+  registroId: string,
+  monto: number,
+): Promise<{ monto: number; totalAbonado: number }> {
+  return apiClient.put<{ monto: number; totalAbonado: number }>(
+    `/api/cartera/${orderId}/abonos/${registroId}`,
+    { monto },
+  )
+}
+
+export async function eliminarAbonoRequest(
+  orderId: string,
+  registroId: string,
+): Promise<{ monto: number; totalAbonado: number }> {
+  return apiClient.delete<{ monto: number; totalAbonado: number }>(
+    `/api/cartera/${orderId}/abonos/${registroId}`,
+  )
+}
+
 export type { AbonoDto }
