@@ -20,6 +20,7 @@ import type { ProductDto } from "@/types/interfaces/product.interface"
 interface CatalogProductDetailDialogProps {
   product: ProductDto | null
   inCart: number
+  showStock: boolean
   onClose: () => void
   onAdd: (product: ProductDto, quantity: number) => void
 }
@@ -27,6 +28,7 @@ interface CatalogProductDetailDialogProps {
 export function CatalogProductDetailDialog({
   product,
   inCart,
+  showStock,
   onClose,
   onAdd,
 }: CatalogProductDetailDialogProps) {
@@ -36,6 +38,7 @@ export function CatalogProductDetailDialog({
 
   const price = getEffectivePrice(product)
   const outOfStock = product.stock <= 0
+  const availableUnits = Math.floor(product.stock)
   const hasDiscount = product.discountPercent > 0
   const image = product.images[0]
 
@@ -90,6 +93,11 @@ export function CatalogProductDetailDialog({
             </div>
             {outOfStock && (
               <Badge variant="destructive" className="mt-2">Agotado</Badge>
+            )}
+            {!outOfStock && showStock && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {availableUnits} disponible{availableUnits === 1 ? "" : "s"} en stock
+              </p>
             )}
             {!outOfStock && inCart > 0 && (
               <p className="mt-1 text-xs text-muted-foreground">

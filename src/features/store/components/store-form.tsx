@@ -66,6 +66,7 @@ export function StoreForm({ store, isPending, onSubmit }: StoreFormProps) {
       phone: "",
       workingHours: "",
       paymentPlansEnabled: true,
+      showStockInCatalog: false,
     },
   })
 
@@ -73,6 +74,7 @@ export function StoreForm({ store, isPending, onSubmit }: StoreFormProps) {
   const selectedStamp = useWatch({ control: form.control, name: "stamp" })
   const selectedSignature = useWatch({ control: form.control, name: "signature" })
   const paymentPlansEnabled = useWatch({ control: form.control, name: "paymentPlansEnabled" })
+  const showStockInCatalog = useWatch({ control: form.control, name: "showStockInCatalog" })
 
   useEffect(() => {
     if (store) {
@@ -85,6 +87,7 @@ export function StoreForm({ store, isPending, onSubmit }: StoreFormProps) {
         phone: store.phone ?? "",
         workingHours: store.workingHours ?? "",
         paymentPlansEnabled: store.paymentPlansEnabled ?? true,
+        showStockInCatalog: store.showStockInCatalog ?? false,
       })
     }
   }, [store, form])
@@ -254,6 +257,44 @@ export function StoreForm({ store, isPending, onSubmit }: StoreFormProps) {
                 className={cn(
                   "size-6 rounded-full bg-background shadow-sm transition-transform duration-300 ease-in-out",
                   paymentPlansEnabled ? "translate-x-5" : "translate-x-0",
+                )}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-start justify-between gap-4 rounded-xl border p-4">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="store-show-stock" className="text-sm font-semibold">
+                Mostrar stock en el catálogo
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Si está desactivado, no se muestra cuántas unidades hay por producto
+                (solo el indicador &quot;Agotado&quot; cuando no hay stock).
+              </p>
+            </div>
+            <button
+              type="button"
+              id="store-show-stock"
+              role="switch"
+              aria-checked={showStockInCatalog}
+              aria-label="Mostrar stock en el catálogo"
+              onClick={() =>
+                form.setValue("showStockInCatalog", !showStockInCatalog, {
+                  shouldValidate: true,
+                })
+              }
+              className={cn(
+                "inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border p-0.5 transition-colors outline-none",
+                "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:border-ring",
+                showStockInCatalog
+                  ? "border-transparent bg-primary"
+                  : "border-border bg-input/50",
+              )}
+            >
+              <span
+                className={cn(
+                  "size-6 rounded-full bg-background shadow-sm transition-transform duration-300 ease-in-out",
+                  showStockInCatalog ? "translate-x-5" : "translate-x-0",
                 )}
               />
             </button>

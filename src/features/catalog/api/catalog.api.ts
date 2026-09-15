@@ -7,6 +7,7 @@ export interface CatalogStoreInfo {
   logoUrl: string | null
   phone: string | null
   paymentPlansEnabled: boolean
+  showStockInCatalog: boolean
 }
 
 export interface CatalogData {

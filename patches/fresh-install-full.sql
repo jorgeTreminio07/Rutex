@@ -103,7 +103,8 @@ create table if not exists public.store_profile (
   address       text,
   phone         text,
   working_hours text,
-  payment_plans_enabled boolean not null default true,
+payment_plans_enabled boolean not null default true,
+  show_stock_in_catalog boolean not null default false,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz
 );
@@ -1650,6 +1651,22 @@ create policy "bank_select" on public.bank_accounts
 -- ============================================================
 -- FIN 034
 -- ============================================================
+
+
+-- ============================================================
+-- BLOQUE: patches\036-store-show-stock-catalog.sql
+-- ============================================================
+
+-- ============================================================
+-- 036 - Mostrar stock en catálogo (configuración de tienda)
+-- Agrega a store_profile la bandera `show_stock_in_catalog`.
+-- Si está en true, el catálogo público muestra cuántas unidades
+-- hay por producto (tarjeta y modal de detalle).
+-- Si está en false (por defecto), solo el badge "Agotado".
+-- ============================================================
+
+alter table public.store_profile
+  add column if not exists show_stock_in_catalog boolean not null default false;
 
 
 -- =====================================================================

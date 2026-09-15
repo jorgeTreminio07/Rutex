@@ -14,6 +14,7 @@ export interface UpdateStorePayload {
   phone?: string
   workingHours?: string
   paymentPlansEnabled?: boolean
+  showStockInCatalog?: boolean
   logo?: File | null
   stamp?: File | null
   signature?: File | null
@@ -42,6 +43,10 @@ function buildStoreFormData(payload: UpdateStorePayload): FormData {
 
   if (payload.paymentPlansEnabled !== undefined) {
     formData.append("paymentPlansEnabled", String(payload.paymentPlansEnabled))
+  }
+
+  if (payload.showStockInCatalog !== undefined) {
+    formData.append("showStockInCatalog", String(payload.showStockInCatalog))
   }
 
   if (payload.logo) {

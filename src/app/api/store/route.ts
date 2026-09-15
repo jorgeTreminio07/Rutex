@@ -85,6 +85,7 @@ export async function GET() {
     phone: profile.phone,
     workingHours: profile.working_hours,
     paymentPlansEnabled: profile.payment_plans_enabled,
+    showStockInCatalog: profile.show_stock_in_catalog,
     bankAccounts: mappedBankAccounts,
   });
 }
@@ -110,6 +111,7 @@ export async function PUT(request: Request) {
   const removeStamp = String(formData.get("removeStamp") ?? "") === "true";
   const removeSignature = String(formData.get("removeSignature") ?? "") === "true";
   const paymentPlansEnabled = String(formData.get("paymentPlansEnabled") ?? "") === "true";
+  const showStockInCatalog = String(formData.get("showStockInCatalog") ?? "") === "true";
 
   const supabase = createAdminClient();
 
@@ -165,6 +167,7 @@ export async function PUT(request: Request) {
       phone: phone || null,
       working_hours: workingHours || null,
       payment_plans_enabled: paymentPlansEnabled,
+      show_stock_in_catalog: showStockInCatalog,
       logo_url: logoUrl,
       stamp_url: stampUrl,
       signature_url: signatureUrl,
@@ -212,6 +215,7 @@ export async function PUT(request: Request) {
     phone: data.phone,
     workingHours: data.working_hours,
     paymentPlansEnabled: data.payment_plans_enabled,
+    showStockInCatalog: data.show_stock_in_catalog,
     bankAccounts: mappedBankAccounts,
   });
 }

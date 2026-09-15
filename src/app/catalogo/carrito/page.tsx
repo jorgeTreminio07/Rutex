@@ -18,7 +18,7 @@ export default function CarritoPage() {
   const { data } = useCatalog()
   const { items, updateQuantity, removeItem, clear } = useCartStore()
 
-  const store = data?.store ?? { name: "Rutex", logoUrl: null, phone: null, paymentPlansEnabled: true }
+  const store = data?.store ?? { name: "Rutex", logoUrl: null, phone: null, paymentPlansEnabled: true, showStockInCatalog: false }
   const bankAccounts = data?.bankAccounts ?? []
   const logoUrl = getAssetUrl(store.logoUrl)
 

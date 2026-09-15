@@ -26,6 +26,7 @@ export const storeFormSchema = z.object({
   phone: optionalText(50),
   workingHours: optionalText(255),
   paymentPlansEnabled: z.boolean(),
+  showStockInCatalog: z.boolean(),
   logo: optionalImageFile("El logo"),
   stamp: optionalImageFile("El sello"),
   signature: optionalImageFile("La firma"),

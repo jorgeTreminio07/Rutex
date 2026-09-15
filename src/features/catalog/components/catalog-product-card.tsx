@@ -11,6 +11,7 @@ import type { ProductDto } from "@/types/interfaces/product.interface"
 interface CatalogProductCardProps {
   product: ProductDto
   quantity: number
+  showStock: boolean
   onSelect: () => void
   onAdd: () => void
   onIncrement: () => void
@@ -20,12 +21,14 @@ interface CatalogProductCardProps {
 export function CatalogProductCard({
   product,
   quantity,
+  showStock,
   onSelect,
   onAdd,
   onIncrement,
   onDecrement,
 }: CatalogProductCardProps) {
   const outOfStock = product.stock <= 0
+  const availableUnits = Math.floor(product.stock)
   const price = getEffectivePrice(product)
   const hasDiscount = product.discountPercent > 0
   const image = product.images[0]
@@ -88,6 +91,12 @@ export function CatalogProductCard({
               C$ {price.toFixed(2)}
             </span>
           </div>
+
+          {showStock && !outOfStock && (
+            <span className="text-[10px] font-medium text-muted-foreground">
+              {availableUnits} disponible{availableUnits === 1 ? "" : "s"}
+            </span>
+          )}
 
           {quantity > 0 ? (
             <div className="flex w-full items-center justify-center gap-1 rounded-full border p-0.5">

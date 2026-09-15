@@ -35,7 +35,10 @@ export function CatalogView() {
   const [selected, setSelected] = useState<ProductDto | null>(null)
 
   const products = useMemo(() => data?.products ?? [], [data])
-  const store = useMemo(() => data?.store ?? { name: "Rutex", logoUrl: null, phone: null }, [data])
+  const store = useMemo(
+    () => data?.store ?? { name: "Rutex", logoUrl: null, phone: null, paymentPlansEnabled: true, showStockInCatalog: false },
+    [data],
+  )
 
   const categories = useMemo(() => {
     const set = new Set<string>()
@@ -200,6 +203,7 @@ export function CatalogView() {
                   key={product.id}
                   product={product}
                   quantity={line?.quantity ?? 0}
+                  showStock={store.showStockInCatalog}
                   onSelect={() => setSelected(product)}
                   onAdd={() => addItem(product)}
                   onIncrement={() => addItem(product, 1)}
@@ -215,6 +219,7 @@ export function CatalogView() {
         key={selected?.id ?? "none"}
         product={selected}
         inCart={selected ? (items.find((i) => i.product.id === selected.id)?.quantity ?? 0) : 0}
+        showStock={store.showStockInCatalog}
         onClose={() => setSelected(null)}
         onAdd={addItem}
       />

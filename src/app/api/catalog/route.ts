@@ -22,6 +22,7 @@ interface StoreProfileRow {
   logo_url: string | null
   phone: string | null
   payment_plans_enabled: boolean
+  show_stock_in_catalog: boolean
 }
 
 interface BankAccountRow {
@@ -46,7 +47,7 @@ export async function GET() {
 
   const { data: profile, error: profileError } = (await admin
     .from("store_profile")
-    .select("name, logo_url, phone, payment_plans_enabled")
+    .select("name, logo_url, phone, payment_plans_enabled, show_stock_in_catalog")
     .eq("id", STORE_ROW_ID)
     .maybeSingle()) as unknown as {
     data: StoreProfileRow | null
@@ -83,6 +84,7 @@ export async function GET() {
       logoUrl: profile?.logo_url ?? null,
       phone: profile?.phone ?? null,
       paymentPlansEnabled: profile?.payment_plans_enabled ?? true,
+      showStockInCatalog: profile?.show_stock_in_catalog ?? false,
     },
     bankAccounts: (bankAccounts ?? []).map((b) => ({
       bankName: b.bank_name,
