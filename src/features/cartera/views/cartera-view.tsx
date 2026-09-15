@@ -82,7 +82,7 @@ export function CarteraView() {
         <div className="relative w-full max-w-sm sm:flex-1">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por cliente o número..."
+            placeholder="Buscar por cliente o número de pedido"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9 h-10 rounded-xl"
