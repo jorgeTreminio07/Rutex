@@ -72,7 +72,8 @@ export function CatalogCart({
       : []),
   ]
 
-  const validName = customerName.trim().length > 2
+  const normalizedCustomerName = customerName.trim().toUpperCase()
+  const validName = normalizedCustomerName.length > 2
   const validPhone = customerPhone.trim().length >= 8
 
   const handlePlaceOrder = async () => {
@@ -86,7 +87,7 @@ export function CatalogCart({
     try {
       const orderItems = cartToOrderItems(items)
       const order = await createOrder.mutateAsync({
-        customerName: customerName.trim(),
+        customerName: normalizedCustomerName,
         customerPhone: customerPhone.trim(),
         items: orderItems,
         total,
@@ -102,7 +103,7 @@ export function CatalogCart({
           const pdf = generateProformaPdf({
             storeName,
             storePhone,
-            customerName: customerName.trim(),
+            customerName: normalizedCustomerName,
             customerPhone: customerPhone.trim(),
             orderNumber: order?.orderNumber ?? null,
             items: orderItems,
@@ -114,7 +115,7 @@ export function CatalogCart({
           const blob = new Blob([pdf.output("blob")], { type: "application/pdf" })
           const uploaded = await uploadProformaRequest(
             blob,
-            customerName.trim().replace(/\s+/g, "-"),
+            normalizedCustomerName.replace(/\s+/g, "-"),
           )
           proformaUrl = uploaded.url
         }
@@ -124,7 +125,7 @@ export function CatalogCart({
       } else {
         window.open(
           generateOrderWhatsAppUrl({
-            customerName: customerName.trim(),
+            customerName: normalizedCustomerName,
             customerPhone: customerPhone.trim(),
             items: orderItems,
             total,
@@ -267,7 +268,7 @@ export function CatalogCart({
                   setCustomerPhone(e.target.value)
                   setErrors((prev) => ({ ...prev, phone: false }))
                 }}
-                placeholder="Ej. 89098184"
+                placeholder="Ej. 123456789"
                 className="h-10 rounded-xl"
                 aria-invalid={!!errors.phone}
               />
