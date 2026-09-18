@@ -112,7 +112,7 @@ export function OrderDetailDialog({
                         {formatQty(item.quantity)}x
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">{item.productName}</p>
+                        <p className="break-words font-medium">{item.productName}</p>
                         <p className="text-xs text-muted-foreground">C$ {item.price.toFixed(2)} c/u</p>
                       </div>
                       <span className="shrink-0 font-semibold">C$ {(item.price * item.quantity).toFixed(2)}</span>
