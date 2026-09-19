@@ -14,8 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney, formatQty } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
-import { formatQty } from "@/lib/format"
 import type { ProductDto } from "@/types/interfaces/product.interface"
 
 const PAGE_SIZE = 10
@@ -82,11 +82,11 @@ export function ProductsTable({ products, onEdit, onDelete }: ProductsTableProps
                   <div className="flex flex-col items-end">
                     {hasDiscount && (
                       <span className="text-xs text-muted-foreground line-through">
-                        C$ {product.price.toFixed(2)}
+                        {fmtMoney(product.price)}
                       </span>
                     )}
                     <span className={`font-semibold ${hasDiscount ? "text-destructive" : ""}`}>
-                      C$ {finalPrice.toFixed(2)}
+                      {fmtMoney(finalPrice)}
                     </span>
                   </div>
                 </TableCell>

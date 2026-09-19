@@ -40,7 +40,7 @@ import { useCreateOrder, useUpdateOrder } from "@/features/orders/hooks/use-orde
 import { useProducts } from "@/features/products/hooks/use-products"
 import { useStore } from "@/features/store/hooks/use-store"
 import { usePaged } from "@/lib/use-paged"
-import { formatQty, round2, roundQty } from "@/lib/format"
+import { fmtMoney, formatQty, round2, roundQty } from "@/lib/format"
 import type { ClientDto } from "@/types/interfaces/client.interface"
 import type { OrderDto, OrderItem, PaymentType } from "@/types/interfaces/order.interface"
 import type { ProductDto } from "@/types/interfaces/product.interface"
@@ -98,7 +98,7 @@ function OrderProductRow({
           </Badge>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
             {product.discountPercent > 0 && (
-              <span className="line-through">C$ {product.price.toFixed(2)}</span>
+              <span className="line-through">{fmtMoney(product.price)}</span>
             )}
             <span className="inline-flex items-center gap-1">
               C$
@@ -547,11 +547,11 @@ export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogPr
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   {(
                     [
-                      ["contado", "De contado", `1 pago de C$ ${total.toFixed(2)}`],
+                      ["contado", "De contado", `1 pago de ${fmtMoney(total)}`],
                       ...((store?.paymentPlansEnabled ?? true)
                         ? ([
-                            ["cuotas_2", "2 pagos quincenales", `2x C$ ${(total / 2).toFixed(2)}`],
-                            ["cuotas_4", "4 pagos semanales", `4x C$ ${(total / 4).toFixed(2)}`],
+                            ["cuotas_2", "2 pagos quincenales", `2x ${fmtMoney(total / 2)}`],
+                            ["cuotas_4", "4 pagos semanales", `4x ${fmtMoney(total / 4)}`],
                           ] satisfies [PaymentType, string, string][])
                         : []),
                     ] as [PaymentType, string, string][]
@@ -693,7 +693,7 @@ export function OrderFormDialog({ open, onOpenChange, order }: OrderFormDialogPr
               {itemCount > 0 ? (
                 <>
                   <span className="font-semibold text-foreground">{formatQty(itemCount)}</span> unidades · Total{" "}
-                  <span className="font-semibold text-foreground">C$ {total.toFixed(2)}</span>
+                  <span className="font-semibold text-foreground">{fmtMoney(total)}</span>
                 </>
               ) : (
                 "Agrega al menos un producto"

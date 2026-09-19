@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { OrderDto } from "@/types/interfaces/order.interface"
-import { formatQty } from "@/lib/format"
+import { fmtMoney, formatQty } from "@/lib/format"
 
 function getStatusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
@@ -30,9 +30,9 @@ function getStatusVariant(status: string): "default" | "secondary" | "destructiv
 function getPaymentLine(order: OrderDto): string {
   switch (order.paymentType) {
     case "cuotas_2":
-      return `2 pagos quincenales de C$ ${(order.total / 2).toFixed(2)} c/u`
+      return `2 pagos quincenales de ${fmtMoney(order.total / 2)} c/u`
     case "cuotas_4":
-      return `4 pagos semanales de C$ ${(order.total / 4).toFixed(2)} c/u`
+      return `4 pagos semanales de ${fmtMoney(order.total / 4)} c/u`
     default:
       return "De contado (pago único)"
   }
@@ -113,9 +113,9 @@ export function OrderDetailDialog({
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="break-words font-medium">{item.productName}</p>
-                        <p className="text-xs text-muted-foreground">C$ {item.price.toFixed(2)} c/u</p>
+                        <p className="text-xs text-muted-foreground">{fmtMoney(item.price)} c/u</p>
                       </div>
-                      <span className="shrink-0 font-semibold">C$ {(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="shrink-0 font-semibold">{fmtMoney(item.price * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
@@ -130,7 +130,7 @@ export function OrderDetailDialog({
 
               <div className="flex items-center justify-between rounded-xl bg-primary/5 px-4 py-3">
                 <span className="text-sm font-semibold">Total</span>
-                <span className="text-lg font-extrabold text-primary">C$ {order.total.toFixed(2)}</span>
+                <span className="text-lg font-extrabold text-primary">{fmtMoney(order.total)}</span>
               </div>
             </div>
 

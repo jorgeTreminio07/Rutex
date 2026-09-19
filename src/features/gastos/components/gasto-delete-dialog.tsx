@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { GastoDto } from "@/types/interfaces/gasto.interface"
+import { fmtMoney } from "@/lib/format"
 
 interface GastoDeleteDialogProps {
   gasto: GastoDto | null
@@ -31,8 +32,8 @@ export function GastoDeleteDialog({
           <DialogTitle>Eliminar gasto</DialogTitle>
           <DialogDescription>
             ¿Seguro que deseas eliminar el gasto{" "}
-            <span className="font-medium text-foreground">{gasto?.title}</span> por C${" "}
-            {gasto?.amount.toFixed(2)}?{" "}
+            <span className="font-medium text-foreground">{gasto?.title}</span> por{" "}
+            {fmtMoney(gasto?.amount ?? 0)}?{" "}
             {gasto?.receiptPath && "También se eliminará el recibo del almacenamiento. "}Esta acción
             no se puede deshacer.
           </DialogDescription>

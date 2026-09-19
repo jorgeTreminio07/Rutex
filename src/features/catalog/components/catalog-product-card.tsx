@@ -5,6 +5,7 @@ import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import { getEffectivePrice } from "@/features/catalog/lib/whatsapp"
+import { fmtMoney } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { ProductDto } from "@/types/interfaces/product.interface"
 
@@ -84,11 +85,11 @@ export function CatalogProductCard({
           <div>
             {hasDiscount && (
               <span className="block text-[10px] text-muted-foreground line-through">
-                C$ {product.price.toFixed(2)}
+                {fmtMoney(product.price)}
               </span>
             )}
             <span className={cn("text-base font-bold", hasDiscount && "text-destructive")}>
-              C$ {price.toFixed(2)}
+              {fmtMoney(price)}
             </span>
           </div>
 

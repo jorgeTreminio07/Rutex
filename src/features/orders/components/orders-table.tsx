@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import type { OrderDto } from "@/types/interfaces/order.interface"
 
@@ -68,9 +69,7 @@ export function OrdersTable({ orders, onView }: OrdersTableProps) {
                   )}
                 </div>
               </TableCell>
-              <TableCell className="text-right font-semibold">
-                C$ {order.total.toFixed(2)}
-              </TableCell>
+              <TableCell className="text-right font-semibold">{fmtMoney(order.total)}</TableCell>
               <TableCell>
                 <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
               </TableCell>

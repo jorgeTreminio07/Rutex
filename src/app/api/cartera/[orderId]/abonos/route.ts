@@ -1,6 +1,7 @@
 import { badRequest, notFound, ok, serverError } from "@/lib/api-response"
 import { recomputePagoEstado } from "@/app/api/cartera/helpers"
 import { round2 } from "@/features/cartera/lib/pagos"
+import { fmtMoney } from "@/lib/format"
 import { requirePermission } from "@/lib/server/guards"
 import { createAdminClient } from "@/lib/supabase/admin"
 
@@ -67,7 +68,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   }
 
   if (monto > saldo) {
-    return badRequest(`El abono (C$ ${monto.toFixed(2)}) sobrepasa el saldo restante (C$ ${saldo.toFixed(2)})`)
+    return badRequest(`El abono (${fmtMoney(monto)}) sobrepasa el saldo restante (${fmtMoney(saldo)})`)
   }
 
   // Aplicar el abono a los abonos pendientes en orden de fecha.

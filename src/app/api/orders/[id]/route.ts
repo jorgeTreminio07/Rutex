@@ -13,7 +13,7 @@ import { applyStockDeltas } from "@/app/api/mermas/helpers"
 import { nicaDate } from "@/app/api/reports/helpers"
 import { buildAbonoPlan } from "@/features/cartera/lib/pagos"
 import { orderHasStock, type StockMap } from "@/features/orders/lib/stock"
-import { roundQty } from "@/lib/format"
+import { roundQty, fmtMoney } from "@/lib/format"
 import {
   computeOrderTotal,
   generateAndStoreProforma,
@@ -301,7 +301,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       )
       if (totalAbonado > total) {
         return badRequest(
-          `El pedido ya tiene C$ ${totalAbonado.toFixed(2)} abonados y el nuevo total (C$ ${total.toFixed(2)}) no puede ser menor a lo cobrado.`,
+          `El pedido ya tiene ${fmtMoney(totalAbonado)} abonados y el nuevo total (${fmtMoney(total)}) no puede ser menor a lo cobrado.`,
         )
       }
     }

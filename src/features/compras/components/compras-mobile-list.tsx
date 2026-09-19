@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import type { CompraDto } from "@/types/interfaces/compra.interface"
 
@@ -47,7 +48,7 @@ export function ComprasMobileList({ compras, onEdit, onDelete }: ComprasMobileLi
                 <p className="text-xs text-muted-foreground">{formatDate(compra.createdAt)}</p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                   <Badge variant="outline" className="font-semibold text-[10px]">
-                    C$ {compra.amount.toFixed(2)}
+                    {fmtMoney(compra.amount)}
                   </Badge>
                   {compra.supplierName && (
                     <Badge variant="outline" className="max-w-40 text-[10px]">

@@ -2,6 +2,7 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import type { ProfitReportRow, ProfitReportSummary } from "@/types/interfaces/report.interface"
 
@@ -83,8 +84,4 @@ function formatFecha(fecha: string): string {
     month: "short",
     year: "numeric",
   })
-}
-
-function fmtMoney(value: number): string {
-  return `C$ ${value.toFixed(2)}`
 }

@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import type { InventoryDto } from "@/types/interfaces/inventory.interface"
 
@@ -62,7 +63,7 @@ export function InventoriesTable({
                 </Badge>
               </TableCell>
               <TableCell className="text-right font-semibold">{inventory.totalUnits}</TableCell>
-              <TableCell className="text-right pr-6 font-semibold">C$ {inventory.totalValue.toFixed(2)}</TableCell>
+              <TableCell className="text-right pr-6 font-semibold">{fmtMoney(inventory.totalValue)}</TableCell>
               <TableCell>
                 <div className="flex justify-end gap-1">
                   <Button

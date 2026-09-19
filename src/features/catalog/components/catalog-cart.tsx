@@ -20,6 +20,7 @@ import {
 import { OrderActionDialog } from "@/features/orders/components/order-action-dialog"
 import { useCreateOrder } from "@/features/orders/hooks/use-orders"
 import { uploadProformaRequest } from "@/features/catalog/api/catalog.api"
+import { fmtMoney } from "@/lib/format"
 import type { CartLine } from "@/features/catalog/store/use-cart-store"
 import type { OrderDto, PaymentType } from "@/types/interfaces/order.interface"
 import { cn } from "@/lib/utils"
@@ -63,11 +64,11 @@ export function CatalogCart({
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0)
 
   const paymentOptions: [PaymentType, string, string][] = [
-    ["contado", "De contado", `1 pago de C$ ${total.toFixed(2)}`],
+    ["contado", "De contado", `1 pago de ${fmtMoney(total)}`],
     ...(paymentPlansEnabled
       ? ([
-          ["cuotas_2", "2 pagos quincenales", `2x C$ ${(total / 2).toFixed(2)}`],
-          ["cuotas_4", "4 pagos semanales", `4x C$ ${(total / 4).toFixed(2)}`],
+          ["cuotas_2", "2 pagos quincenales", `2x ${fmtMoney(total / 2)}`],
+          ["cuotas_4", "4 pagos semanales", `4x ${fmtMoney(total / 4)}`],
         ] satisfies [PaymentType, string, string][])
       : []),
   ]
@@ -196,11 +197,11 @@ export function CatalogCart({
                   <h4 className="truncate text-sm font-semibold">{product.name}</h4>
                   <p className="text-xs text-muted-foreground">
                     {product.discountPercent > 0 && (
-                      <span className="mr-1 line-through">C$ {product.price.toFixed(2)}</span>
+                      <span className="mr-1 line-through">{fmtMoney(product.price)}</span>
                     )}
-                    C$ {price.toFixed(2)} c/u
+                    {fmtMoney(price)} c/u
                   </p>
-                  <p className="mt-0.5 text-xs font-bold">C$ {(price * quantity).toFixed(2)}</p>
+                  <p className="mt-0.5 text-xs font-bold">{fmtMoney(price * quantity)}</p>
                 </div>
                 <div className="flex items-center gap-1 rounded-xl border p-0.5">
                   <Button variant="ghost" size="icon-sm" onClick={() => onUpdateQuantity(product.id, quantity - 1)}>
@@ -315,7 +316,7 @@ export function CatalogCart({
         <Card className="space-y-3 p-5">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Subtotal</span>
-            <span className="font-semibold">C$ {total.toFixed(2)}</span>
+            <span className="font-semibold">{fmtMoney(total)}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Envío por</span>
@@ -324,7 +325,7 @@ export function CatalogCart({
           <div className="border-t pt-3">
             <div className="flex items-center justify-between">
               <span className="text-base font-extrabold">Total</span>
-              <span className="text-base font-extrabold text-primary">C$ {total.toFixed(2)}</span>
+              <span className="text-base font-extrabold text-primary">{fmtMoney(total)}</span>
             </div>
           </div>
 

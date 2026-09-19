@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import type { OrderDto } from "@/types/interfaces/order.interface"
 
@@ -50,7 +51,7 @@ export function OrdersMobileList({ orders, onView }: OrdersMobileListProps) {
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-semibold">C$ {order.total.toFixed(2)}</p>
+                  <p className="font-semibold">{fmtMoney(order.total)}</p>
                 </div>
               </div>
             </Card>

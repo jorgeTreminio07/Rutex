@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { CompraDto } from "@/types/interfaces/compra.interface"
+import { fmtMoney } from "@/lib/format"
 
 interface CompraDeleteDialogProps {
   compra: CompraDto | null
@@ -38,7 +39,7 @@ export function CompraDeleteDialog({
                 <span className="font-medium text-foreground">{compra.supplierName}</span>
               </>
             ) : null}{" "}
-            por C$ {compra?.amount.toFixed(2)}?{" "}
+            por {fmtMoney(compra?.amount ?? 0)}?{" "}
             {compra?.receiptPath && "También se eliminará el recibo del almacenamiento. "}Esta
             acción no se puede deshacer.
           </DialogDescription>

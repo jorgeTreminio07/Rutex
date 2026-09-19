@@ -21,3 +21,12 @@ export function isValidQty(value: number): boolean {
 export function round2(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100
 }
+
+// Formatea un monto de dinero con separador de miles: 1234.5 → "C$ 1,234.50".
+export function fmtMoney(value: number): string {
+  const sign = value < 0 ? "-" : ""
+  const abs = round2(Math.abs(value))
+  const [int, dec] = abs.toFixed(2).split(".")
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+  return `C$ ${sign}${grouped}.${dec}`
+}

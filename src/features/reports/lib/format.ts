@@ -1,6 +1,6 @@
-export function fmtMoney(value: number): string {
-  return `C$ ${value.toFixed(2)}`
-}
+import { fmtMoney } from "@/lib/format"
+
+export { fmtMoney }
 
 export function fmtDate(fecha: string): string {
   const [y, m, d] = fecha.split("-").map(Number)

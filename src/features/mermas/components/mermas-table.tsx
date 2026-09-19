@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import type { MermaDto } from "@/types/interfaces/merma.interface"
 
@@ -63,7 +64,7 @@ export function MermasTable({ mermas, onEdit, onDelete }: MermasTableProps) {
               </TableCell>
               <TableCell className="text-right font-semibold">{merma.totalUnits}</TableCell>
               <TableCell className="text-right pr-6 font-semibold">
-                C$ {merma.totalValue.toFixed(2)}
+                {fmtMoney(merma.totalValue)}
               </TableCell>
               <TableCell>
                 <div className="flex justify-end">

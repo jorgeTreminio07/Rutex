@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import type { GastoDto } from "@/types/interfaces/gasto.interface"
 
@@ -37,7 +38,7 @@ export function GastosMobileList({ gastos, onEdit, onDelete }: GastosMobileListP
                 <p className="text-xs text-muted-foreground">{formatDate(gasto.createdAt)}</p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                   <Badge variant="outline" className="font-semibold text-[10px]">
-                    C$ {gasto.amount.toFixed(2)}
+                    {fmtMoney(gasto.amount)}
                   </Badge>
                   {gasto.observation && (
                     <Badge variant="outline" className="max-w-40 text-[10px]">

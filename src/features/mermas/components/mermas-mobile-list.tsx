@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import type { MermaDto } from "@/types/interfaces/merma.interface"
 
@@ -40,7 +41,7 @@ export function MermasMobileList({ mermas, onEdit, onDelete }: MermasMobileListP
                   </span>
                 </div>
                 <p className="truncate text-xs font-semibold text-destructive">
-                  − {merma.totalUnits} uds · C$ {merma.totalValue.toFixed(2)}
+                  − {merma.totalUnits} uds · {fmtMoney(merma.totalValue)}
                 </p>
                 <div className="mt-0.5 flex items-center gap-1.5">
                   <Badge variant="secondary" className="max-w-36 text-[10px]">

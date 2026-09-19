@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import type { CompraDto } from "@/types/interfaces/compra.interface"
 
@@ -80,7 +81,7 @@ export function ComprasTable({ compras, onEdit, onDelete }: ComprasTableProps) {
                 )}
               </TableCell>
               <TableCell className="text-right pr-6 font-semibold">
-                C$ {compra.amount.toFixed(2)}
+                {fmtMoney(compra.amount)}
               </TableCell>
               <TableCell>
                 <div className="flex justify-end gap-1">

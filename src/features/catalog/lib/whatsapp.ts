@@ -1,7 +1,7 @@
 import type { CartLine } from "@/features/catalog/store/use-cart-store"
 import type { OrderItem, PaymentType } from "@/types/interfaces/order.interface"
 import type { ProductDto } from "@/types/interfaces/product.interface"
-import { formatQty } from "@/lib/format"
+import { fmtMoney, formatQty } from "@/lib/format"
 
 export interface BankAccountInfo {
   bankName: string
@@ -40,12 +40,12 @@ export function cartTotal(lines: CartLine[]): number {
 
 export function formatPaymentMethodText(paymentType: PaymentType, total: number): string {
   if (paymentType === "cuotas_2") {
-    return `A cuotas - 2 pagos quincenales de C$ ${(total / 2).toFixed(2)} c/u`
+    return `A cuotas - 2 pagos quincenales de ${fmtMoney(total / 2)} c/u`
   }
   if (paymentType === "cuotas_4") {
-    return `A cuotas - 4 pagos semanales de C$ ${(total / 4).toFixed(2)} c/u`
+    return `A cuotas - 4 pagos semanales de ${fmtMoney(total / 4)} c/u`
   }
-  return `De contado (1 solo pago de C$ ${total.toFixed(2)})`
+  return `De contado (1 solo pago de ${fmtMoney(total)})`
 }
 
 export function formatBankAccountsText(bankAccounts?: BankAccountInfo[]): string {
@@ -81,7 +81,7 @@ export function generateProformaCustomerMessage(
           .map((a) => `• ${a.bankName} (${a.currency}): ${a.accountNumber}`)
           .join("\n")
       : "En efectivo al recibir."
-  return `Hola ${customerName}, le enviamos la *PROFORMA* de su pedido *${orderNumber ?? ""}* por C$ ${total.toFixed(2)}.\n\nPuede descargarla aquí: ${proformaUrl}\n\n*Métodos de pago:*\n${bankText}\n\nQuedamos a la espera de su confirmación. ¡Gracias!`
+  return `Hola ${customerName}, le enviamos la *PROFORMA* de su pedido *${orderNumber ?? ""}* por ${fmtMoney(total)}.\n\nPuede descargarla aquí: ${proformaUrl}\n\n*Métodos de pago:*\n${bankText}\n\nQuedamos a la espera de su confirmación. ¡Gracias!`
 }
 
 export interface OrderMessagePayload {
@@ -108,10 +108,10 @@ export function generateOrderWhatsAppUrl(payload: OrderMessagePayload): string {
   items.forEach((item) => {
     const unitPrice = item.price
     const itemTotal = unitPrice * item.quantity
-    text += `• ${formatQty(item.quantity)}x ${item.productName} - C$ ${unitPrice.toFixed(2)} c/u (C$ ${itemTotal.toFixed(2)})\n`
+    text += `• ${formatQty(item.quantity)}x ${item.productName} - ${fmtMoney(unitPrice)} c/u (${fmtMoney(itemTotal)})\n`
   })
 
-  text += `\n*Total a pagar:* C$ ${total.toFixed(2)}\n`
+  text += `\n*Total a pagar:* ${fmtMoney(total)}\n`
   text += `\nQuedo a la espera de la confirmación de mi pedido. Gracias.`
 
   const destPhone = sanitizePhoneNumber(payload.targetPhoneNumber || "")
@@ -145,10 +145,10 @@ export function generateApprovalWhatsAppUrl(payload: ApprovalMessagePayload): st
   text += `*Resumen de su compra:*\n`
 
   order.items.forEach((item) => {
-    text += `• ${formatQty(item.quantity)}x ${item.productName} (C$ ${(item.price * item.quantity).toFixed(2)})\n`
+    text += `• ${formatQty(item.quantity)}x ${item.productName} (${fmtMoney(item.price * item.quantity)})\n`
   })
 
-  text += `\n*Total Final:* C$ ${order.total.toFixed(2)}\n`
+  text += `\n*Total Final:* ${fmtMoney(order.total)}\n`
   text += `*Modalidad de Pago Aprobada:* ${formatPaymentMethodText(paymentType, order.total)}\n`
 
   if (paymentType === "cuotas_2" || paymentType === "cuotas_4") {
@@ -165,7 +165,7 @@ export function generateApprovalWhatsAppUrl(payload: ApprovalMessagePayload): st
         year: "numeric",
       })
       const periodLabel = paymentType === "cuotas_2" ? `Cuota ${i} (15 días)` : `Cuota ${i} (Semana ${i})`
-      text += `• ${periodLabel}: ${formattedDate} - C$ ${quotaAmount.toFixed(2)}\n`
+      text += `• ${periodLabel}: ${formattedDate} - ${fmtMoney(quotaAmount)}\n`
     }
   }
 
@@ -196,7 +196,7 @@ export function generateRejectionWhatsAppUrl(order: {
 
   let text = `*INFORMACIÓN DE SU PEDIDO*\n\n`
   text += `Hola *${order.customerName}*,\n`
-  text += `Le informamos sobre su solicitud de compra *N° ${solicitudNum}* por C$ ${order.total.toFixed(2)}.\n`
+  text += `Le informamos sobre su solicitud de compra *N° ${solicitudNum}* por ${fmtMoney(order.total)}.\n`
   text += `Lamentablemente en este momento no ha podido ser procesada. Si tiene dudas, contáctenos directamente por este medio.`
 
   return `https://wa.me/${customerPhoneClean}?text=${encodeURIComponent(text)}`

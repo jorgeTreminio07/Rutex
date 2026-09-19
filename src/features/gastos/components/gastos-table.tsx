@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import type { GastoDto } from "@/types/interfaces/gasto.interface"
 
@@ -69,7 +70,7 @@ export function GastosTable({ gastos, onEdit, onDelete }: GastosTableProps) {
                 )}
               </TableCell>
               <TableCell className="text-right pr-6 font-semibold">
-                C$ {gasto.amount.toFixed(2)}
+                {fmtMoney(gasto.amount)}
               </TableCell>
               <TableCell>
                 <div className="flex justify-end gap-1">

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { getEffectivePrice } from "@/features/catalog/lib/whatsapp"
+import { fmtMoney } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { ProductDto } from "@/types/interfaces/product.interface"
 
@@ -84,11 +85,11 @@ export function CatalogProductDetailDialog({
             <div className="flex items-end gap-2">
               {hasDiscount && (
                 <span className="text-sm text-muted-foreground line-through">
-                  C$ {product.price.toFixed(2)}
+                  {fmtMoney(product.price)}
                 </span>
               )}
               <span className={cn("text-2xl font-extrabold", hasDiscount && "text-destructive")}>
-                C$ {price.toFixed(2)}
+                {fmtMoney(price)}
               </span>
             </div>
             {outOfStock && (
@@ -140,7 +141,7 @@ export function CatalogProductDetailDialog({
               }}
             >
               <ShoppingCartIcon className="size-4" />
-              Agregar al carrito · C$ {(price * quantity).toFixed(2)}
+              Agregar al carrito · {fmtMoney(price * quantity)}
             </Button>
           </div>
         </div>

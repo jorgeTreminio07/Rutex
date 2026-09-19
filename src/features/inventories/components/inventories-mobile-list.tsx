@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import type { InventoryDto } from "@/types/interfaces/inventory.interface"
 
@@ -45,7 +46,7 @@ export function InventoriesMobileList({
                     {new Date(inventory.createdAt).toLocaleDateString("es-NI")}
                   </span>
                 </div>
-                <p className="text-xs font-semibold">Valor: C$ {inventory.totalValue.toFixed(2)}</p>
+                <p className="text-xs font-semibold">Valor: {fmtMoney(inventory.totalValue)}</p>
                 <div className="flex items-center gap-1.5">
                   <Badge variant="outline" className="text-[10px]">
                     {inventory.items.length} {inventory.items.length === 1 ? "producto" : "productos"}

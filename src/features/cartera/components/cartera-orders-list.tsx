@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import type { CarteraPagoDto } from "@/types/interfaces/cartera.interface"
 
@@ -78,9 +79,7 @@ export function CarteraOrdersList({ orders, onView }: CarteraOrdersListProps) {
                 <TableCell className="text-sm text-muted-foreground">
                   {paymentTypeLabel(order.paymentType)}
                 </TableCell>
-                <TableCell className="text-right font-semibold">
-                  C$ {order.total.toFixed(2)}
-                </TableCell>
+                <TableCell className="text-right font-semibold">{fmtMoney(order.total)}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {nicaDate(order.createdAt)}
                 </TableCell>
@@ -152,7 +151,7 @@ export function CarteraOrdersList({ orders, onView }: CarteraOrdersListProps) {
                 </p>
               </div>
               <div className="text-right text-sm">
-                <p className="font-semibold">C$ {order.total.toFixed(2)}</p>
+                <p className="font-semibold">{fmtMoney(order.total)}</p>
                 <p className="text-xs text-muted-foreground">{nicaDate(order.createdAt)}</p>
               </div>
             </div>

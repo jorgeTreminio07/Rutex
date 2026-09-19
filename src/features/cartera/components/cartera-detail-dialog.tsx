@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { fmtMoney } from "@/lib/format"
 import { useEditarAbono, useEliminarAbono, useRegistrarAbono } from "@/features/cartera/hooks/use-cartera"
 import {
   abonoEstadoLabel,
@@ -84,7 +85,7 @@ function AbonoDeleteDialog({
         <DialogHeader>
           <DialogTitle>Eliminar abono</DialogTitle>
           <DialogDescription>
-            ¿Seguro que deseas eliminar el abono de C$ {registro?.monto.toFixed(2)} registrado el{" "}
+            ¿Seguro que deseas eliminar el abono de {fmtMoney(registro?.monto ?? 0)} registrado el{" "}
             {registro && nicaDate(registro.fecha)}? Se reajustará el saldo y el estado de pago del
             pedido. Esta acción no se puede deshacer.
           </DialogDescription>
@@ -209,16 +210,16 @@ export function CarteraDetailDialog({ order, onOpenChange }: CarteraDetailDialog
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-xl border p-3">
                 <p className="text-xs text-muted-foreground">Deuda total</p>
-                <p className="font-bold">C$ {order.total.toFixed(2)}</p>
+                <p className="font-bold">{fmtMoney(order.total)}</p>
               </div>
               <div className="rounded-xl border p-3">
                 <p className="text-xs text-muted-foreground">Total abonado</p>
-                <p className="font-bold text-primary">C$ {order.abonado.toFixed(2)}</p>
+                <p className="font-bold text-primary">{fmtMoney(order.abonado)}</p>
               </div>
               <div className="rounded-xl border p-3">
                 <p className="text-xs text-muted-foreground">Saldo restante</p>
                 <p className={`font-bold ${saldado ? "text-primary" : "text-destructive"}`}>
-                  C$ {saldo.toFixed(2)}
+                  {fmtMoney(saldo)}
                 </p>
               </div>
             </div>
@@ -275,14 +276,14 @@ export function CarteraDetailDialog({ order, onOpenChange }: CarteraDetailDialog
                         <div className="min-w-0">
                           <p className="text-sm font-semibold">{nicaDate(registro.fecha)}</p>
                           <p className="text-xs text-muted-foreground">
-                            C$ {registro.monto.toFixed(2)}
+                            {fmtMoney(registro.monto)}
                           </p>
                         </div>
                       )}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <p className="hidden text-xs text-muted-foreground sm:block">
-                        Saldo restante C$ {registro.saldoRestante.toFixed(2)}
+                        Saldo restante {fmtMoney(registro.saldoRestante)}
                       </p>
                       {!isEditing && (
                         <>
@@ -332,7 +333,7 @@ export function CarteraDetailDialog({ order, onOpenChange }: CarteraDetailDialog
                       </p>
                       {abono.abonado > 0 && (
                         <p className="text-xs text-muted-foreground">
-                          Abonado C$ {abono.abonado.toFixed(2)}
+                          Abonado {fmtMoney(abono.abonado)}
                           {abono.fechaPago
                             ? ` · ${nicaDate(abono.fechaPago)}`
                             : ""}
@@ -340,7 +341,7 @@ export function CarteraDetailDialog({ order, onOpenChange }: CarteraDetailDialog
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold">C$ {abono.montoAbonar.toFixed(2)}</span>
+                      <span className="font-semibold">{fmtMoney(abono.montoAbonar)}</span>
                       <Badge variant={abonoVariant(abono)}>{abonoEstadoLabel(abono)}</Badge>
                     </div>
                   </div>
@@ -381,7 +382,7 @@ export function CarteraDetailDialog({ order, onOpenChange }: CarteraDetailDialog
                 </div>
                 {Number(monto) > saldo && (
                   <p className="text-xs font-medium text-destructive">
-                    El abono sobrepasa el saldo restante (C$ {saldo.toFixed(2)}).
+                    El abono sobrepasa el saldo restante ({fmtMoney(saldo)}).
                   </p>
                 )}
               </div>

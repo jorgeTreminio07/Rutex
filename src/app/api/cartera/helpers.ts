@@ -1,4 +1,5 @@
 import { buildAbonoPlan, computePagoEstadoId, round2 } from "@/features/cartera/lib/pagos"
+import { fmtMoney } from "@/lib/format"
 import { createClient } from "@/lib/supabase/server"
 
 type Db = Awaited<ReturnType<typeof createClient>>
@@ -42,7 +43,7 @@ export async function applyAbonoRegistros(
   if (totalAbonado > total) {
     return {
       ok: false,
-      message: `Los abonos registrados suman C$ ${totalAbonado.toFixed(2)} y el total del pedido es C$ ${total.toFixed(2)}.`,
+      message: `Los abonos registrados suman ${fmtMoney(totalAbonado)} y el total del pedido es ${fmtMoney(total)}.`,
     }
   }
 
@@ -109,7 +110,7 @@ export async function rebuildOrderAbonos(
   if (totalAbonado > total) {
     return {
       ok: false,
-      message: `El pedido ya tiene C$ ${totalAbonado.toFixed(2)} abonados y el nuevo total (C$ ${total.toFixed(2)}) no puede ser menor a lo cobrado.`,
+      message: `El pedido ya tiene ${fmtMoney(totalAbonado)} abonados y el nuevo total (${fmtMoney(total)}) no puede ser menor a lo cobrado.`,
     }
   }
 

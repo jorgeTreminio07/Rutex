@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf"
 
-import { formatQty } from "@/lib/format"
+import { fmtMoney, formatQty } from "@/lib/format"
 import type { BankAccountInfo } from "@/features/catalog/lib/whatsapp"
 import type { OrderItem, PaymentType } from "@/types/interfaces/order.interface"
 
@@ -110,7 +110,7 @@ export function generateProformaPdf(data: ProformaData): jsPDF {
     const itemTotal = item.price * item.quantity
     doc.text(item.productName.substring(0, 46), descriptionX, y)
     doc.text(formatQty(item.quantity), quantityX, y, { align: "right" })
-    doc.text(`C$ ${itemTotal.toFixed(2)}`, amountX, y, { align: "right" })
+    doc.text(`${fmtMoney(itemTotal)}`, amountX, y, { align: "right" })
     y += 6
   })
 
@@ -122,7 +122,7 @@ export function generateProformaPdf(data: ProformaData): jsPDF {
 
   setFont(doc, "bold", 11)
   doc.setTextColor(16, 185, 129)
-  doc.text(`TOTAL: C$ ${data.total.toFixed(2)}`, pageWidth - margin, y, { align: "right" })
+  doc.text(`TOTAL: ${fmtMoney(data.total)}`, pageWidth - margin, y, { align: "right" })
 
   y += 8
   setFont(doc, "normal", 8)
@@ -156,7 +156,7 @@ export function generateProformaPdf(data: ProformaData): jsPDF {
 }
 
 function formatPaymentText(paymentType: PaymentType, total: number): string {
-  if (paymentType === "cuotas_2") return `2 pagos quincenales de C$ ${(total / 2).toFixed(2)}`
-  if (paymentType === "cuotas_4") return `4 pagos semanales de C$ ${(total / 4).toFixed(2)}`
+  if (paymentType === "cuotas_2") return `2 pagos quincenales de ${fmtMoney(total / 2)}`
+  if (paymentType === "cuotas_4") return `4 pagos semanales de ${fmtMoney(total / 4)}`
   return "Pago de contado"
 }

@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import type { ProfitReportRow, ProfitReportSummary } from "@/types/interfaces/report.interface"
 
@@ -72,8 +73,4 @@ function formatFecha(fecha: string): string {
     day: "2-digit",
     month: "short",
   })
-}
-
-function fmtMoney(value: number): string {
-  return `C$ ${value.toFixed(2)}`
 }

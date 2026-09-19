@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
+import { fmtMoney, formatQty } from "@/lib/format"
 import { usePaged } from "@/lib/use-paged"
-import { formatQty } from "@/lib/format"
 import type { ProductDto } from "@/types/interfaces/product.interface"
 
 const PAGE_SIZE = 10
@@ -56,11 +56,11 @@ export function ProductsMobileList({ products, onEdit, onDelete }: ProductsMobil
                   <div className="flex items-center gap-1">
                       {hasDiscount && (
                         <span className="text-xs text-muted-foreground line-through">
-                          C$ {product.price.toFixed(2)}
+                          {fmtMoney(product.price)}
                         </span>
                       )}
                       <span className={`text-sm font-semibold ${hasDiscount ? "text-destructive" : ""}`}>
-                        C$ {finalPrice.toFixed(2)}
+                        {fmtMoney(finalPrice)}
                       </span>
                     </div>
                 </div>
