@@ -70,16 +70,22 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
     const productById = new Map((products ?? []).map((p) => [p.id, p]))
 
+    const stockMissing: string[] = []
     for (const item of items) {
       if (!item.productId) return badRequest("El pedido contiene productos sin identificar")
       const product = productById.get(item.productId)
+      const needed = Number(item.quantity ?? 0)
       const available = product ? Number(product.stock ?? 0) : 0
-      if (!product || available < (item.quantity ?? 0)) {
+      if (!product || available < needed) {
         const name = product?.name ?? "producto"
-        return badRequest(
-          `Sin stock suficiente para aprobar: ${name} (disponible ${available})`,
-        )
+        const falta = roundQty(needed - available)
+        stockMissing.push(`${name}: faltan ${falta} (disponible ${available})`)
       }
+    }
+    if (stockMissing.length > 0) {
+      return badRequest(
+        `No se puede aprobar: stock insuficiente en ${stockMissing.length} producto(s). ${stockMissing.join("; ")}`,
+      )
     }
 
     for (const item of items) {
@@ -263,16 +269,21 @@ export async function PATCH(request: Request, { params }: RouteContext) {
         .select("id, name, stock")
         .in("id", ids)
       const productById = new Map((products ?? []).map((p) => [p.id, p]))
+      const stockMissing: string[] = []
       for (const [productId, delta] of needingStock) {
         const product = productById.get(productId)
         const available = product ? Number(product.stock ?? 0) : 0
         const needed = -delta
         if (!product || available < needed) {
           const name = product?.name ?? "producto"
-          return badRequest(
-            `Stock insuficiente para editar el pedido: "${name}" (disponible ${available}, necesitas ${needed} más)`,
-          )
+          const falta = roundQty(needed - available)
+          stockMissing.push(`${name}: faltan ${falta} (disponible ${available})`)
         }
+      }
+      if (stockMissing.length > 0) {
+        return badRequest(
+          `No se puede editar: stock insuficiente en ${stockMissing.length} producto(s). ${stockMissing.join("; ")}`,
+        )
       }
     }
 
