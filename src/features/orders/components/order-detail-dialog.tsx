@@ -154,55 +154,58 @@ export function OrderDetailDialog({
             )}
 
             <DialogFooter>
-              {(order.statusId === 5 || order.statusId === 6) && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="gap-2"
-                  disabled={isPending}
-                  title={
-                    order.statusId === 6
-                      ? "Editar el pedido aprobado ajusta inventario, cartera y proforma"
-                      : undefined
-                  }
-                  onClick={() => onEdit(order)}
-                >
-                  <PencilIcon className="size-4" />
-                  Editar
-                </Button>
-              )}
-              {order.statusId === 5 && (
-                <>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:justify-end sm:gap-2">
+                {(order.statusId === 5 || order.statusId === 6) && (
                   <Button
                     type="button"
                     variant="outline"
-                    className="text-destructive border-destructive/20 hover:bg-destructive/5"
+                    className="gap-2 sm:order-1"
                     disabled={isPending}
-                    onClick={() => onReject(order)}
+                    title={
+                      order.statusId === 6
+                        ? "Editar el pedido aprobado ajusta inventario, cartera y proforma"
+                        : undefined
+                    }
+                    onClick={() => onEdit(order)}
                   >
-                    Rechazar
+                    <PencilIcon className="size-4" />
+                    Editar
                   </Button>
-                  <Button
-                    type="button"
-                    variant="default"
-                    disabled={isPending || !order.canApprove}
-                    title={order.canApprove ? undefined : "Sin stock suficiente para aprobar"}
-                    onClick={() => onApprove(order)}
-                  >
-                    Aprobar
-                  </Button>
-                </>
-              )}
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-destructive hover:text-destructive"
-                disabled={isPending}
-                onClick={() => onDelete(order)}
-              >
-                <Trash2Icon />
-                Eliminar
-              </Button>
+                )}
+                {order.statusId === 5 && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="default"
+                      className="sm:order-3"
+                      disabled={isPending || !order.canApprove}
+                      title={order.canApprove ? undefined : "Sin stock suficiente para aprobar"}
+                      onClick={() => onApprove(order)}
+                    >
+                      Aprobar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="text-destructive border-destructive/20 hover:bg-destructive/5 sm:order-2"
+                      disabled={isPending}
+                      onClick={() => onReject(order)}
+                    >
+                      Rechazar
+                    </Button>
+                  </>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive sm:order-4"
+                  disabled={isPending}
+                  onClick={() => onDelete(order)}
+                >
+                  <Trash2Icon />
+                  Eliminar
+                </Button>
+              </div>
             </DialogFooter>
           </>
         )}
