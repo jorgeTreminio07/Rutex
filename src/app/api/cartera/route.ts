@@ -12,7 +12,7 @@ interface OrderRow {
   total: number
   payment_type: string
   created_at: string
-  pagos: { estado_pago_id: number }[] | null
+  pagos: { estado_pago_id: number } | { estado_pago_id: number }[] | null
 }
 
 interface AbonoRow {
@@ -133,7 +133,8 @@ export async function GET(request: Request) {
       fecha: r.fecha,
     }))
     const totalAbonado = abonos.reduce((sum, a) => sum + a.abonado, 0)
-    const estadoPagoId = (o.pagos?.[0]?.estado_pago_id as number | undefined) ?? 1
+    const pago = Array.isArray(o.pagos) ? o.pagos[0] : o.pagos
+    const estadoPagoId = pago?.estado_pago_id ?? 1
     return {
       id: o.id,
       orderNumber: o.order_number,
