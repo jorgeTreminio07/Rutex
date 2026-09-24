@@ -18,6 +18,7 @@ import {
   type SavedPrinter,
 } from "@/features/printing/lib/bluetooth"
 import { buildReceiptBlocks, encodeReceiptEscPos, type ReceiptPaperSize } from "@/features/printing/lib/receipt"
+import { getClientsRequest } from "@/features/clients/api/clients.api"
 import type { OrderDto } from "@/types/interfaces/order.interface"
 import type { StoreProfileDto } from "@/types/interfaces/store.interface"
 import { cn } from "@/lib/utils"
@@ -29,9 +30,10 @@ interface ReceiptPrintViewProps {
 }
 
 export function ReceiptPrintView({ store, order, size }: ReceiptPrintViewProps) {
+  const [cedula, setCedula] = useState<string | null>(null)
   const blocks = useMemo(
-    () => buildReceiptBlocks(store ?? {}, order, size),
-    [store, order, size],
+    () => buildReceiptBlocks(store ?? {}, order, size, cedula),
+    [store, order, size, cedula],
   )
   const [printer, setPrinter] = useState<ReceiptPrinter | null>(null)
   const [remembered, setRemembered] = useState<SavedPrinter | null>(null)
@@ -42,6 +44,30 @@ export function ReceiptPrintView({ store, order, size }: ReceiptPrintViewProps) 
   const [copied, setCopied] = useState(false)
 
   const plainText = useMemo(() => blocks.map((block) => block.text).join("\n"), [blocks])
+
+  // La cédula del cliente (solo se muestra si se encuentra un cliente registrado
+  // con EXACTAMENTE el mismo nombre del pedido; los pedidos del carrito o con
+  // nombre libre no coinciden y se omite la línea).
+  useEffect(() => {
+    let cancelled = false
+    const name = order.customerName?.trim()
+    if (!name) return
+    getClientsRequest()
+      .then((clients) => {
+        if (cancelled) return
+        const normalized = name.toLocaleLowerCase()
+        const match = clients.find(
+          (c) => c.cedula && c.fullName.trim().toLocaleLowerCase() === normalized,
+        )
+        setCedula(match?.cedula ?? null)
+      })
+      .catch(() => {
+        if (!cancelled) setCedula(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [order.customerName])
 
   const handleCopy = async () => {
     try {
@@ -152,13 +178,13 @@ export function ReceiptPrintView({ store, order, size }: ReceiptPrintViewProps) 
     try {
       let target = await pickPrinter()
       try {
-        await target.write(encodeReceiptEscPos(store ?? {}, order, size))
+        await target.write(encodeReceiptEscPos(store ?? {}, order, size, cedula))
       } catch {
         // la conexión pudo caerse (impresora apagada / fuera de alcance):
         // descartarla, reconectar a la guardada y reintentar una vez
         disconnectActiveReceiptPrinter()
         target = await pickPrinter()
-        await target.write(encodeReceiptEscPos(store ?? {}, order, size))
+        await target.write(encodeReceiptEscPos(store ?? {}, order, size, cedula))
       }
       rememberPrinter(target)
       toast.success("Recibo enviado a la impresora")

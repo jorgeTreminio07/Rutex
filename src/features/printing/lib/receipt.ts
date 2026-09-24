@@ -118,6 +118,7 @@ export function buildReceiptBlocks(
   store: Partial<StoreProfileDto>,
   order: OrderDto,
   size: ReceiptPaperSize = DEFAULT_PAPER,
+  customerCedula?: string | null,
 ): ReceiptBlock[] {
   const chars = size.chars
   const blocks: ReceiptBlock[] = []
@@ -142,6 +143,9 @@ export function buildReceiptBlocks(
     pushWrapped(blocks, `Pedido: ${order.orderNumber}`, chars)
   }
   pushWrapped(blocks, `Cliente: ${order.customerName}`, chars)
+  if (customerCedula?.trim()) {
+    pushWrapped(blocks, `Cédula: ${customerCedula.trim()}`, chars)
+  }
   if (order.customerAddress?.trim()) {
     pushWrapped(blocks, `Dirección: ${order.customerAddress.trim()}`, chars)
   }
@@ -176,6 +180,7 @@ export function encodeReceiptEscPos(
   store: Partial<StoreProfileDto>,
   order: OrderDto,
   size: ReceiptPaperSize = DEFAULT_PAPER,
+  customerCedula?: string | null,
 ): Uint8Array {
-  return encodeEscPos(buildReceiptBlocks(store, order, size), size.chars)
+  return encodeEscPos(buildReceiptBlocks(store, order, size, customerCedula), size.chars)
 }
