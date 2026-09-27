@@ -13,6 +13,7 @@ import {
   getProductSalesReportRequest,
   getProfitReportRequest,
   getResumenReportRequest,
+  getStockReportRequest,
 } from "@/features/reports/api/reports.api"
 
 export const reportsKeys = {
@@ -26,6 +27,8 @@ export const reportsKeys = {
   mermas: (from: string, to: string) => ["reports", "mermas", from, to] as const,
   perdidas: (from: string, to: string) => ["reports", "perdidas", from, to] as const,
   resumen: (from: string, to: string) => ["reports", "resumen", from, to] as const,
+  // El reporte de inventario es un snapshot del stock actual: no lleva rango.
+  stock: () => ["reports", "stock"] as const,
 }
 
 export function useProfitReport(from: string, to: string) {
@@ -105,5 +108,12 @@ export function useResumenReport(from: string, to: string) {
     queryKey: reportsKeys.resumen(from, to),
     queryFn: () => getResumenReportRequest(from, to),
     placeholderData: keepPreviousData,
+  })
+}
+
+export function useStockReport() {
+  return useQuery({
+    queryKey: reportsKeys.stock(),
+    queryFn: () => getStockReportRequest(),
   })
 }

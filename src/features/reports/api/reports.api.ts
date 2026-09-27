@@ -10,6 +10,7 @@ import type {
   ProductSalesReportDto,
   ProfitReportDto,
   ResumenReportDto,
+  StockReportDto,
 } from "@/types/interfaces/report.interface"
 
 const rangeParams = (from: string, to: string) =>
@@ -65,4 +66,8 @@ export async function getResumenReportRequest(
   to: string,
 ): Promise<ResumenReportDto> {
   return apiClient.get<ResumenReportDto>(`/api/reports/resumen?${rangeParams(from, to)}`)
+}
+
+export async function getStockReportRequest(): Promise<StockReportDto> {
+  return apiClient.get<StockReportDto>("/api/reports/stock")
 }

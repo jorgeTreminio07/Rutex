@@ -11,14 +11,13 @@ import { ReportToolbar } from "@/features/reports/components/report-toolbar"
 import { SummaryCard } from "@/features/reports/components/summary-card"
 import { usePerdidaReport } from "@/features/reports/hooks/use-reports"
 import { useReportDateRange } from "@/features/reports/lib/date-range"
-import { exportRowsToExcel } from "@/features/reports/lib/excel"
+import { exportRowsToExcel, QTY_FORMAT } from "@/features/reports/lib/excel"
 import { fmtMoney, rangeName } from "@/features/reports/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { PerdidaReportDto } from "@/types/interfaces/report.interface"
 
 const MONEY = "#,##0.00"
-const QUANTITY = "0.###"
 const PAGE_SIZE = 15
 const MOBILE_PAGE_SIZE = 10
 
@@ -212,7 +211,7 @@ async function exportPerdidas(dto: PerdidaReportDto): Promise<void> {
       { header: "Nº merma", key: "mermaNumber", width: 20 },
       { header: "Producto", key: "producto", width: 40 },
       { header: "Motivo", key: "motivo", width: 30 },
-      { header: "Cantidad", key: "cantidad", width: 12, numFmt: QUANTITY },
+      { header: "Cantidad", key: "cantidad", width: 12, numFmt: QTY_FORMAT },
       { header: "Pérdida al costo", key: "costoPerdido", width: 15, numFmt: MONEY },
       { header: "Valor de venta perdido", key: "valorVentaPerdido", width: 17, numFmt: MONEY },
     ],

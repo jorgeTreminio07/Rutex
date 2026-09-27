@@ -11,14 +11,13 @@ import { ReportToolbar } from "@/features/reports/components/report-toolbar"
 import { SummaryCard } from "@/features/reports/components/summary-card"
 import { useMermaReport } from "@/features/reports/hooks/use-reports"
 import { useReportDateRange } from "@/features/reports/lib/date-range"
-import { exportRowsToExcel } from "@/features/reports/lib/excel"
+import { exportRowsToExcel, QTY_FORMAT } from "@/features/reports/lib/excel"
 import { fmtMoney, rangeName } from "@/features/reports/lib/format"
 import { usePaged } from "@/lib/use-paged"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { MermaReportDto } from "@/types/interfaces/report.interface"
 
 const MONEY = "#,##0.00"
-const QUANTITY = "0.###"
 const PAGE_SIZE = 15
 const MOBILE_PAGE_SIZE = 10
 
@@ -205,7 +204,7 @@ async function exportMermas(dto: MermaReportDto): Promise<void> {
       { header: "Fecha", key: "fecha", width: 14 },
       { header: "Nº merma", key: "mermaNumber", width: 20 },
       { header: "Motivo", key: "motivo", width: 30 },
-      { header: "Unidades", key: "unidades", width: 12, numFmt: QUANTITY },
+      { header: "Unidades", key: "unidades", width: 12, numFmt: QTY_FORMAT },
       { header: "Costo", key: "costo", width: 14, numFmt: MONEY },
       { header: "Valor venta", key: "valorVenta", width: 14, numFmt: MONEY },
     ],

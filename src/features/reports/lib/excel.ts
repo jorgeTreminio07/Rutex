@@ -4,6 +4,14 @@ import type { ProfitReportDto } from "@/types/interfaces/report.interface"
 
 const MONEY_FORMAT = "#,##0.00"
 
+/**
+ * Formato para cantidades fraccionarias (el stock admite hasta 3 decimales).
+ * OJO: no usar "0.###" — Excel imprime SIEMPRE el punto decimal de un formato
+ * con punto, así que un stock entero de 10 saldría como "10.". Con "General"
+ * queda "10" y "2.5" se mantiene "2.5".
+ */
+export const QTY_FORMAT = "General"
+
 export interface ExcelColumn {
   header: string
   key: string
@@ -104,7 +112,7 @@ export async function exportProfitToExcel(dto: ProfitReportDto): Promise<void> {
     { header: "Fecha", key: "fecha", width: 14 },
     { header: "Pedido", key: "orderNumber", width: 18 },
     { header: "Producto", key: "productName", width: 42 },
-    { header: "Cantidad", key: "cantidad", width: 10, numFmt: "0.###" },
+    { header: "Cantidad", key: "cantidad", width: 10, numFmt: QTY_FORMAT },
     { header: "P. Compra", key: "precioCompra", width: 12, numFmt: MONEY_FORMAT },
     { header: "P. Venta", key: "precioVenta", width: 12, numFmt: MONEY_FORMAT },
     { header: "Ganancia", key: "ganancia", width: 13, numFmt: MONEY_FORMAT },

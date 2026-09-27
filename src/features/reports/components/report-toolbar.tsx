@@ -20,6 +20,8 @@ interface ReportToolbarProps {
   canExport?: boolean
   isFetching?: boolean
   footer?: string
+  /** Los reportes de snapshot (inventario actual) no filtran por fecha: oculta el rango. */
+  showDates?: boolean
 }
 
 export function ReportToolbar({
@@ -35,38 +37,43 @@ export function ReportToolbar({
   canExport = true,
   isFetching = false,
   footer,
+  showDates = true,
 }: ReportToolbarProps) {
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex flex-wrap items-center gap-2">
-        <DatePicker value={from} onChange={onFromChange} placeholder="Desde" className="w-40" />
-        <DatePicker value={to} onChange={onToChange} placeholder="Hasta" className="w-40" />
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9"
-            onClick={() => onPreset(today, today)}
-          >
-            Hoy
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9"
-            onClick={() => onPreset(addDays(today, -6), today)}
-          >
-            7 días
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9"
-            onClick={() => onPreset(monthStart, today)}
-          >
-            Este mes
-          </Button>
-        </div>
+        {showDates && (
+          <>
+            <DatePicker value={from} onChange={onFromChange} placeholder="Desde" className="w-40" />
+            <DatePicker value={to} onChange={onToChange} placeholder="Hasta" className="w-40" />
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => onPreset(today, today)}
+              >
+                Hoy
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => onPreset(addDays(today, -6), today)}
+              >
+                7 días
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => onPreset(monthStart, today)}
+              >
+                Este mes
+              </Button>
+            </div>
+          </>
+        )}
         <Button onClick={onExport} disabled={isExporting || !canExport}>
           {isExporting ? <Loader2Icon className="animate-spin" /> : <FileSpreadsheetIcon />}
           {isExporting ? "Generando…" : "Exportar Excel"}

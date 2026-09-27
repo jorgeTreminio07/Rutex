@@ -10,7 +10,7 @@ import { ReportToolbar } from "@/features/reports/components/report-toolbar"
 import { SummaryCard } from "@/features/reports/components/summary-card"
 import { useProductSalesReport } from "@/features/reports/hooks/use-reports"
 import { useReportDateRange } from "@/features/reports/lib/date-range"
-import { exportRowsToExcel } from "@/features/reports/lib/excel"
+import { exportRowsToExcel, QTY_FORMAT } from "@/features/reports/lib/excel"
 import { fmtMoney, rangeName } from "@/features/reports/lib/format"
 import type { ProductSalesReportDto } from "@/types/interfaces/report.interface"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
@@ -182,7 +182,7 @@ async function exportProductSales(dto: ProductSalesReportDto): Promise<void> {
     filename: `ventas-por-producto-${rangeName(dto.from, dto.to)}.xlsx`,
     columns: [
       { header: "Producto", key: "productName", width: 42 },
-      { header: "Unidades", key: "cantidad", width: 12, numFmt: "0.###" },
+      { header: "Unidades", key: "cantidad", width: 12, numFmt: QTY_FORMAT },
       { header: "Ventas", key: "ventas", width: 14, numFmt: MONEY },
       { header: "Costo", key: "costo", width: 14, numFmt: MONEY },
       { header: "Ganancia", key: "ganancia", width: 14, numFmt: MONEY },

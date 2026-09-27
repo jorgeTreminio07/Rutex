@@ -254,6 +254,32 @@ export interface PerdidaReportDto {
   summary: PerdidaReportSummary
 }
 
+export interface StockReportRow {
+  producto: string
+  categoria: string
+  stock: number
+  precioCompra: number
+  precioVenta: number
+  valorCosto: number
+  valorVenta: number
+  estado: string
+}
+
+export interface StockReportSummary {
+  productos: number
+  unidades: number
+  valorCosto: number
+  valorVenta: number
+  agotados: number
+  stockBajo: number
+}
+
+export interface StockReportDto {
+  generatedAt: string
+  rows: StockReportRow[]
+  summary: StockReportSummary
+}
+
 export interface ResumenDiaRow {
   fecha: string
   ventas: number

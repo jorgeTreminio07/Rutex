@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import {
+  BoxesIcon,
   CircleDollarSignIcon,
   Clock3Icon,
   HandCoinsIcon,
@@ -23,6 +24,7 @@ import { PerdidasReport } from "@/features/reports/components/perdidas-report"
 import { ProductsReport } from "@/features/reports/components/products-report"
 import { ProfitReport } from "@/features/reports/components/profit-report"
 import { ResumenReport } from "@/features/reports/components/resumen-report"
+import { StockReport } from "@/features/reports/components/stock-report"
 
 export interface ReportDef {
   id: string
@@ -90,6 +92,14 @@ export const REPORTS: ReportDef[] = [
     description: "Bajas de stock del período: unidades, costo y valor a precio de venta.",
     icon: PackageXIcon,
     component: MermasReport,
+  },
+  {
+    id: "stock",
+    label: "Inventario actual",
+    description:
+      "Existencias de cada producto con su valor a costo y a precio de venta, más avisos de agotados y stock bajo.",
+    icon: BoxesIcon,
+    component: StockReport,
   },
   {
     id: "perdidas",

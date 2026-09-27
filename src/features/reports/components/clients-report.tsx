@@ -10,7 +10,7 @@ import { ReportToolbar } from "@/features/reports/components/report-toolbar"
 import { SummaryCard } from "@/features/reports/components/summary-card"
 import { useClientSalesReport } from "@/features/reports/hooks/use-reports"
 import { useReportDateRange } from "@/features/reports/lib/date-range"
-import { exportRowsToExcel } from "@/features/reports/lib/excel"
+import { exportRowsToExcel, QTY_FORMAT } from "@/features/reports/lib/excel"
 import { fmtMoney, rangeName } from "@/features/reports/lib/format"
 import type { ClientSalesReportDto } from "@/types/interfaces/report.interface"
 import { DataTablePagination } from "@/components/data-table/data-table-pagination"
@@ -181,7 +181,7 @@ async function exportClientSales(dto: ClientSalesReportDto): Promise<void> {
     columns: [
       { header: "Cliente", key: "cliente", width: 32 },
       { header: "Pedidos", key: "pedidos", width: 12, numFmt: "0" },
-      { header: "Unidades", key: "unidades", width: 12, numFmt: "0.###" },
+      { header: "Unidades", key: "unidades", width: 12, numFmt: QTY_FORMAT },
       { header: "Ventas", key: "ventas", width: 14, numFmt: MONEY },
       { header: "Ganancia", key: "ganancia", width: 14, numFmt: MONEY },
     ],
