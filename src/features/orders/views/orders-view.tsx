@@ -59,6 +59,7 @@ export function OrdersView() {
   const [page, setPage] = useState(1)
 
   const debouncedSearch = useDebouncedValue(search.trim(), 300)
+  const [newOrderKey, setNewOrderKey] = useState(0)
 
   const { data, isLoading, isError, error } = useOrders({
     page,
@@ -224,7 +225,13 @@ export function OrdersView() {
             </p>
           )}
         </div>
-        <Button onClick={() => setFormOpen(true)} className="gap-2">
+        <Button
+          onClick={() => {
+            setNewOrderKey((k) => k + 1)
+            setFormOpen(true)
+          }}
+          className="gap-2"
+        >
           <PlusIcon className="size-4" />
           Nuevo pedido
         </Button>
@@ -339,7 +346,7 @@ export function OrdersView() {
       />
 
       <OrderFormDialog
-        key={editing?.id ?? "nuevo-pedido"}
+        key={editing?.id ?? `nuevo-${newOrderKey}`}
         open={formOpen || editing !== null}
         onOpenChange={(open) => {
           if (!open) {
