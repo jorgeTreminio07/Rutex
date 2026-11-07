@@ -26,6 +26,7 @@ import {
   productSchema,
   type ProductFormData,
 } from "@/features/products/validations/product.schema"
+import { formatQty } from "@/lib/format"
 import type { ProductDto } from "@/types/interfaces/product.interface"
 
 interface ProductFormDialogProps {
@@ -133,6 +134,7 @@ export function ProductFormDialog({
       price: product?.price != null ? String(product.price) : "",
       discountPercent: product?.discountPercent != null ? String(product.discountPercent) : "",
       category: product?.category ?? "",
+      stock: product ? formatQty(product.stock) : undefined,
       images: product?.images ?? [],
     },
   })
@@ -264,6 +266,24 @@ export function ProductFormDialog({
                 {...form.register("price")}
               />
             </Field>
+
+            {product && (
+              <Field label="Stock actual" htmlFor="product-stock" error={form.formState.errors.stock?.message}>
+                <Input
+                  id="product-stock"
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  inputMode="decimal"
+                  className="h-10 rounded-xl"
+                  aria-invalid={!!form.formState.errors.stock?.message}
+                  {...form.register("stock")}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Unidades disponibles. Admite decimales (ej. 0.5, 1.25).
+                </p>
+              </Field>
+            )}
 
             <Field label="% Descuento" htmlFor="product-discount" error={form.formState.errors.discountPercent?.message}>
               <Input

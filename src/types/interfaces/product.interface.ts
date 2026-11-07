@@ -32,5 +32,6 @@ export interface UpdateProductPayload {
   price?: number
   discountPercent?: number
   category?: string
+  stock?: number
   images?: string[]
 }

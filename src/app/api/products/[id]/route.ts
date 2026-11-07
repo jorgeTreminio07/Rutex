@@ -98,7 +98,13 @@ export async function PUT(request: Request, { params }: RouteContext) {
   if (body.price !== undefined) updates.price = Number(body.price)
   if (body.discountPercent !== undefined) updates.discount_percent = Number(body.discountPercent)
   if (body.category !== undefined) updates.category = (body.category as string).trim()
-  if (body.stock !== undefined) updates.stock = Number(body.stock)
+  if (body.stock !== undefined) {
+    const stock = Number(body.stock)
+    if (!Number.isFinite(stock) || stock < 0) {
+      return badRequest("El stock debe ser un número mayor o igual a 0")
+    }
+    updates.stock = Math.round(stock * 1000) / 1000
+  }
   if (body.images !== undefined) updates.images = body.images
 
   const { data, error } = await supabase
